@@ -1,6 +1,7 @@
 -- ==============================================================================
 -- BASE DE DATOS: ECOMMERCE_TIENDA (PostgreSQL)
 -- Modelo Relacional de la Tienda Virtual
+-- Ubcación: backend/database/init.sql
 -- ==============================================================================
 
 -- 1. TABLA: Roles de usuario

@@ -37,12 +37,45 @@ Este proyecto implementa un sistema completo de **Tienda Virtual / E-Commerce** 
 +---------------------------------+      +-----------------------------------+
 ```
 
+PROYECTO_SI2_EXAMEN/
+├── backend/                    # ⚡ BACKEND (FastAPI - Python + Base de Datos)
+│   ├── database/               # 🗄️ BASE DE DATOS (PostgreSQL)
+│   │   └── init.sql            # Script DDL (Tablas, Claves Foráneas y Semilla)
+│   ├── app/
+│   │   ├── models/             # 🔹 MODEL: Clases ORM (SQLAlchemy)
+│   │   │   └── models.py
+│   │   ├── schemas/            # Schemas de Validación Pydantic (DTOs)
+│   │   │   └── schemas.py
+│   │   ├── controllers/        # 🔹 CONTROLLER: Lógica de negocio y transacciones DB
+│   │   │   ├── product_controller.py
+│   │   │   ├── order_controller.py
+│   │   │   └── auth_controller.py
+│   │   ├── views/              # 🔹 VIEW: Endpoints REST (FastAPI Routers -> JSON Views)
+│   │   │   ├── product_views.py
+│   │   │   ├── order_views.py
+│   │   │   └── auth_views.py
+│   │   ├── core/               # Conexión DB y Configuración
+│   │   └── main.py             # Punto de entrada de FastAPI
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend-web/               # 🅰️ FRONTEND WEB (Angular)
+│   └── src/app/
+│       ├── models/             # 🔹 MODEL: Interfaces TypeScript (`product.model.ts`, `cart.model.ts`)
+│       ├── controllers/        # 🔹 CONTROLLER: Servicios de Estado y HTTP (`product.service.ts`)
+│       └── views/              # 🔹 VIEW: Componentes HTML/CSS (`product-catalog.component.html/ts/css`)
+├── mobile-app/                 # 📱 APP MÓVIL (Flutter / Dart)
+│   └── lib/
+│       ├── models/             # 🔹 MODEL: Clases Dart y Deserialización JSON (`product_model.dart`)
+│       ├── controllers/        # 🔹 CONTROLLER: State Controllers con ChangeNotifier (`product_controller.dart`)
+│       └── views/              # 🔹 VIEW: Pantallas / Widgets (`product_list_view.dart`, `cart_view.dart`)
+└── README.md                   # 📖 Documentación explicativa completa del Patrón MVC
+
 ---
 
 ## 📚 Mapeo Detallado del Patrón MVC
 
 ### 1. 🗄️ Base de Datos (PostgreSQL)
-* Archivo: `database/init.sql`
+* Archivo: `backend/database/init.sql`
 * Define el esquema relacional con tablas para `usuarios`, `roles`, `categorias`, `productos`, `ordenes` y `orden_detalles`.
 
 ---
