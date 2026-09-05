@@ -1,0 +1,60 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>{{ isEdit ? 'person' : 'person_add' }}</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>{{ isEdit ? 'Editar Datos de Cliente' : 'Registrar Nuevo Cliente' }}</h2>
+    <p class="dialog-subtitle">{{ isEdit ? 'Actualizar información del comprador en el sistema retail' : 'Ingresa los datos personales del cliente' }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nombre del Cliente</mat-label>
+        <input matInput formControlName="nombre" placeholder="Ej. María" id="input-cliente-nombre">
+        <mat-icon matSuffix>badge</mat-icon>
+        <mat-error *ngIf="form.get('nombre')?.hasError('required')">El nombre es obligatorio.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Apellido(s)</mat-label>
+        <input matInput formControlName="apellido" placeholder="Ej. Gómez" id="input-cliente-apellido">
+        <mat-icon matSuffix>badge</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Correo Electrónico</mat-label>
+        <input matInput formControlName="email" type="email" placeholder="cliente@email.com" id="input-cliente-email">
+        <mat-icon matSuffix>email</mat-icon>
+        <mat-error *ngIf="form.get('email')?.hasError('required')">El correo es obligatorio.</mat-error>
+        <mat-error *ngIf="form.get('email')?.hasError('email')">Formato de correo inválido.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Teléfono / WhatsApp</mat-label>
+        <input matInput formControlName="telefono" placeholder="+591 70000000" id="input-cliente-telefono">
+        <mat-icon matSuffix>phone</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ isEdit ? 'Nueva Contraseña (Opcional)' : 'Contraseña de Acceso' }}</mat-label>
+      <input matInput formControlName="password" type="password" placeholder="••••••••" id="input-cliente-password">
+      <mat-icon matSuffix>lock</mat-icon>
+      <mat-error *ngIf="form.get('password')?.hasError('required')">La contraseña es requerida.</mat-error>
+      <mat-error *ngIf="form.get('password')?.hasError('minlength')">Mínimo 6 caracteres.</mat-error>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-cliente">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-save-cliente" class="btn-save">
+      <mat-icon>save</mat-icon>
+      <span>{{ isEdit ? 'Guardar Cambios' : 'Registrar Cliente' }}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

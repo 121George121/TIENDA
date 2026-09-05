@@ -3,9 +3,23 @@
 # Definen la forma de los datos que entran y salen de la API REST
 # ==============================================================================
 
-from pydantic import BaseModel, EmailStr
+import re
+from pydantic import BaseModel, EmailStr, field_validator, Field, AliasChoices, ConfigDict
 from typing import Optional, List
 from datetime import datetime
+
+def validate_password_complexity(v: str) -> str:
+    if len(v) < 8:
+        raise ValueError('La contraseña debe tener al menos 8 caracteres')
+    if not re.search(r'[A-Z]', v):
+        raise ValueError('La contraseña debe tener al menos una mayúscula')
+    if not re.search(r'[a-z]', v):
+        raise ValueError('La contraseña debe tener al menos una minúscula')
+    if not re.search(r'[0-9]', v):
+        raise ValueError('La contraseña debe tener al menos un número')
+    if not re.search(r'[\W_]', v):
+        raise ValueError('La contraseña debe tener al menos un carácter especial')
+    return v
 
 # --- USUARIO ---
 class UsuarioBase(BaseModel):
@@ -14,76 +28,99 @@ class UsuarioBase(BaseModel):
 
 class UsuarioCreate(UsuarioBase):
     password: str
+    apellido: Optional[str] = None
+    telefono: Optional[str] = None
+
+    @field_validator('password')
+    @classmethod
+    def password_strong(cls, v):
+        return validate_password_complexity(v)
+
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = None
+    rol_id: Optional[int] = Field(default=None, validation_alias=AliasChoices('rol_id', 'rolid'))
+    activo: Optional[bool] = None
+
+class UsuarioEstadoUpdate(BaseModel):
+    activo: bool
+
+class UsuarioRolUpdate(BaseModel):
+    rol_id: int
+
+class UsuarioAdminCreate(BaseModel):
+    nombre: str
+    apellido: Optional[str] = None
+    email: EmailStr
+    password: str
+    telefono: Optional[str] = None
+    rol_id: Optional[int] = Field(default=None, validation_alias=AliasChoices('rol_id', 'rolid'))
+    activo: Optional[bool] = True
+
+    @field_validator('password')
+    @classmethod
+    def password_strong(cls, v):
+        return validate_password_complexity(v)
+
+class RolBase(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+
+class RolCreate(RolBase):
+    permisos: Optional[List[str]] = []
+
+class RolResponse(RolBase):
+    id: int
+    permisos: Optional[List[str]] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PermisosUpdate(BaseModel):
+    permisos: List[str]
+
+from typing import Optional, List, Any, Union
 
 class UsuarioResponse(UsuarioBase):
     id: int
     activo: bool
-    created_at: datetime
+    apellido: Optional[str] = None
+    telefono: Optional[str] = None
+    created_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices('created_at', 'fechacreacion'))
+    fechacreacion: Optional[datetime] = Field(default=None, validation_alias=AliasChoices('fechacreacion', 'created_at'))
+    rol_id: Optional[int] = Field(default=None, validation_alias=AliasChoices('rol_id', 'rolid'))
+    rolid: Optional[int] = Field(default=None, validation_alias=AliasChoices('rolid', 'rol_id'))
+    rol: Optional[Union[RolResponse, str]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    usuario: UsuarioResponse
+    rol: Optional[str] = None
+
+class PasswordRecoveryRequest(BaseModel):
+    email: EmailStr
+
+class PasswordRecoveryReset(BaseModel):
+    token: str
+    new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def password_strong(cls, v):
+        return validate_password_complexity(v)
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    codigo: str
+
+class VerifyOtpResponse(BaseModel):
+    mensaje: str
     access_token: str
     token_type: str = "bearer"
     usuario: UsuarioResponse
 
-# --- PRODUCTO ---
-class ProductoBase(BaseModel):
-    nombre: str
-    descripcion: Optional[str] = None
-    precio: float
-    stock: int
-    categoria_id: Optional[int] = None
-    imagen_url: Optional[str] = None
-
-class ProductoCreate(ProductoBase):
-    pass
-
-class ProductoResponse(ProductoBase):
-    id: int
-    activo: bool
-
-    class Config:
-        from_attributes = True
-
-# --- CATEGORIA ---
-class CategoriaResponse(BaseModel):
-    id: int
-    nombre: str
-    descripcion: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-# --- ORDEN DETALLE ---
-class OrdenDetalleCreate(BaseModel):
-    producto_id: int
-    cantidad: int
-
-class OrdenDetalleResponse(BaseModel):
-    id: int
-    producto_id: int
-    cantidad: int
-    precio_unitario: float
-    subtotal: float
-
-    class Config:
-        from_attributes = True
-
-# --- ORDEN ---
-class OrdenCreate(BaseModel):
-    direccion_envio: str
-    items: List[OrdenDetalleCreate]
-
-class OrdenResponse(BaseModel):
-    id: int
-    usuario_id: int
-    total: float
-    estado: str
-    direccion_envio: str
-    created_at: datetime
-    detalles: List[OrdenDetalleResponse]
-
-    class Config:
-        from_attributes = True

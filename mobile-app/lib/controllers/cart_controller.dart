@@ -4,13 +4,18 @@
 // ==============================================================================
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/product_model.dart';
 import '../models/cart_item_model.dart';
 
 class CartController extends ChangeNotifier {
-  final String _orderUrl = "http://10.0.2.2:8000/api/v1/ordenes/";
+  static String get _orderUrl {
+    if (kIsWeb) return 'http://localhost:8000/api/v1/ordenes/';
+    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1/ordenes/';
+    return 'http://127.0.0.1:8000/api/v1/ordenes/';
+  }
   
   final Map<int, CartItemModel> _items = {};
 

@@ -1,0 +1,50 @@
+// ==============================================================================
+// MODELO DE USUARIO (MVC - MODEL)
+// DTO de Usuario para la aplicación móvil
+// ==============================================================================
+
+class UserModel {
+  final int id;
+  final String nombre;
+  final String email;
+  final bool activo;
+  final String? rol;
+  final String? token;
+  final String? refreshToken;
+
+  UserModel({
+    required this.id,
+    required this.nombre,
+    required this.email,
+    required this.activo,
+    this.rol,
+    this.token,
+    this.refreshToken,
+  });
+
+  factory UserModel.fromJson(Map<String, dynamic> json, {String? token, String? refreshToken, String? rol}) {
+    final usuarioData = json['usuario'] is Map<String, dynamic> ? json['usuario'] : json;
+    
+    return UserModel(
+      id: usuarioData['id'] ?? 0,
+      nombre: usuarioData['nombre'] ?? '',
+      email: usuarioData['email'] ?? '',
+      activo: usuarioData['activo'] ?? true,
+      rol: rol ?? json['rol'] ?? usuarioData['rol'],
+      token: token ?? json['access_token'],
+      refreshToken: refreshToken ?? json['refresh_token'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'email': email,
+      'activo': activo,
+      'rol': rol,
+      'token': token,
+      'refreshToken': refreshToken,
+    };
+  }
+}

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/product_controller.dart';
 import '../controllers/cart_controller.dart';
+import '../controllers/auth_controller.dart';
 
 class ProductListView extends StatefulWidget {
   const ProductListView({Key? key}) : super(key: key);
@@ -29,11 +30,13 @@ class _ProductListViewState extends State<ProductListView> {
   Widget build(BuildContext context) {
     final productCtrl = Provider.of<ProductController>(context);
     final cartCtrl = Provider.of<CartController>(context);
+    final authCtrl = Provider.of<AuthController>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🛍️ E-Commerce Móvil (Flutter)'),
+        title: const Text('🛍️ E-Commerce Móvil'),
         backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
         actions: [
           Stack(
             alignment: Alignment.center,
@@ -59,7 +62,22 @@ class _ProductListViewState extends State<ProductListView> {
                   ),
                 )
             ],
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar Sesión',
+            onPressed: () {
+              authCtrl.logout();
+              cartCtrl.limpiarCarrito();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Sesión cerrada correctamente'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
         ],
       ),
       body: productCtrl.cargando
@@ -76,7 +94,7 @@ class _ProductListViewState extends State<ProductListView> {
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       child: ListTile(
                         leading: prod.imagenUrl != null
-                            ? Image.network(prod.imagenUrl!, width: 50, fit: CoverBox.fitWidth)
+                            ? Image.network(prod.imagenUrl!, width: 50, fit: BoxFit.cover)
                             : const Icon(Icons.shopping_bag, size: 40),
                         title: Text(prod.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('\$${prod.precio.toStringAsFixed(2)} | Stock: ${prod.stock}'),

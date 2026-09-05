@@ -1,0 +1,205 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">storefront</mat-icon>
+      <span>Gestionar Sucursales</span>
+    </h1>
+    <p class="page-subtitle">Administración de tiendas físicas, puntos de venta y cobertura geográfica de la boutique</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-sucursal" class="btn-create">
+    <mat-icon>add_business</mat-icon>
+    <span>+ Nueva Sucursal</span>
+  </button>
+</div>
+
+<!-- KPI Cards Sucursales -->
+<div class="kpi-grid">
+  <div class="kpi-card purple">
+    <div class="kpi-icon-box">
+      <mat-icon>store</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🏬 Total Sucursales</span>
+      <span class="kpi-value">{{ totalSucursales }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-icon-box">
+      <mat-icon>verified</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🟢 Tiendas Activas</span>
+      <span class="kpi-value">{{ sucursalesActivas }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card blue">
+    <div class="kpi-icon-box">
+      <mat-icon>location_city</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">📍 Ciudades Cobertura</span>
+      <span class="kpi-value">{{ ciudadesCount }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros y Búsqueda -->
+<mat-card class="filter-card">
+  <mat-card-content class="filter-content">
+    <div class="search-box">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Buscar sucursal por nombre, dirección o ciudad...</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Ej. Equipetrol, San Miguel, El Prado..." id="input-search-sucursal">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="filter-controls">
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Ciudad</mat-label>
+        <mat-select [formControl]="ciudadFilterControl" id="select-filter-sucursal-ciudad">
+          <mat-option value="">Todas las Ciudades</mat-option>
+          <mat-option *ngFor="let c of ciudadesList" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoFilterControl" id="select-filter-sucursal-estado">
+          <mat-option [value]="null">Todos los Estados</mat-option>
+          <mat-option [value]="true">Solo Activas</mat-option>
+          <mat-option [value]="false">Solo Inactivas / Baja Lógica</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="resetFilters()" id="btn-reset-sucursal-filters" class="btn-reset">
+        <mat-icon>filter_alt_off</mat-icon>
+        <span>Limpiar</span>
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Loading Bar -->
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP de Sucursales -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" class="custom-table">
+    
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let s" class="id-cell"> #{{ s.id }} </td>
+    </ng-container>
+
+    <!-- Sucursal Name Column -->
+    <ng-container matColumnDef="sucursal">
+      <th mat-header-cell *matHeaderCellDef> Sucursal / Punto de Venta </th>
+      <td mat-cell *matCellDef="let s">
+        <div class="sucursal-cell">
+          <div class="store-icon-circle" [ngClass]="{'avatar-inactive': !s.activo}">
+            <mat-icon>storefront</mat-icon>
+          </div>
+          <div class="store-name-box">
+            <span class="store-name">{{ s.nombre }}</span>
+            <span class="store-subtext">Punto de Venta Boutique</span>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Ciudad Column -->
+    <ng-container matColumnDef="ciudad">
+      <th mat-header-cell *matHeaderCellDef> Ciudad </th>
+      <td mat-cell *matCellDef="let s">
+        <span class="city-badge">
+          <mat-icon class="inline-icon">location_city</mat-icon>
+          {{ s.ciudad || 'No especificada' }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Dirección Column -->
+    <ng-container matColumnDef="direccion">
+      <th mat-header-cell *matHeaderCellDef> Dirección </th>
+      <td mat-cell *matCellDef="let s">
+        <div class="address-cell">
+          <mat-icon class="inline-icon">place</mat-icon>
+          <span>{{ s.direccion || '-' }}</span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Teléfono Column -->
+    <ng-container matColumnDef="telefono">
+      <th mat-header-cell *matHeaderCellDef> Teléfono </th>
+      <td mat-cell *matCellDef="let s">
+        <span *ngIf="s.telefono" class="phone-tag">
+          <mat-icon class="inline-icon">phone</mat-icon>
+          {{ s.telefono }}
+        </span>
+        <span *ngIf="!s.telefono" class="text-muted">-</span>
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef> Estado </th>
+      <td mat-cell *matCellDef="let s">
+        <div class="status-toggle-box">
+          <mat-slide-toggle 
+            [checked]="s.activo" 
+            color="primary" 
+            (change)="onToggleStatus(s)"
+            matTooltip="Activar / Desactivar sucursal"
+            id="toggle-sucursal-{{ s.id }}">
+          </mat-slide-toggle>
+          <span class="status-badge" [ngClass]="s.activo ? 'status-active' : 'status-inactive'">
+            {{ s.activo ? 'Operativa' : 'Inactiva' }}
+          </span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Registration Date Column -->
+    <ng-container matColumnDef="fechacreacion">
+      <th mat-header-cell *matHeaderCellDef> Fecha Registro </th>
+      <td mat-cell *matCellDef="let s" class="date-cell">
+        <mat-icon class="inline-icon">event</mat-icon>
+        <span>{{ (s.fechacreacion || '2026-09-04') | date:'dd/MM/yyyy' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Actions Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let s">
+        <div class="action-buttons">
+          <button mat-icon-button color="primary" (click)="openEditDialog(s)" matTooltip="Editar Sucursal" id="btn-edit-sucursal-{{ s.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteSucursal(s)" matTooltip="Baja Lógica" id="btn-delete-sucursal-{{ s.id }}">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Empty State -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">store_mall_directory</mat-icon>
+          <p class="empty-title">No se encontraron sucursales</p>
+          <p class="empty-desc">No existen puntos de venta registrados con los filtros seleccionados.</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>

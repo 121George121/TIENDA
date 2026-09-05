@@ -4,13 +4,17 @@
 // ==============================================================================
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/product_model.dart';
 
 class ProductController extends ChangeNotifier {
-  // IP para emulador Android (10.0.2.2) o localhost según corresponda
-  final String _baseUrl = "http://10.0.2.2:8000/api/v1/productos";
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:8000/api/v1/productos';
+    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1/productos';
+    return 'http://127.0.0.1:8000/api/v1/productos';
+  }
   
   List<ProductModel> _productos = [];
   bool _cargando = false;
@@ -27,7 +31,7 @@ class ProductController extends ChangeNotifier {
     notifyListeners(); // Notifica a las Vistas (UI) para mostrar un spinner de carga
 
     try {
-      final response = await http.get(Uri.parse(_baseUrl));
+      final response = await http.get(Uri.parse(baseUrl));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);

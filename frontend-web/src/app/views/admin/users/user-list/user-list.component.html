@@ -1,0 +1,219 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">people_alt</mat-icon>
+      <span>Gestión de Usuarios</span>
+    </h1>
+    <p class="page-subtitle">Administración de accesos, empleados y clientes del sistema</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-user" class="btn-create">
+    <mat-icon>person_add</mat-icon>
+    <span>+ Nuevo Usuario</span>
+  </button>
+</div>
+
+<!-- KPI Resumen Cards (Retail Fashion ERP) -->
+<div class="kpi-grid">
+  <div class="kpi-card purple">
+    <div class="kpi-icon-box">
+      <mat-icon>groups</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">👥 Total Usuarios</span>
+      <span class="kpi-value">{{ totalUsuarios }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-icon-box">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🟢 Usuarios Activos</span>
+      <span class="kpi-value">{{ usuariosActivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card orange">
+    <div class="kpi-icon-box">
+      <mat-icon>do_not_disturb_on</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🔴 Usuarios Suspendidos</span>
+      <span class="kpi-value">{{ usuariosInactivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card blue">
+    <div class="kpi-icon-box">
+      <mat-icon>admin_panel_settings</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🔐 Roles Registrados</span>
+      <span class="kpi-value">{{ totalRoles }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros y Búsqueda -->
+<mat-card class="filter-card">
+  <mat-card-content class="filter-content">
+    <div class="search-box">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Buscar por nombre, usuario o correo...</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Escribe para filtrar usuarios..." id="input-search-user">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="filter-controls">
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Filtrar por Rol</mat-label>
+        <mat-select [formControl]="rolFilterControl" id="select-filter-rol">
+          <mat-option [value]="null">Todos los Roles</mat-option>
+          <mat-option *ngFor="let r of roles" [value]="r.id">{{ r.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Estado de Cuenta</mat-label>
+        <mat-select [formControl]="estadoFilterControl" id="select-filter-estado">
+          <mat-option [value]="null">Todos los Estados</mat-option>
+          <mat-option [value]="true">Solo Activos</mat-option>
+          <mat-option [value]="false">Solo Suspendidos / Inactivos</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="resetFilters()" id="btn-reset-filters" class="btn-reset" matTooltip="Limpiar filtros">
+        <mat-icon>filter_alt_off</mat-icon>
+        <span>Limpiar</span>
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Loading Bar -->
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP Usuarios Retail -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" matSort class="custom-table">
+    
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> ID </th>
+      <td mat-cell *matCellDef="let user" class="id-cell"> #{{ user.id }} </td>
+    </ng-container>
+
+    <!-- Nombre Completo / Usuario Column -->
+    <ng-container matColumnDef="usuario">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Avatar & Nombre Completo </th>
+      <td mat-cell *matCellDef="let user">
+        <div class="user-profile-cell">
+          <div class="avatar-circle" [ngClass]="{'avatar-inactive': !user.activo}">
+            {{ user.nombre.charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-name-box">
+            <span class="user-fullname">{{ user.nombre }} {{ user.apellido || '' }}</span>
+            <span class="user-alias">&#64;{{ user.email.split('&#64;')[0] }}</span>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Correo Column -->
+    <ng-container matColumnDef="email">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Correo Electrónico </th>
+      <td mat-cell *matCellDef="let user">
+        <div class="email-cell">
+          <mat-icon class="inline-icon">email</mat-icon>
+          <span>{{ user.email }}</span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Teléfono Column -->
+    <ng-container matColumnDef="telefono">
+      <th mat-header-cell *matHeaderCellDef> Teléfono </th>
+      <td mat-cell *matCellDef="let user">
+        <span *ngIf="user.telefono" class="phone-tag">
+          <mat-icon class="inline-icon">phone</mat-icon>
+          {{ user.telefono }}
+        </span>
+        <span *ngIf="!user.telefono" class="text-muted">-</span>
+      </td>
+    </ng-container>
+
+    <!-- Rol Column -->
+    <ng-container matColumnDef="rol">
+      <th mat-header-cell *matHeaderCellDef> Rol Asignado </th>
+      <td mat-cell *matCellDef="let user">
+        <mat-chip-option [selected]="true" [color]="getRoleName(user) === 'ADMIN' ? 'warn' : 'accent'" class="role-chip">
+          {{ getRoleName(user) }}
+        </mat-chip-option>
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Estado </th>
+      <td mat-cell *matCellDef="let user">
+        <div class="status-toggle-box">
+          <mat-slide-toggle 
+            [checked]="user.activo" 
+            color="primary" 
+            (change)="onToggleStatus(user)"
+            matTooltip="Activar / Susprender cuenta"
+            id="toggle-user-{{ user.id }}">
+          </mat-slide-toggle>
+          <span class="status-badge" [ngClass]="user.activo ? 'status-active' : 'status-inactive'">
+            {{ user.activo ? 'Activo' : 'Suspendido' }}
+          </span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Fecha Column -->
+    <ng-container matColumnDef="fecha">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header> Fecha Registro </th>
+      <td mat-cell *matCellDef="let user" class="date-cell">
+        <mat-icon class="inline-icon">event</mat-icon>
+        <span>{{ (user.created_at || user.fechacreacion || '2026-09-04') | date:'dd/MM/yyyy' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Acciones Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let user">
+        <div class="action-buttons">
+          <button mat-icon-button color="accent" (click)="openViewDialog(user)" matTooltip="Ver Perfil" id="btn-view-user-{{ user.id }}">
+            <mat-icon>account_circle</mat-icon>
+          </button>
+          <button mat-icon-button color="primary" (click)="openEditDialog(user)" matTooltip="Editar Usuario" id="btn-edit-user-{{ user.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteUser(user)" matTooltip="Eliminar Usuario" id="btn-delete-user-{{ user.id }}">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Sin datos -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">search_off</mat-icon>
+          <p class="empty-title">No se encontraron usuarios registrados</p>
+          <p class="empty-desc">Intenta ajustar los términos de búsqueda o filtros.</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" showFirstLastButtons class="custom-paginator"></mat-paginator>
+</div>

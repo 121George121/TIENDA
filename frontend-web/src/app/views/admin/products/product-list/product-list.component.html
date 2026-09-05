@@ -1,0 +1,188 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">checkroom</mat-icon>
+      <span>Poleras</span>
+    </h1>
+    <p class="page-subtitle">Administración exclusiva de poleras, camisetas urbanas, estampados de autor y precios base</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-product" class="btn-create">
+    <mat-icon>add_shopping_cart</mat-icon>
+    <span>+ Nueva Polera</span>
+  </button>
+</div>
+
+<!-- KPI Grid -->
+<div class="kpi-grid">
+  <div class="kpi-card purple">
+    <div class="kpi-icon-box"><mat-icon>checkroom</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">👕 Total Poleras</span>
+      <span class="kpi-value">{{ totalProductos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-icon-box"><mat-icon>verified</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">🟢 Modelos Activos</span>
+      <span class="kpi-value">{{ productosActivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card gold">
+    <div class="kpi-icon-box"><mat-icon>payments</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">🏷️ Precio Promedio</span>
+      <span class="kpi-value">Bs. {{ precioPromedio }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<mat-card class="filter-card">
+  <mat-card-content class="filter-content">
+    <div class="search-box">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Buscar polera por modelo, estampado, tela o marca...</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Ej. Oversized, Heavyweight, Vintage, Graphic..." id="input-search-product">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="filter-controls">
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Línea / Categoría</mat-label>
+        <mat-select [formControl]="categoriaFilterControl" id="select-filter-prod-cat">
+          <mat-option [value]="null">Todas las Poleras</mat-option>
+          <mat-option *ngFor="let c of categoriasList" [value]="c.id">{{ c.nombre }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Fit / Género</mat-label>
+        <mat-select [formControl]="generoFilterControl" id="select-filter-prod-genero">
+          <mat-option value="">Todos los Fits</mat-option>
+          <mat-option *ngFor="let g of generosList" [value]="g">{{ g }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Estado</mat-label>
+        <mat-select [formControl]="estadoFilterControl" id="select-filter-prod-estado">
+          <mat-option [value]="null">Todos los Estados</mat-option>
+          <mat-option [value]="true">En Catálogo</mat-option>
+          <mat-option [value]="false">Descontinuados</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="resetFilters()" id="btn-reset-prod-filters" class="btn-reset">
+        <mat-icon>filter_alt_off</mat-icon>
+        <span>Limpiar</span>
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP de Productos (Poleras) -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" class="custom-table">
+    
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let p" class="id-cell"> #{{ p.id }} </td>
+    </ng-container>
+
+    <!-- Polera Column -->
+    <ng-container matColumnDef="producto">
+      <th mat-header-cell *matHeaderCellDef> Polera / Modelo </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="product-cell">
+          <img [src]="p.imagenprincipal || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=100'" class="product-thumb" alt="Polera">
+          <div class="product-name-box">
+            <span class="product-name">{{ p.nombre }}</span>
+            <span class="product-brand">{{ p.marca || 'Urban Tee' }}</span>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Categoría Column -->
+    <ng-container matColumnDef="categoria">
+      <th mat-header-cell *matHeaderCellDef> Tipo de Polera </th>
+      <td mat-cell *matCellDef="let p">
+        <span class="category-badge">
+          <mat-icon class="inline-icon">checkroom</mat-icon>
+          {{ p.categoria?.nombre || 'General Tee' }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Precio Base Column -->
+    <ng-container matColumnDef="precio">
+      <th mat-header-cell *matHeaderCellDef> Precio Base </th>
+      <td mat-cell *matCellDef="let p" class="price-cell">
+        <span>Bs. {{ p.preciobase | number:'1.2-2' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Fit / Género Column -->
+    <ng-container matColumnDef="genero">
+      <th mat-header-cell *matHeaderCellDef> Fit </th>
+      <td mat-cell *matCellDef="let p">
+        <span class="gender-tag">{{ p.genero || 'Unisex' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef> Estado </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="status-toggle-box">
+          <mat-slide-toggle 
+            [checked]="p.activo" 
+            color="primary" 
+            (change)="onToggleStatus(p)"
+            matTooltip="Activar / Desactivar polera"
+            id="toggle-prod-{{ p.id }}">
+          </mat-slide-toggle>
+          <span class="status-badge" [ngClass]="p.activo ? 'status-active' : 'status-inactive'">
+            {{ p.activo ? 'Disponible' : 'Desactivado' }}
+          </span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Acciones Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="action-buttons">
+          <button mat-icon-button color="primary" (click)="openEditDialog(p)" matTooltip="Editar Polera" id="btn-edit-prod-{{ p.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteProducto(p)" matTooltip="Baja Lógica" id="btn-delete-prod-{{ p.id }}">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Empty State -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">checkroom</mat-icon>
+          <p class="empty-title">No se encontraron poleras</p>
+          <p class="empty-desc">No existen modelos de poleras registrados con los filtros seleccionados.</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>

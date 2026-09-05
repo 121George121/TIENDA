@@ -1,0 +1,128 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">admin_panel_settings</mat-icon>
+      <span>Roles y Permisos</span>
+    </h1>
+    <p class="page-subtitle">Configuración de perfiles de acceso empresarial para la cadena Retail Fashion</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-role" class="btn-create">
+    <mat-icon>add_moderator</mat-icon>
+    <span>+ Nuevo Rol</span>
+  </button>
+</div>
+
+<!-- Tarjetas Dinámicas de Roles Vinculadas a PostgreSQL -->
+<div class="roles-cards-grid">
+  <div *ngFor="let rol of dataSource.data" class="role-card" [ngClass]="getRoleCardClass(rol.nombre)">
+    <div class="role-card-header">
+      <div class="role-icon-box">
+        <mat-icon>{{ getRoleIcon(rol.nombre) }}</mat-icon>
+      </div>
+      <span class="role-badge">ID: #{{ rol.id }}</span>
+    </div>
+    <h3 class="role-card-name">{{ rol.nombre }}</h3>
+    <p class="role-card-desc">{{ rol.descripcion || 'Perfil de acceso registrado en el sistema.' }}</p>
+    <div class="role-card-stats">
+      <div class="stat-item">
+        <span class="stat-value">{{ rol.permisos ? rol.permisos.length : 0 }}</span>
+        <span class="stat-label">Permisos</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">Activo</span>
+        <span class="stat-label">Estado BD</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Bar -->
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP de Roles -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" class="custom-table">
+
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let rol" class="id-cell"> #{{ rol.id }} </td>
+    </ng-container>
+
+    <!-- Nombre del Rol Column -->
+    <ng-container matColumnDef="nombre">
+      <th mat-header-cell *matHeaderCellDef> Nombre del Rol </th>
+      <td mat-cell *matCellDef="let rol">
+        <div class="role-name-cell">
+          <mat-chip-option [selected]="true" [color]="rol.nombre.toUpperCase() === 'ADMINISTRADOR' || rol.nombre.toUpperCase() === 'ADMIN' ? 'warn' : 'accent'" class="role-chip">
+            <mat-icon class="chip-icon">{{ getRoleIcon(rol.nombre) }}</mat-icon>
+            {{ rol.nombre }}
+          </mat-chip-option>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Descripción Column -->
+    <ng-container matColumnDef="descripcion">
+      <th mat-header-cell *matHeaderCellDef> Descripción </th>
+      <td mat-cell *matCellDef="let rol" class="desc-cell">
+        {{ rol.descripcion || 'Sin descripción asignada' }}
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="estado">
+      <th mat-header-cell *matHeaderCellDef> Estado </th>
+      <td mat-cell *matCellDef="let rol">
+        <span class="status-badge status-active">
+          Activo
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Permisos Column -->
+    <ng-container matColumnDef="permisos">
+      <th mat-header-cell *matHeaderCellDef> Matriz de Permisos </th>
+      <td mat-cell *matCellDef="let rol">
+        <div class="permissions-summary">
+          <span class="perm-count-badge">
+            <mat-icon class="inline-icon">key</mat-icon>
+            {{ (rol.permisos ? rol.permisos.length : 0) }} Permiso(s)
+          </span>
+          <button mat-stroked-button color="accent" (click)="openPermissionsDialog(rol)" class="btn-manage-perm" id="btn-permisos-role-{{ rol.id }}">
+            <mat-icon>tune</mat-icon>
+            <span>Configurar Permisos</span>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Acciones Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let rol">
+        <div class="action-buttons">
+          <button mat-icon-button color="primary" (click)="openEditDialog(rol)" matTooltip="Editar Rol" id="btn-edit-role-{{ rol.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteRole(rol)" matTooltip="Eliminar Rol" id="btn-delete-role-{{ rol.id }}" [disabled]="rol.nombre.toUpperCase() === 'ADMINISTRADOR' || rol.nombre.toUpperCase() === 'ADMIN'">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Sin datos -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">security</mat-icon>
+          <p class="empty-title">No existen roles configurados</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>

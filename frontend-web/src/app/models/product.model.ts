@@ -1,21 +1,41 @@
-// ==============================================================================
-// CAPA MODELO (MVC - MODEL EN FRONTEND ANGULAR)
-// Representación de las entidades de datos recibidas desde la API FastAPI
-// ==============================================================================
+import { Categoria } from './clasificacion.model';
 
 export interface Producto {
   id: number;
   nombre: string;
   descripcion?: string;
-  precio: number;
-  stock: number;
-  categoria_id?: number;
-  imagen_url?: string;
+  marca?: string;
+  genero?: string;
+  grupoedad?: string;
+  preciobase: number;
+  imagenprincipal?: string;
+  categoriaid?: number;
+  categoria?: Categoria;
   activo: boolean;
+  fechacreacion?: string;
+  fechaactualizacion?: string;
 }
 
-export interface Categoria {
-  id: number;
+export interface ProductoCreateDTO {
   nombre: string;
   descripcion?: string;
+  marca?: string;
+  genero?: string;
+  grupoedad?: string;
+  preciobase: number;
+  imagenprincipal?: string;
+  categoriaid?: number;
+  activo?: boolean;
+}
+
+export interface ProductoUpdateDTO {
+  nombre?: string;
+  descripcion?: string;
+  marca?: string;
+  genero?: string;
+  grupoedad?: string;
+  preciobase?: number;
+  imagenprincipal?: string;
+  categoriaid?: number;
+  activo?: boolean;
 }

@@ -8,10 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.views import product_views, order_views, auth_views
-
-# Crear tablas en la BD PostgreSQL si no existen al iniciar
-Base.metadata.create_all(bind=engine)
+from app.views import auth_views, user_views, role_views
+from app.routes import cliente_routes, sucursal_routes, clasificacion_routes, producto_routes, proveedor_routes
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -28,10 +26,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir las Vistas (Routers / API Endpoints)
+# Incluir las Vistas / Rutas (Routers / API Endpoints)
 app.include_router(auth_views.router, prefix=settings.API_V1_STR)
-app.include_router(product_views.router, prefix=settings.API_V1_STR)
-app.include_router(order_views.router, prefix=settings.API_V1_STR)
+app.include_router(user_views.router, prefix=settings.API_V1_STR)
+app.include_router(role_views.router, prefix=settings.API_V1_STR)
+app.include_router(cliente_routes.router, prefix=settings.API_V1_STR)
+app.include_router(sucursal_routes.router, prefix=settings.API_V1_STR)
+app.include_router(clasificacion_routes.router, prefix=settings.API_V1_STR)
+app.include_router(producto_routes.router, prefix=settings.API_V1_STR)
+app.include_router(proveedor_routes.router, prefix=settings.API_V1_STR)
 
 @app.get("/", tags=["Inicio"])
 def read_root():

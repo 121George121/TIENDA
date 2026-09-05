@@ -1,0 +1,54 @@
+<h2 mat-dialog-title class="dialog-title">
+  <mat-icon class="header-icon">admin_panel_settings</mat-icon>
+  <div>
+    <span>Gestionar Permisos del Rol</span>
+    <span class="role-subtitle">Rol: <strong>{{ rol.nombre }}</strong></span>
+  </div>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+  <p class="instruction">Seleccione los permisos asignados a este rol en los distintos módulos del sistema:</p>
+
+  <div class="permissions-container">
+    <mat-accordion multi>
+      <mat-expansion-panel *ngFor="let cat of categoriasPermisos" [expanded]="true" class="cat-panel">
+        <mat-expansion-panel-header>
+          <mat-panel-title class="cat-title">
+            <mat-checkbox 
+              [checked]="isCategoryAllSelected(cat)" 
+              [indeterminate]="isCategorySomeSelected(cat)"
+              (change)="toggleCategory(cat)"
+              (click)="$event.stopPropagation()"
+              color="primary">
+            </mat-checkbox>
+            <span class="cat-name">{{ cat.categoria }}</span>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="permissions-grid">
+          <div *ngFor="let p of cat.permisos" class="permission-item" (click)="togglePermission(p.clave)">
+            <mat-checkbox 
+              [checked]="isPermissionSelected(p.clave)" 
+              (change)="togglePermission(p.clave)"
+              (click)="$event.stopPropagation()"
+              color="primary"
+              id="chk-permiso-{{ p.clave }}">
+              <div class="permission-label">
+                <span class="p-nombre">{{ p.nombre }}</span>
+                <span class="p-desc">{{ p.descripcion }}</span>
+              </div>
+            </mat-checkbox>
+          </div>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-button (click)="onCancel()" id="btn-cancel-permissions">Cancelar</button>
+  <button mat-raised-button color="primary" (click)="onSubmit()" id="btn-save-permissions" class="save-btn">
+    <mat-icon>verified_user</mat-icon>
+    <span>Guardar Permisos</span>
+  </button>
+</mat-dialog-actions>

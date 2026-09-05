@@ -1,0 +1,91 @@
+<div class="dialog-header">
+  <div class="profile-avatar-large" [ngClass]="{'avatar-inactive': !cliente.activo}">
+    {{ cliente.nombre.charAt(0).toUpperCase() }}
+  </div>
+  <div class="profile-header-info">
+    <h2 mat-dialog-title>{{ cliente.nombre }} {{ cliente.apellido || '' }}</h2>
+    <p class="profile-email"><mat-icon>email</mat-icon> {{ cliente.email }}</p>
+    <div class="profile-badges">
+      <span class="status-badge" [ngClass]="cliente.activo ? 'status-active' : 'status-inactive'">
+        {{ cliente.activo ? 'Cuenta Activa' : 'Cuenta Inactiva / Suspendida' }}
+      </span>
+      <span class="role-badge">Cliente VIP</span>
+    </div>
+  </div>
+</div>
+
+<mat-dialog-content class="dialog-content">
+  <mat-tab-group animationDuration="200ms" color="accent">
+    
+    <!-- Tab 1: Datos Personales -->
+    <mat-tab label="Información General">
+      <div class="tab-padding">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">ID de Cliente</span>
+            <span class="value">#{{ cliente.id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Teléfono / WhatsApp</span>
+            <span class="value">{{ cliente.telefono || 'Sin teléfono registrado' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Fecha de Registro</span>
+            <span class="value">{{ (cliente.created_at || cliente.fechacreacion || '2026-09-04') | date:'mediumDate' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Tipo de Usuario</span>
+            <span class="value">Comprador Retail</span>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Historial de Compras -->
+    <mat-tab label="Historial de Compras">
+      <div class="tab-padding">
+        <div *ngIf="compras.length === 0" class="empty-tab-state">
+          <mat-icon class="empty-tab-icon">shopping_cart_checkout</mat-icon>
+          <p>No se encontraron compras o transacciones registradas.</p>
+        </div>
+        <div *ngIf="compras.length > 0" class="history-list">
+          <div *ngFor="let c of compras" class="history-item">
+            <div class="item-left">
+              <span class="item-code">{{ c.codigo_orden }}</span>
+              <span class="item-date">{{ c.fecha | date:'shortDate' }}</span>
+            </div>
+            <div class="item-right">
+              <span class="item-total">${{ c.total | number:'1.2-2' }}</span>
+              <span class="item-status">{{ c.estado }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 3: Historial de Reservas -->
+    <mat-tab label="Historial de Reservas">
+      <div class="tab-padding">
+        <div *ngIf="reservas.length === 0" class="empty-tab-state">
+          <mat-icon class="empty-tab-icon">event_available</mat-icon>
+          <p>No existen reservas de prendas o vestidos registradas.</p>
+        </div>
+        <div *ngIf="reservas.length > 0" class="history-list">
+          <div *ngFor="let r of reservas" class="history-item">
+            <div class="item-left">
+              <span class="item-code">{{ r.codigo_reserva }}</span>
+              <span class="item-date">{{ r.fecha_reserva | date:'shortDate' }}</span>
+            </div>
+            <div class="item-right">
+              <span class="item-status">{{ r.estado }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-raised-button color="primary" (click)="onClose()" id="btn-close-customer-detail">Cerrar</button>
+</mat-dialog-actions>

@@ -1,0 +1,146 @@
+<mat-sidenav-container class="admin-container">
+  <!-- Sidebar Izquierdo -->
+  <mat-sidenav #sidenav mode="side" opened class="admin-sidenav">
+    <div class="brand-header">
+      <div class="brand-logo">
+        <mat-icon>checkroom</mat-icon>
+      </div>
+      <div class="brand-text">
+        <h2>T-Shirt Boutique</h2>
+        <span class="badge-admin">EXCLUSIVE TEES ERP</span>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <!-- Menú Principal -->
+    <div class="nav-section-title">ADMINISTRACIÓN & SEGURIDAD</div>
+    <mat-nav-list class="nav-list">
+      <a mat-list-item routerLink="/dashboard" id="nav-dashboard">
+        <mat-icon matListItemIcon>space_dashboard</mat-icon>
+        <span matListItemTitle>Dashboard</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/users" routerLinkActive="active-link" id="nav-users">
+        <mat-icon matListItemIcon>people_alt</mat-icon>
+        <span matListItemTitle>Usuarios</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/roles" routerLinkActive="active-link" id="nav-roles">
+        <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+        <span matListItemTitle>Roles y Permisos</span>
+      </a>
+    </mat-nav-list>
+
+    <mat-divider></mat-divider>
+
+    <!-- Módulo T-Shirt Retail Fashion -->
+    <div class="nav-section-title">GESTIÓN DE POLERAS & RETAIL</div>
+    <mat-nav-list class="nav-list">
+      <a mat-list-item routerLink="/admin/sucursales" routerLinkActive="active-link" id="nav-sucursales">
+        <mat-icon matListItemIcon>storefront</mat-icon>
+        <span matListItemTitle>Sucursales</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/customers" routerLinkActive="active-link" id="nav-clientes">
+        <mat-icon matListItemIcon>assignment_ind</mat-icon>
+        <span matListItemTitle>Clientes</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/categorias" routerLinkActive="active-link" id="nav-categorias">
+        <mat-icon matListItemIcon>category</mat-icon>
+        <span matListItemTitle>Clasificación</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/products" routerLinkActive="active-link" id="nav-productos">
+        <mat-icon matListItemIcon>checkroom</mat-icon>
+        <span matListItemTitle>Poleras</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/suppliers" routerLinkActive="active-link" id="nav-proveedores">
+        <mat-icon matListItemIcon>local_shipping</mat-icon>
+        <span matListItemTitle>Proveedores</span>
+      </a>
+
+      <a mat-list-item routerLink="/dashboard" id="nav-inventario">
+        <mat-icon matListItemIcon>inventory_2</mat-icon>
+        <span matListItemTitle>Inventario de Poleras</span>
+      </a>
+
+      <a mat-list-item routerLink="/dashboard" id="nav-reservas">
+        <mat-icon matListItemIcon>event_seat</mat-icon>
+        <span matListItemTitle>Reservas</span>
+      </a>
+
+      <a mat-list-item routerLink="/dashboard" id="nav-ventas">
+        <mat-icon matListItemIcon>point_of_sale</mat-icon>
+        <span matListItemTitle>Ventas</span>
+      </a>
+
+      <a mat-list-item routerLink="/dashboard" id="nav-reportes">
+        <mat-icon matListItemIcon>insights</mat-icon>
+        <span matListItemTitle>Reportes</span>
+      </a>
+    </mat-nav-list>
+
+    <div class="sidenav-footer">
+      <div class="user-info-mini">
+        <div class="avatar">{{ userName.charAt(0).toUpperCase() }}</div>
+        <div class="details">
+          <span class="name">{{ userName }}</span>
+          <span class="email">{{ userEmail }}</span>
+        </div>
+      </div>
+    </div>
+  </mat-sidenav>
+
+  <!-- Contenido Principal -->
+  <mat-sidenav-content class="admin-content">
+    <!-- Barra Superior (Topbar) -->
+    <mat-toolbar class="admin-toolbar">
+      <button mat-icon-button (click)="sidenav.toggle()" id="btn-toggle-sidenav">
+        <mat-icon>menu</mat-icon>
+      </button>
+      
+      <div class="header-brand-box">
+        <span class="header-title">Sistema de Gestión ERP - T-Shirt Boutique & Streetwear</span>
+      </div>
+
+      <span class="spacer"></span>
+
+      <!-- Notificaciones -->
+      <button mat-icon-button class="notification-btn" id="btn-notifications" title="Notificaciones">
+        <mat-icon>notifications_none</mat-icon>
+        <span class="notification-badge">3</span>
+      </button>
+
+      <!-- Perfil de Usuario -->
+      <div class="user-profile-header" [matMenuTriggerFor]="userMenu" id="btn-user-menu">
+        <div class="profile-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
+        <div class="profile-info-text">
+          <span class="profile-name">{{ userName }}</span>
+          <span class="profile-role">Administrador</span>
+        </div>
+        <mat-icon class="arrow-down">keyboard_arrow_down</mat-icon>
+      </div>
+
+      <mat-menu #userMenu="matMenu" xPosition="before" class="fashion-user-menu">
+        <div class="menu-header">
+          <p class="menu-name">{{ userName }}</p>
+          <p class="menu-email">{{ userEmail }}</p>
+          <span class="badge-role">Administrador</span>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="logout()" id="btn-logout">
+          <mat-icon class="text-danger">logout</mat-icon>
+          <span>Cerrar Sesión</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <!-- Cuerpo de Página -->
+    <main class="page-body">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

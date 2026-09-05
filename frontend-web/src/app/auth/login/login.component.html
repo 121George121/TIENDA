@@ -1,0 +1,75 @@
+<div class="auth-container">
+  <div class="auth-left">
+    <div class="brand-overlay">
+      <h1>E-Commerce Tienda</h1>
+      <p class="tagline">Premium T-Shirts & Apparel</p>
+    </div>
+  </div>
+  
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Bienvenido de vuelta</h2>
+        <p>Ingresa a tu cuenta para continuar tus compras.</p>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+        
+        <div class="alert alert-danger" *ngIf="errorMessage" style="color: #ff4757; text-align: center; margin-bottom: 1rem; padding: 0.5rem; background: #fff0f1; border-radius: 8px;">
+          {{ errorMessage }}
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Correo Electrónico</label>
+          <div class="input-container">
+            <i class="icon-mail"></i>
+            <input 
+              type="email" 
+              id="email" 
+              formControlName="email" 
+              placeholder="tu@correo.com"
+              [class.error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+            >
+          </div>
+          <span class="error-msg" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+            Ingresa un correo electrónico válido.
+          </span>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Contraseña</label>
+          <div class="input-container">
+            <i class="icon-lock"></i>
+            <input 
+              type="password" 
+              id="password" 
+              formControlName="password" 
+              placeholder="••••••••"
+              [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+            >
+          </div>
+          <span class="error-msg" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+            La contraseña es obligatoria.
+          </span>
+        </div>
+
+        <div class="form-options">
+          <label class="remember-me">
+            <input type="checkbox"> Recordarme
+          </label>
+          <a routerLink="/recover-password" class="forgot-pwd">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <button type="submit" class="btn-primary" [disabled]="isLoading">
+          <span *ngIf="!isLoading">Iniciar Sesión</span>
+          <span *ngIf="isLoading" class="spinner"></span>
+        </button>
+
+      </form>
+
+      <div class="auth-footer">
+        <p>¿No tienes una cuenta? <a routerLink="/register">Regístrate ahora</a></p>
+      </div>
+    </div>
+  </div>
+</div>
