@@ -6,7 +6,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.services.proveedor_service import ProveedorService
+from app.services.cu7_gestionar_proveedores_productos_suministrados.proveedor_service import ProveedorService
 from app.schemas.proveedor_schema import ProveedorCreate, ProveedorUpdate, ProductoProveedorCreate
 from app.models.models import ProveedorModel, ProductoProveedorModel
 

@@ -6,7 +6,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.services.producto_service import ProductoService
+from app.services.cu5_gestionar_productos.producto_service import ProductoService
 from app.schemas.producto_schema import ProductoCreate, ProductoUpdate
 from app.models.models import ProductoModel
 

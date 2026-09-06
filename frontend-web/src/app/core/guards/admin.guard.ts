@@ -4,8 +4,6 @@ import { Router, CanActivateFn } from '@angular/router';
 export const adminGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-  const userStr = localStorage.getItem('usuario') || localStorage.getItem('user');
-  const userRol = localStorage.getItem('rol') || localStorage.getItem('user_role');
 
   if (!token) {
     console.warn('adminGuard: No hay token en localStorage, redirigiendo a login');
@@ -13,25 +11,14 @@ export const adminGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
-  const isRolAdmin = userRol && (userRol.toUpperCase() === 'ADMIN' || userRol.toUpperCase() === 'ADMINISTRADOR');
-  
-  // Si tenemos información de usuario en localStorage
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      if (user && (isRolAdmin || user.rol_id === 1 || user.rolid === 1)) {
-        return true;
-      }
-    } catch (e) {
-      console.error('Error al parsear usuario de localStorage', e);
-    }
-  }
+  const userRol = (localStorage.getItem('rol') || localStorage.getItem('user_role') || '').toUpperCase();
+  const isRolAdmin = userRol === 'ADMIN' || userRol === 'ADMINISTRADOR';
 
-  // Si hay token presente y no está explícitamente denegado
-  if (token) {
+  if (isRolAdmin) {
     return true;
   }
 
-  router.navigate(['/login']);
+  // Autenticado pero sin rol de administrador: no debe entrar al panel admin
+  router.navigate(['/dashboard']);
   return false;
 };

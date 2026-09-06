@@ -9,7 +9,7 @@ from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.schemas import UsuarioResponse, UsuarioAdminCreate, UsuarioUpdate, UsuarioEstadoUpdate, UsuarioRolUpdate
-from app.controllers.user_controller import UserController
+from app.controllers.cu2_gestionar_usuarios_roles.user_controller import UserController
 from app.core.dependencies import get_current_active_user
 from app.models.models import UsuarioModel
 

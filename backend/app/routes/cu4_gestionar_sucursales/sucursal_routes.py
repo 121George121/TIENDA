@@ -8,10 +8,15 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.dependencies import get_current_active_user
 from app.schemas.sucursal_schema import SucursalCreate, SucursalUpdate, SucursalResponse
-from app.controllers.sucursal_controller import SucursalController
+from app.controllers.cu4_gestionar_sucursales.sucursal_controller import SucursalController
 
-router = APIRouter(prefix="/sucursales", tags=["Sucursales (CU04)"])
+router = APIRouter(
+    prefix="/sucursales",
+    tags=["Sucursales (CU04)"],
+    dependencies=[Depends(get_current_active_user)],
+)
 
 @router.get("", response_model=List[SucursalResponse])
 def listar_sucursales(

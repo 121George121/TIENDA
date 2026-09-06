@@ -6,7 +6,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict
-from app.services.cliente_service import ClienteService
+from app.services.cu3_gestionar_clientes.cliente_service import ClienteService
 from app.schemas.cliente_schema import ClienteCreate, ClienteUpdate
 
 class ClienteController:

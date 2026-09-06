@@ -6,7 +6,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.services.clasificacion_service import CategoriaService, TemporadaService, ColeccionService
+from app.services.cu6_gestionar_clasificacion_prendas.clasificacion_service import CategoriaService, TemporadaService, ColeccionService
 from app.schemas.clasificacion_schema import (
     CategoriaCreate, CategoriaUpdate,
     TemporadaCreate, TemporadaUpdate,

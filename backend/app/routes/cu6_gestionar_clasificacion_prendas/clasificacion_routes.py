@@ -8,14 +8,18 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.dependencies import get_current_active_user
 from app.schemas.clasificacion_schema import (
     CategoriaCreate, CategoriaUpdate, CategoriaResponse,
     TemporadaCreate, TemporadaUpdate, TemporadaResponse,
     ColeccionCreate, ColeccionUpdate, ColeccionResponse
 )
-from app.controllers.clasificacion_controller import ClasificacionController
+from app.controllers.cu6_gestionar_clasificacion_prendas.clasificacion_controller import ClasificacionController
 
-router = APIRouter(tags=["Clasificación de Prendas (CU06)"])
+router = APIRouter(
+    tags=["Clasificación de Prendas (CU06)"],
+    dependencies=[Depends(get_current_active_user)],
+)
 
 # ------------------------------------------------------------------------------
 # ENDPOINTS DE CATEGORÍAS

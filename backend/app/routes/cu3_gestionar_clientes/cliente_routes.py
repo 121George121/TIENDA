@@ -11,7 +11,7 @@ from typing import List, Optional
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_user
 from app.models.models import UsuarioModel
-from app.controllers.cliente_controller import ClienteController
+from app.controllers.cu3_gestionar_clientes.cliente_controller import ClienteController
 from app.schemas.cliente_schema import (
     ClienteCreate,
     ClienteUpdate,
@@ -86,9 +86,10 @@ def obtener_detalle_cliente(
 @router.post("/", response_model=ClientePerfilResponse, status_code=status.HTTP_201_CREATED, summary="Registrar nuevo cliente")
 def crear_cliente(
     cliente_data: ClienteCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UsuarioModel = Depends(get_current_active_user)
 ):
-    """Registrar un nuevo cliente en la plataforma"""
+    """Registrar un nuevo cliente desde el panel admin (a diferencia de /auth/registro, este alta no pasa por verificación OTP)"""
     return ClienteController.crear_cliente(db=db, cliente_data=cliente_data)
 
 @router.put("/{cliente_id}", response_model=ClientePerfilResponse, summary="Editar información del cliente")

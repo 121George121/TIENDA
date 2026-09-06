@@ -5,7 +5,7 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-from app.models.models import UsuarioModel, RolModel
+from app.models.models import UsuarioModel, RolModel, ClienteModel
 from app.schemas.cliente_schema import ClienteCreate, ClienteUpdate
 from app.core.security import get_password_hash
 from fastapi import HTTPException, status
@@ -15,12 +15,39 @@ from decimal import Decimal
 class ClienteService:
 
     @staticmethod
+    def _get_perfil(db: Session, usuario_id: int) -> Optional[ClienteModel]:
+        """Fila de perfil extendido (fechanac, genero) en la tabla `cliente`, creada
+        automaticamente por el evento after_insert de UsuarioModel (ver models.py)"""
+        return db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
+
+    @staticmethod
+    def _to_dict(usuario: UsuarioModel, perfil: Optional[ClienteModel]) -> Dict:
+        return {
+            "id": usuario.id,
+            "nombre": usuario.nombre,
+            "apellido": usuario.apellido,
+            "email": usuario.email,
+            "telefono": usuario.telefono,
+            "activo": usuario.activo,
+            "rol_id": usuario.rolid,
+            "created_at": usuario.fechacreacion,
+            "fechanac": perfil.fechanac if perfil else None,
+            "genero": perfil.genero if perfil else None,
+            "total_ordenes": 0,
+            "total_gastado": Decimal('0.00')
+        }
+
+    @staticmethod
     def _get_cliente_role_id(db: Session) -> int:
-        """Obtiene el ID del rol CLIENTE de la base de datos o retorna 2 por defecto"""
-        rol_cliente = db.query(RolModel).filter(RolModel.nombre.ilike("CLIENTE")).first()
+        """Obtiene el ID del rol Cliente, creandolo si aun no existe (igual que auth_controller.register_user)"""
+        rol_cliente = db.query(RolModel).filter(RolModel.nombre.ilike("Cliente")).first()
         if rol_cliente:
             return rol_cliente.id
-        return 2
+        rol_cliente = RolModel(nombre="Cliente", descripcion="Compra en tienda, visualiza catálogo")
+        db.add(rol_cliente)
+        db.commit()
+        db.refresh(rol_cliente)
+        return rol_cliente.id
 
     @staticmethod
     def get_all(
@@ -49,22 +76,10 @@ class ClienteService:
 
         clientes = query.order_by(UsuarioModel.id.desc()).offset(skip).limit(limit).all()
 
-        resultado = []
-        for c in clientes:
-            resultado.append({
-                "id": c.id,
-                "nombre": c.nombre,
-                "apellido": c.apellido,
-                "email": c.email,
-                "telefono": c.telefono,
-                "activo": c.activo,
-                "rol_id": c.rolid,
-                "created_at": c.fechacreacion,
-                "total_ordenes": 0,
-                "total_gastado": Decimal('0.00')
-            })
-
-        return resultado
+        return [
+            ClienteService._to_dict(c, ClienteService._get_perfil(db, c.id))
+            for c in clientes
+        ]
 
     @staticmethod
     def get_by_id(db: Session, cliente_id: int) -> Dict:
@@ -73,26 +88,15 @@ class ClienteService:
         if not cliente:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
-        return {
-            "id": cliente.id,
-            "nombre": cliente.nombre,
-            "apellido": cliente.apellido,
-            "email": cliente.email,
-            "telefono": cliente.telefono,
-            "activo": cliente.activo,
-            "rol_id": cliente.rolid,
-            "created_at": cliente.fechacreacion,
-            "total_ordenes": 0,
-            "total_gastado": Decimal('0.00')
-        }
+        return ClienteService._to_dict(cliente, ClienteService._get_perfil(db, cliente.id))
 
     @staticmethod
-    def create(db: Session, cliente_data: ClienteCreate) -> UsuarioModel:
+    def create(db: Session, cliente_data: ClienteCreate) -> Dict:
         """Registrar un nuevo cliente en el sistema"""
         existente = db.query(UsuarioModel).filter(UsuarioModel.email == cliente_data.email).first()
         if existente:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="El correo electrónico ya se encuentra registrado"
             )
 
@@ -112,11 +116,34 @@ class ClienteService:
         db.add(nuevo_cliente)
         db.commit()
         db.refresh(nuevo_cliente)
-        return nuevo_cliente
+        # El evento after_insert de UsuarioModel (models.py) ya creo la fila
+        # en `cliente`; solo falta leerla para la respuesta.
+        return ClienteService._to_dict(nuevo_cliente, ClienteService._get_perfil(db, nuevo_cliente.id))
 
     @staticmethod
-    def update(db: Session, cliente_id: int, cliente_data: ClienteUpdate) -> UsuarioModel:
-        """Actualizar información de un cliente existente"""
+    def _sync_perfil(db: Session, usuario: UsuarioModel, cliente_data: ClienteUpdate) -> ClienteModel:
+        """Crea el perfil si aun no existe (clientes de antes de este cambio) y
+        lo mantiene en sincronia con los datos de contacto de `usuario`."""
+        perfil = ClienteService._get_perfil(db, usuario.id)
+        if not perfil:
+            perfil = ClienteModel(usuarioid=usuario.id)
+            db.add(perfil)
+
+        perfil.nombre = usuario.nombre
+        perfil.apellido = usuario.apellido
+        perfil.email = usuario.email
+        perfil.telefono = usuario.telefono
+        if cliente_data.activo is not None:
+            perfil.activo = cliente_data.activo
+        if cliente_data.fechanac is not None:
+            perfil.fechanac = cliente_data.fechanac
+        if cliente_data.genero is not None:
+            perfil.genero = cliente_data.genero
+        return perfil
+
+    @staticmethod
+    def update(db: Session, cliente_id: int, cliente_data: ClienteUpdate) -> Dict:
+        """Actualizar información de un cliente existente (cuenta + perfil extendido)"""
         cliente = db.query(UsuarioModel).filter(UsuarioModel.id == cliente_id).first()
         if not cliente:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
@@ -125,7 +152,7 @@ class ClienteService:
             existente = db.query(UsuarioModel).filter(UsuarioModel.email == cliente_data.email).first()
             if existente:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    status_code=status.HTTP_400_BAD_REQUEST,
                     detail="El correo ya pertenece a otro usuario"
                 )
             cliente.email = cliente_data.email
@@ -139,21 +166,28 @@ class ClienteService:
         if cliente_data.activo is not None:
             cliente.activo = cliente_data.activo
 
+        perfil = ClienteService._sync_perfil(db, cliente, cliente_data)
+
         db.commit()
         db.refresh(cliente)
-        return cliente
+        db.refresh(perfil)
+        return ClienteService._to_dict(cliente, perfil)
 
     @staticmethod
-    def toggle_status(db: Session, cliente_id: int, activo: bool) -> UsuarioModel:
+    def toggle_status(db: Session, cliente_id: int, activo: bool) -> Dict:
         """Activar o desactivar estado de cuenta del cliente"""
         cliente = db.query(UsuarioModel).filter(UsuarioModel.id == cliente_id).first()
         if not cliente:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
         cliente.activo = activo
+        perfil = ClienteService._get_perfil(db, cliente.id)
+        if perfil:
+            perfil.activo = activo
+
         db.commit()
         db.refresh(cliente)
-        return cliente
+        return ClienteService._to_dict(cliente, perfil)
 
     @staticmethod
     def logical_delete(db: Session, cliente_id: int) -> Dict:
@@ -163,6 +197,10 @@ class ClienteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
         cliente.activo = False
+        perfil = ClienteService._get_perfil(db, cliente.id)
+        if perfil:
+            perfil.activo = False
+
         db.commit()
         return {"message": f"Cliente {cliente.nombre} dado de baja lógicamente de forma exitosa", "id": cliente_id}
 

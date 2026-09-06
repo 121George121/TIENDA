@@ -9,7 +9,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.schemas.schemas import RolResponse, RolCreate, PermisosUpdate
-from app.controllers.role_controller import RoleController
+from app.controllers.cu2_gestionar_usuarios_roles.role_controller import RoleController
 from app.core.dependencies import get_current_active_user
 from app.models.models import UsuarioModel
 

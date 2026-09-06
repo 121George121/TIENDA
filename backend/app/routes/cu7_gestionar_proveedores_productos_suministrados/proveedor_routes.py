@@ -8,13 +8,18 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
+from app.core.dependencies import get_current_active_user
 from app.schemas.proveedor_schema import (
     ProveedorCreate, ProveedorUpdate, ProveedorResponse,
     ProductoProveedorCreate, ProductoProveedorResponse
 )
-from app.controllers.proveedor_controller import ProveedorController
+from app.controllers.cu7_gestionar_proveedores_productos_suministrados.proveedor_controller import ProveedorController
 
-router = APIRouter(prefix="/proveedores", tags=["Proveedores y Suministros (CU07)"])
+router = APIRouter(
+    prefix="/proveedores",
+    tags=["Proveedores y Suministros (CU07)"],
+    dependencies=[Depends(get_current_active_user)],
+)
 
 @router.get("", response_model=List[ProveedorResponse])
 def listar_proveedores(

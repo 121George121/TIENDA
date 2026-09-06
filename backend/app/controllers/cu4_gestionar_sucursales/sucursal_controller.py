@@ -6,7 +6,7 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, List
-from app.services.sucursal_service import SucursalService
+from app.services.cu4_gestionar_sucursales.sucursal_service import SucursalService
 from app.schemas.sucursal_schema import SucursalCreate, SucursalUpdate
 from app.models.models import SucursalModel
 

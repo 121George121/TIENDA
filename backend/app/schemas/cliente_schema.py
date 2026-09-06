@@ -6,7 +6,7 @@
 
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
 
 # --- DETALLES DE COMPRAS / ORDENES ---
@@ -55,6 +55,8 @@ class ClienteUpdate(BaseModel):
     email: Optional[EmailStr] = None
     telefono: Optional[str] = Field(None, max_length=20)
     activo: Optional[bool] = None
+    fechanac: Optional[date] = Field(None, description="Fecha de nacimiento (perfil de cliente)")
+    genero: Optional[str] = Field(None, max_length=30, description="Genero (perfil de cliente)")
 
 class ClienteEstadoUpdate(BaseModel):
     activo: bool = Field(..., description="Estado activo (True) o desactivado/baja lógica (False)")
@@ -68,6 +70,8 @@ class ClientePerfilResponse(BaseModel):
     activo: bool
     rol_id: Optional[int] = None
     created_at: Optional[datetime] = None
+    fechanac: Optional[date] = None
+    genero: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -81,6 +85,8 @@ class ClienteResponse(BaseModel):
     activo: bool
     rol_id: Optional[int] = None
     created_at: Optional[datetime] = None
+    fechanac: Optional[date] = None
+    genero: Optional[str] = None
     total_ordenes: int = 0
     total_gastado: Decimal = Decimal('0.00')
 

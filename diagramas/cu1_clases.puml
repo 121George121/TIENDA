@@ -1,0 +1,87 @@
+@startuml CU1_Gestionar_Autenticacion
+title CU01 - Gestionar Autenticacion (Diagrama de Clases - Boundary/Control/Entity)
+
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+  HeaderBackgroundColor #DDEBF7
+}
+skinparam frame {
+  BorderColor #444444
+  FontStyle bold
+}
+left to right direction
+
+actor Usuario as actor_usuario
+
+frame "CU01 Gestionar Autenticacion" {
+
+  class AuthPage <<UI>> {
+    +email: string
+    +password: string
+    +codigoOtp: string
+    +mensaje: string
+    --
+    +iniciarSesion()
+    +registrarse()
+    +verificarCodigo()
+    +solicitarRecuperacion()
+    +restablecerPassword()
+  }
+
+  class AuthController <<CC>> {
+    --
+    +register_user(userData)
+    +verify_otp_code(email, codigo)
+    +login_user(email, password)
+    +request_password_recovery(email)
+    +reset_password(token, newPassword)
+  }
+
+  class Usuario <<Model>> {
+    +id: int
+    +nombre: string
+    +apellido: string
+    +email: string
+    +passwordHash: string
+    +telefono: string
+    +rolId: int
+    +sucursalId: int
+    +activo: bool
+    +verificado: bool
+    +codigoVerificacion: string
+    +codigoExpiracion: datetime
+    +fechaCreacion: datetime
+  }
+
+  class Rol <<Model>> {
+    +id: int
+    +nombre: string
+    +descripcion: string
+    +activo: bool
+  }
+
+  actor_usuario --> AuthPage
+  AuthPage --> AuthController : usa >
+  AuthController --> Usuario : consulta / crea >
+  AuthController ..> Rol : asigna rol "Cliente" >
+  Rol "1" -- "0..*" Usuario : tiene >
+}
+
+note bottom of AuthPage
+  Pantallas reales que implementan este boundary:
+  - Web:  login.component.ts, recover-password.component.ts,
+          reset-password.component.ts
+  - Movil: login_view.dart, register_view.dart,
+           verify_otp_view.dart, recover/reset_password_view.dart
+end note
+
+note bottom of AuthController
+  Clase real: backend/app/controllers/
+  cu1_gestionar_autenticacion/auth_controller.py
+  (metodos estaticos, sin atributos de instancia)
+end note
+
+@enduml

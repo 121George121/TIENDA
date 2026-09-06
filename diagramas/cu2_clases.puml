@@ -1,0 +1,60 @@
+@startuml CU2_Gestionar_Usuarios_Roles
+title CU2 - Gestionar Usuarios y Roles (Diagrama de Clases)
+
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+note as N1
+  CU2 no define entidades propias: administra
+  (crea/edita/activa/asigna permisos) las MISMAS
+  clases Usuario y Rol que ya pertenecen a CU1
+  (Gestionar Autenticacion). No se duplican.
+end note
+
+class Rol {
+  +id: int
+  +nombre: string
+  +descripcion: string
+  +activo: bool
+  +permisos: List<string> ' en memoria, ver nota
+  --
+  +crear()
+  +actualizar()
+  +configurarPermisos(permisos: List<string>)
+  +eliminar()
+}
+
+class Usuario {
+  +id: int
+  +nombre: string
+  +apellido: string
+  +email: string
+  +passwordHash: string
+  +telefono: string
+  +rolId: int
+  +sucursalId: int
+  +activo: bool
+  --
+  +crear()
+  +actualizar()
+  +cambiarEstado(activo: bool)
+  +asignarRol(rol: Rol)
+}
+
+Rol "1" -- "0..*" Usuario : tiene >
+
+N1 .. Rol
+N1 .. Usuario
+
+note bottom of Rol
+  ROLE_PERMISSIONS_CACHE (role_controller.py):
+  los permisos NO estan persistidos en PostgreSQL,
+  viven en un diccionario en memoria del proceso
+  y se pierden al reiniciar el backend.
+end note
+
+@enduml

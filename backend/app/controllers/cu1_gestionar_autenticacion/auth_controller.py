@@ -1,9 +1,12 @@
 # ==============================================================================
 # CAPA CONTROLADOR (MVC - CONTROLLER)
+# Módulo: CU1 - Gestionar Autenticación
+# Ubicación: backend/app/controllers/cu1_gestionar_autenticacion/auth_controller.py
 # Autenticación, Registro de Usuarios, OTP Cifrado y Hashing de contraseñas
 # ==============================================================================
 
 import random
+import secrets
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -178,3 +181,44 @@ class AuthController:
                 "verificado": usuario.verificado
             }
         }
+
+    @staticmethod
+    def request_password_recovery(db: Session, email: str):
+        """Genera un token de recuperación, lo guarda cifrado (reutilizando codigoverificacion) y lo envía por correo"""
+        clean_email = email.strip().lower()
+        usuario = db.query(UsuarioModel).filter(func.lower(UsuarioModel.email) == clean_email).first()
+        if not usuario:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No existe una cuenta con ese correo")
+
+        reset_token = secrets.token_urlsafe(32)
+        usuario.codigoverificacion = get_password_hash(reset_token)
+        usuario.codigoexpiracion = datetime.utcnow() + timedelta(minutes=15)
+        db.commit()
+
+        print("\n=======================================================")
+        print(f"[PASSWORD RECOVERY TOKEN] Email: {clean_email} | Token (enviado al mail): {reset_token}")
+        print("=======================================================\n")
+
+        send_recovery_email(email_to=clean_email, token=reset_token)
+
+        return {"mensaje": f"Se envió un enlace de recuperación a {clean_email}"}
+
+    @staticmethod
+    def reset_password(db: Session, token: str, new_password: str):
+        """Busca al usuario cuyo token de recuperación cifrado coincide y actualiza su contraseña"""
+        candidatos = db.query(UsuarioModel).filter(
+            UsuarioModel.codigoverificacion.isnot(None),
+            UsuarioModel.codigoexpiracion.isnot(None),
+            UsuarioModel.codigoexpiracion >= datetime.utcnow()
+        ).all()
+
+        usuario = next((u for u in candidatos if verify_password(token, u.codigoverificacion)), None)
+        if not usuario:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de recuperación es inválido o ha expirado")
+
+        usuario.passwordhash = get_password_hash(new_password)
+        usuario.codigoverificacion = None
+        usuario.codigoexpiracion = None
+        db.commit()
+
+        return {"mensaje": "Contraseña restablecida exitosamente. Ya puedes iniciar sesión."}

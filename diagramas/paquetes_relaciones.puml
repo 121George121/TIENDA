@@ -1,0 +1,74 @@
+@startuml Paquetes_ERP_TShirtBoutique
+title Relaciones entre Paquetes (P1-P8)
+
+skinparam packageStyle folder
+skinparam package {
+  BorderColor #444444
+  FontStyle bold
+}
+skinparam ArrowFontSize 11
+
+package "P1\nUsuarios, Seguridad\ny Auditoria" as P1 #B7D3EC
+package "P2\nGestion de\nClientes" as P2 #F5D98B
+package "P3\nGestion de Carrito\ny Reservas" as P3 #F2A6A6
+package "P4\nExperiencia Inteligente\ny Comunicacion" as P4 #D3B8E8
+package "P5\nGestion de Catalogo\ny Proveedores" as P5 #B7E0B0
+package "P6\nGestion de Sucursales\ne Inventario" as P6 #F5C08B
+package "P7\nGestion de Ventas\ny Pagos" as P7 #F2A6A6
+package "P8\nReportes y\nControl" as P8 #B7D3EC
+
+' ============================================================
+' 1) DEPENDENCIA DIRECTA (azul) - respaldada por FK real en la BD
+' ============================================================
+P2 -[#3465A4]-> P1 : cliente.usuarioid > usuario
+
+P3 -[#3465A4]-> P2 : carrito/reserva.clienteid > cliente
+P3 -[#3465A4]-> P5 : carrito_item/reserva_detalle.varianteid > variante_producto
+P3 -[#3465A4]-> P6 : carrito/reserva.sucursalid > sucursal
+
+P4 -[#3465A4]-> P2 : evento_cliente/prueba_virtual.clienteid > cliente
+P4 -[#3465A4]-> P5 : evento_cliente/prueba_virtual.varianteid > variante_producto
+
+P6 -[#3465A4]-> P5 : inventario.varianteid > variante_producto
+
+P7 -[#3465A4]-> P1 : venta.usuarioid > usuario (vendedor)
+P7 -[#3465A4]-> P2 : venta.clienteid > cliente
+P7 -[#3465A4]-> P5 : detalle_venta.varianteid > variante_producto
+P7 -[#3465A4]-> P6 : venta.sucursalid > sucursal
+
+' ============================================================
+' 2) DEPENDENCIA LOGICA DE NEGOCIO (naranja) - necesita reglas/datos de otro paquete, sin FK directa
+' ============================================================
+P5 .[#D2691E].> P6 : CU08 consulta stock/disponibilidad
+
+' ============================================================
+' 3) DEPENDENCIA DE PROCESO (verde) - un proceso completa/transforma info generada por otro paquete
+' ============================================================
+P7 .[#2E8B57].> P3 : CU14-16 concreta carrito/reserva en venta
+
+' ============================================================
+' 4) DEPENDENCIA INFORMATIVA (morado) - reportes consulta/analiza info producida por otros
+' ============================================================
+P8 .[#8B008B].> P1 : CU20
+P8 .[#8B008B].> P2 : CU20
+P8 .[#8B008B].> P3 : CU20 (abandono de carrito)
+P8 .[#8B008B].> P4 : CU20 (uso del vestidor virtual)
+P8 .[#8B008B].> P5 : CU20
+P8 .[#8B008B].> P6 : CU20
+P8 .[#8B008B].> P7 : CU20
+
+' ============================================================
+' 5) DEPENDENCIA CICLICA (rojo) - relacion mutua entre paquetes
+' ============================================================
+P1 <-[#DC143C]-> P6 : usuario.sucursalid  /  movimiento_inventario.usuarioid
+
+legend right
+|= Tipo de Relacion |= |= Justificacion |
+|<back:#3465A4>    </back>| <color:#3465A4>**Dependencia directa**</color> | Existe una relacion respaldada por claves foraneas reales en la base de datos PostgreSQL. |
+|<back:#D2691E>    </back>| <color:#D2691E>**Dependencia logica de negocio**</color> | Un paquete necesita reglas o consultas de otro paquete, pero no existe FK directa. |
+|<back:#2E8B57>    </back>| <color:#2E8B57>**Dependencia de proceso**</color> | Un proceso operativo completa o transforma informacion generada por otro paquete. |
+|<back:#8B008B>    </back>| <color:#8B008B>**Dependencia informativa**</color> | El modulo de reportes consulta y analiza informacion producida por otros paquetes. |
+|<back:#DC143C>    </back>| <color:#DC143C>**Dependencia ciclica**</color> | Existe una relacion mutua entre paquetes que debe considerarse al separar responsabilidades del codigo. |
+endlegend
+
+@enduml

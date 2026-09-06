@@ -1,0 +1,89 @@
+@startuml arquitectura_componentes
+title ERP T-Shirt Boutique - Diagrama de Componentes
+
+skinparam componentStyle rectangle
+skinparam wrap true
+
+actor "Administrador" as Admin
+actor "Cliente" as Customer
+
+package "Frontend Web (Angular 18)" as FE {
+  [Auth\n(login, recuperar/reset password)] as FE_Auth
+  [Dashboard] as FE_Dashboard
+  [Panel Admin\n(users, roles, customers, sucursales,\ncategorias, products, suppliers)] as FE_Admin
+  [Catálogo de Productos] as FE_Catalog
+  [JWT Interceptor] as FE_Interceptor
+  [Admin Guard] as FE_Guard
+}
+
+package "App Móvil (Flutter)" as MOB {
+  [Auth Controller\n(login, registro, OTP)] as MOB_Auth
+  [Product Controller] as MOB_Product
+  [Cart Controller] as MOB_Cart
+}
+
+package "Backend (FastAPI)" as BE {
+
+  component "main.py\n(CORS, routers)" as Main
+
+  package "Rutas / Views" as Routes {
+    [auth_views (CU1) / user_views / role_views (CU2)] as LegacyViews
+    [cliente_routes (CU3) / sucursal_routes (CU4) /\nclasificacion_routes (CU6) / producto_routes (CU5) /\nproveedor_routes (CU7)] as NewRoutes
+  }
+
+  package "Controllers" as Controllers {
+    [auth_controller (CU1) / user_controller / role_controller (CU2)] as LegacyControllers
+    [cliente_controller (CU3) / sucursal_controller (CU4) /\nproducto_controller (CU5) / clasificacion_controller (CU6) /\nproveedor_controller (CU7)] as NewControllers
+  }
+
+  component "Services (CU3-CU7)\ncliente_service, sucursal_service,\nproducto_service, clasificacion_service,\nproveedor_service" as Services
+
+  package "Core" as Core {
+    [security.py\n(JWT, bcrypt)] as Security
+    [dependencies.py\n(get_current_active_user)] as Deps
+    [email.py\n(OTP por correo)] as EmailCore
+    [database.py\n(SQLAlchemy session)] as DbCore
+    [config.py] as Config
+  }
+
+  component "models.py\n(re-exporta desde cada carpeta cuX_*)" as Models
+}
+
+database "PostgreSQL" as DB
+cloud "SMTP Gmail" as SMTP
+
+' --- Clientes hacia backend ---
+Admin --> FE
+Customer --> MOB
+
+FE_Interceptor --> Main : HTTPS + Bearer JWT
+FE_Guard --> FE_Admin : valida token + rol
+MOB_Auth --> Main : HTTPS
+MOB_Product --> Main : HTTPS (publico, sin JWT)
+MOB_Cart --> Main : HTTPS
+
+Main --> LegacyViews
+Main --> NewRoutes
+
+LegacyViews --> LegacyControllers
+NewRoutes --> NewControllers
+NewControllers --> Services
+
+LegacyControllers --> Deps
+NewControllers --> Deps
+note right of NewRoutes
+  Todas las rutas de escritura (POST/PUT/PATCH/DELETE)
+  exigen JWT. GET /productos queda publico porque el
+  catalogo (Flutter y web) lo consume sin sesion.
+end note
+
+LegacyControllers --> Security
+LegacyControllers --> EmailCore : envío OTP
+Services --> Models
+LegacyControllers --> Models
+
+Models --> DbCore
+DbCore --> DB : SQLAlchemy engine
+EmailCore --> SMTP : OTP registro/recuperación
+
+@enduml
