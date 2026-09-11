@@ -1,0 +1,67 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>{{ isEdit ? 'storefront' : 'add_business' }}</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>{{ isEdit ? 'Editar Sucursal / Punto de Venta' : 'Registrar Nueva Sucursal' }}</h2>
+    <p class="dialog-subtitle">{{ isEdit ? 'Modifica los datos de la tienda física' : 'Ingresa la ubicación y datos de la nueva tienda' }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+    
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nombre de la Sucursal</mat-label>
+        <input matInput formControlName="nombre" placeholder="Ej. Boutique Central Equipetrol" id="input-sucursal-nombre">
+        <mat-icon matSuffix>store</mat-icon>
+        <mat-error *ngIf="form.get('nombre')?.hasError('required')">El nombre es obligatorio.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Ciudad</mat-label>
+        <mat-select formControlName="ciudad" id="select-sucursal-ciudad">
+          <mat-option *ngFor="let c of ciudadesDisponibles" [value]="c">{{ c }}</mat-option>
+        </mat-select>
+        <mat-icon matSuffix>location_city</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Dirección Completa</mat-label>
+      <input matInput formControlName="direccion" placeholder="Ej. Av. San Martín #450, Z. Equipetrol" id="input-sucursal-direccion">
+      <mat-icon matSuffix>place</mat-icon>
+      <mat-error *ngIf="form.get('direccion')?.hasError('required')">La dirección es obligatoria.</mat-error>
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Teléfono de Contacto</mat-label>
+        <input matInput formControlName="telefono" placeholder="+591 3 3456789" id="input-sucursal-telefono">
+        <mat-icon matSuffix>phone</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Latitud GPS (Opcional)</mat-label>
+        <input matInput formControlName="latitud" type="number" step="0.0001" placeholder="-17.7689" id="input-sucursal-lat">
+        <mat-icon matSuffix>my_location</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Longitud GPS (Opcional)</mat-label>
+        <input matInput formControlName="longitud" type="number" step="0.0001" placeholder="-63.1834" id="input-sucursal-lng">
+        <mat-icon matSuffix>map</mat-icon>
+      </mat-form-field>
+    </div>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-sucursal">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-save-sucursal" class="btn-save">
+      <mat-icon>save</mat-icon>
+      <span>{{ isEdit ? 'Guardar Cambios' : 'Registrar Sucursal' }}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

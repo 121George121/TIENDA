@@ -1,0 +1,68 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>{{ type === 'categoria' ? 'category' : (type === 'temporada' ? 'date_range' : 'style') }}</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>{{ title }}</h2>
+    <p class="dialog-subtitle">Completa los campos requeridos para la clasificación de prendas</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="nombre" placeholder="Ej. Vestidos & Elegancia, Verano 2026..." id="input-clasif-nombre">
+      <mat-icon matSuffix>label</mat-icon>
+      <mat-error *ngIf="form.get('nombre')?.hasError('required')">El nombre es obligatorio.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Descripción</mat-label>
+      <textarea matInput formControlName="descripcion" rows="3" placeholder="Descripción de la línea de productos..." id="input-clasif-desc"></textarea>
+      <mat-icon matSuffix>description</mat-icon>
+    </mat-form-field>
+
+    <!-- Campos específicos para Temporada -->
+    <ng-container *ngIf="type === 'temporada'">
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Inicio</mat-label>
+          <input matInput type="date" formControlName="fechainicio" id="input-temp-inicio">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Fecha de Fin</mat-label>
+          <input matInput type="date" formControlName="fechafin" id="input-temp-fin">
+        </mat-form-field>
+      </div>
+    </ng-container>
+
+    <!-- Campos específicos para Colección -->
+    <ng-container *ngIf="type === 'coleccion'">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>URL de Imagen Promocional</mat-label>
+        <input matInput formControlName="imagenurl" placeholder="https://..." id="input-col-img">
+        <mat-icon matSuffix>image</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Temporada Asociada</mat-label>
+        <mat-select formControlName="temporadaid" id="select-col-temporada">
+          <mat-option [value]="null">Sin Temporada Específica</mat-option>
+          <mat-option *ngFor="let t of temporadas" [value]="t.id">{{ t.nombre }}</mat-option>
+        </mat-select>
+        <mat-icon matSuffix>date_range</mat-icon>
+      </mat-form-field>
+    </ng-container>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-clasif">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-save-clasif" class="btn-save">
+      <mat-icon>save</mat-icon>
+      <span>{{ isEdit ? 'Guardar Cambios' : 'Registrar' }}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

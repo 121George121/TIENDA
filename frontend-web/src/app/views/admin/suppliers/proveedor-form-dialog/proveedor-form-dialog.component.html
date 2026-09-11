@@ -1,0 +1,75 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>{{ isEdit ? 'edit_location_alt' : 'local_shipping' }}</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>{{ isEdit ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor' }}</h2>
+    <p class="dialog-subtitle">Gestión de alianzas textiles y proveedores de inventario boutique</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nombre Comercial</mat-label>
+        <input matInput formControlName="nombre" placeholder="Ej. Textiles Milano Italia" id="input-prov-nombre">
+        <mat-icon matSuffix>store</mat-icon>
+        <mat-error *ngIf="form.get('nombre')?.hasError('required')">El nombre comercial es obligatorio.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Razón Social</mat-label>
+        <input matInput formControlName="razonsocial" placeholder="Ej. Milano Fashion Group S.P.A." id="input-prov-rsocial">
+        <mat-icon matSuffix>business</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>NIT / Identificación Fiscal</mat-label>
+        <input matInput formControlName="nit" placeholder="Ej. 102938401" id="input-prov-nit">
+        <mat-icon matSuffix>badge</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Persona de Contacto</mat-label>
+        <input matInput formControlName="contacto" placeholder="Ej. Gianluigi Rossi" id="input-prov-contacto">
+        <mat-icon matSuffix>person</mat-icon>
+        <mat-error *ngIf="form.get('contacto')?.hasError('required')">El nombre del contacto es obligatorio.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Teléfono de Contacto</mat-label>
+        <input matInput formControlName="telefono" placeholder="+591 76012345" id="input-prov-tel">
+        <mat-icon matSuffix>phone</mat-icon>
+        <mat-error *ngIf="form.get('telefono')?.hasError('required')">El teléfono es obligatorio.</mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Correo Electrónico</mat-label>
+        <input matInput formControlName="email" placeholder="contacto@milanofashion.it" id="input-prov-email">
+        <mat-icon matSuffix>email</mat-icon>
+        <mat-error *ngIf="form.get('email')?.hasError('email')">Formato de correo inválido.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Dirección Principal / Planta</mat-label>
+      <input matInput formControlName="direccion" placeholder="Via Monte Napoleone 12, Milán..." id="input-prov-dir">
+      <mat-icon matSuffix>place</mat-icon>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-supplier">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-save-supplier" class="btn-save">
+      <mat-icon>save</mat-icon>
+      <span>{{ isEdit ? 'Guardar Cambios' : 'Registrar Proveedor' }}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

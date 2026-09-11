@@ -1,0 +1,145 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">local_shipping</mat-icon>
+      <span>Proveedores y Suministros</span>
+    </h1>
+    <p class="page-subtitle">Gestión de firmas socias, alianzas textiles y suministros de ropa boutique</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-supplier" class="btn-create">
+    <mat-icon>add_business</mat-icon>
+    <span>+ Nuevo Proveedor</span>
+  </button>
+</div>
+
+<!-- KPI Grid -->
+<div class="kpi-grid">
+  <div class="kpi-card purple">
+    <div class="kpi-icon-box"><mat-icon>local_shipping</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">🏭 Total Proveedores</span>
+      <span class="kpi-value">{{ totalProveedores }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-icon-box"><mat-icon>verified_user</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">🟢 Proveedores Activos</span>
+      <span class="kpi-value">{{ proveedoresActivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card gold">
+    <div class="kpi-icon-box"><mat-icon>inventory</mat-icon></div>
+    <div class="kpi-info">
+      <span class="kpi-label">📦 Productos Suministrados</span>
+      <span class="kpi-value">{{ totalSuministros }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros -->
+<mat-card class="filter-card">
+  <mat-card-content class="filter-content">
+    <mat-form-field appearance="outline" class="full-width search-field">
+      <mat-label>Buscar proveedor por comercial, razón social, NIT o contacto...</mat-label>
+      <input matInput [formControl]="searchControl" placeholder="Ej. Textiles Milano, Gianluigi..." id="input-search-supplier">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+  </mat-card-content>
+</mat-card>
+
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP de Proveedores -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" class="custom-table">
+    
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let p" class="id-cell"> #{{ p.id }} </td>
+    </ng-container>
+
+    <!-- Proveedor Column -->
+    <ng-container matColumnDef="proveedor">
+      <th mat-header-cell *matHeaderCellDef> Proveedor / Razón Social </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="supplier-cell">
+          <span class="supplier-name">{{ p.nombre }}</span>
+          <span class="supplier-rs">{{ p.razonsocial || 'Firma Comercial' }}</span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Contacto Column -->
+    <ng-container matColumnDef="contacto">
+      <th mat-header-cell *matHeaderCellDef> Contacto / Teléfono </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="contact-box">
+          <span class="contact-name"><mat-icon class="mini-icon">person</mat-icon> {{ p.contacto || 'Sin Asignar' }}</span>
+          <span class="contact-phone"><mat-icon class="mini-icon">phone</mat-icon> {{ p.telefono || '-' }}</span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- NIT Column -->
+    <ng-container matColumnDef="nit">
+      <th mat-header-cell *matHeaderCellDef> NIT </th>
+      <td mat-cell *matCellDef="let p">
+        <span class="nit-tag">{{ p.nit || 'S/N' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Suministros Column -->
+    <ng-container matColumnDef="suministros">
+      <th mat-header-cell *matHeaderCellDef> Prendas Vinculadas </th>
+      <td mat-cell *matCellDef="let p">
+        <span class="suministros-badge">
+          <mat-icon class="mini-icon">checkroom</mat-icon>
+          {{ p.productos_suministrados?.length || 0 }} productos
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef> Estado </th>
+      <td mat-cell *matCellDef="let p">
+        <span class="status-badge" [ngClass]="p.activo ? 'status-active' : 'status-inactive'">
+          {{ p.activo ? 'Vigente' : 'Inactivo' }}
+        </span>
+      </td>
+    </ng-container>
+
+    <!-- Acciones Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let p">
+        <div class="action-buttons">
+          <button mat-icon-button color="primary" (click)="openEditDialog(p)" matTooltip="Editar Proveedor" id="btn-edit-supp-{{ p.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteProveedor(p)" matTooltip="Desactivar Proveedor" id="btn-del-supp-{{ p.id }}">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Empty State -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">local_shipping</mat-icon>
+          <p class="empty-title">No se encontraron proveedores</p>
+          <p class="empty-desc">No existen proveedores registrados en la base de datos.</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>

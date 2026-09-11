@@ -1,0 +1,84 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>{{ isEdit ? 'edit_note' : 'add_shopping_cart' }}</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>{{ isEdit ? 'Editar Polera / T-Shirt' : 'Registrar Nueva Polera / T-Shirt' }}</h2>
+    <p class="dialog-subtitle">{{ isEdit ? 'Modifica los datos del catálogo de poleras' : 'Ingresa la información de la polera o camiseta' }}</p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Nombre de la Polera / Modelo</mat-label>
+      <input matInput formControlName="nombre" placeholder="Ej. Polera Oversized Heavyweight 240g" id="input-prod-nombre">
+      <mat-icon matSuffix>checkroom</mat-icon>
+      <mat-error *ngIf="form.get('nombre')?.hasError('required')">El nombre de la polera es obligatorio.</mat-error>
+    </mat-form-field>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Marca / Firma de Streetwear</mat-label>
+        <input matInput formControlName="marca" placeholder="Ej. Urban Drop, Retro Tees, Daily Basics..." id="input-prod-marca">
+        <mat-icon matSuffix>verified</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Categoría de Polera</mat-label>
+        <mat-select formControlName="categoriaid" id="select-prod-categoria">
+          <mat-option [value]="null">Sin Categoría</mat-option>
+          <mat-option *ngFor="let c of categorias" [value]="c.id">{{ c.nombre }}</mat-option>
+        </mat-select>
+        <mat-icon matSuffix>category</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Género</mat-label>
+        <mat-select formControlName="genero" id="select-prod-genero">
+          <mat-option *ngFor="let g of generosList" [value]="g">{{ g }}</mat-option>
+        </mat-select>
+        <mat-icon matSuffix>wc</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Grupo de Edad</mat-label>
+        <mat-select formControlName="grupoedad" id="select-prod-grupoedad">
+          <mat-option *ngFor="let e of gruposEdadList" [value]="e">{{ e }}</mat-option>
+        </mat-select>
+        <mat-icon matSuffix>people</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Precio Base (Bs.)</mat-label>
+        <input matInput type="number" step="0.5" formControlName="preciobase" placeholder="180.00" id="input-prod-precio">
+        <mat-icon matSuffix>attach_money</mat-icon>
+        <mat-error *ngIf="form.get('preciobase')?.hasError('required')">El precio base es obligatorio.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>URL de Imagen de la Polera</mat-label>
+      <input matInput formControlName="imagenprincipal" placeholder="https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=600" id="input-prod-imagen">
+      <mat-icon matSuffix>image</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Especificación Textil & Detalles</mat-label>
+      <textarea matInput formControlName="descripcion" rows="3" placeholder="Ej. Tela 100% Algodón Pima 240gsm, corte oversized, cuello en rib 1x1..." id="input-prod-desc"></textarea>
+      <mat-icon matSuffix>description</mat-icon>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-product">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-save-product" class="btn-save">
+      <mat-icon>save</mat-icon>
+      <span>{{ isEdit ? 'Guardar Polera' : 'Registrar Polera' }}</span>
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,46 @@
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.dialog-title mat-icon {
+  color: #4f46e5;
+}
+
+.dialog-content {
+  padding-top: 12px;
+  max-width: 600px;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-field {
+  flex: 1;
+}
+
+.toggle-row {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.dialog-actions {
+  padding: 16px 24px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  color: white !important;
+}

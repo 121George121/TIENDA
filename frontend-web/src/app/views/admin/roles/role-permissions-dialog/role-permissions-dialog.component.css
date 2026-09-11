@@ -1,0 +1,99 @@
+.dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.header-icon {
+  font-size: 2rem;
+  width: 2rem;
+  height: 2rem;
+  color: #6366f1;
+}
+
+.role-subtitle {
+  display: block;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.dialog-content {
+  max-width: 650px;
+  min-width: 500px;
+  max-height: 70vh;
+}
+
+.instruction {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+.cat-panel {
+  margin-bottom: 12px;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  border: 1px solid #e2e8f0;
+}
+
+.cat-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-name {
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.permissions-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.permission-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: #f8fafc;
+  border: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.permission-item:hover {
+  background-color: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.permission-label {
+  display: flex;
+  flex-direction: column;
+  margin-left: 8px;
+}
+
+.p-nombre {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.p-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.dialog-actions {
+  padding: 16px 24px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  color: white !important;
+}

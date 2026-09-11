@@ -1,0 +1,40 @@
+<!-- ==============================================================================
+     CAPA VISTA (MVC - VIEW EN ANGULAR)
+     Componente Visual: Catálogo de Productos y Carrito interactivo
+     ============================================================================== -->
+
+<div class="store-container">
+  <header class="header">
+    <h1>🛒 Tienda Virtual E-Commerce</h1>
+    <div class="cart-badge">
+      <span>Items en Carrito: <strong>{{ totalItems }}</strong></span>
+      <span>Total: <strong>${{ totalPrice | number:'1.2-2' }}</strong></span>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- Lista de Productos -->
+    <section class="products-section">
+      <h2>Catálogo de Productos</h2>
+      
+      <div *ngIf="loading" class="loading">Cargando productos desde FastAPI...</div>
+      
+      <div class="grid-products">
+        <div *ngFor="let prod of productos" class="card-product">
+          <img [src]="prod.imagen_url || 'https://via.placeholder.com/200'" [alt]="prod.nombre" class="prod-img">
+          <div class="card-body">
+            <h3>{{ prod.nombre }}</h3>
+            <p class="desc">{{ prod.descripcion }}</p>
+            <div class="price-row">
+              <span class="price">${{ prod.precio }}</span>
+              <span class="stock">Stock: {{ prod.stock }}</span>
+            </div>
+            <button (click)="agregarAlCarrito(prod)" class="btn-primary" [disabled]="prod.stock <= 0">
+              {{ prod.stock > 0 ? 'Agregar al Carrito' : 'Agotado' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

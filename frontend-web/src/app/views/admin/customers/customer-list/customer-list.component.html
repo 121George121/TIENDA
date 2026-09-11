@@ -1,0 +1,199 @@
+<div class="page-header">
+  <div class="header-left">
+    <h1 class="page-title">
+      <mat-icon class="header-icon">assignment_ind</mat-icon>
+      <span>Gestión de Clientes</span>
+    </h1>
+    <p class="page-subtitle">Administración de compradores, perfiles, historial de compras y reservas de la boutique</p>
+  </div>
+  <button mat-raised-button color="primary" (click)="openCreateDialog()" id="btn-open-create-customer" class="btn-create">
+    <mat-icon>person_add</mat-icon>
+    <span>+ Nuevo Cliente</span>
+  </button>
+</div>
+
+<!-- KPI Cards Clientes Retail Fashion -->
+<div class="kpi-grid">
+  <div class="kpi-card purple">
+    <div class="kpi-icon-box">
+      <mat-icon>groups</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">👥 Total Clientes</span>
+      <span class="kpi-value">{{ totalClientes }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-icon-box">
+      <mat-icon>verified_user</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🟢 Clientes Activos</span>
+      <span class="kpi-value">{{ clientesActivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card orange">
+    <div class="kpi-icon-box">
+      <mat-icon>person_off</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🔴 Clientes Inactivos</span>
+      <span class="kpi-value">{{ clientesInactivos }}</span>
+    </div>
+  </div>
+
+  <div class="kpi-card blue">
+    <div class="kpi-icon-box">
+      <mat-icon>shopping_bag</mat-icon>
+    </div>
+    <div class="kpi-info">
+      <span class="kpi-label">🛍️ Tipo de Cuenta</span>
+      <span class="kpi-value">Retail VIP</span>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros y Búsqueda -->
+<mat-card class="filter-card">
+  <mat-card-content class="filter-content">
+    <div class="search-box">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Buscar cliente por nombre, apellido, correo o teléfono...</mat-label>
+        <input matInput [formControl]="searchControl" placeholder="Escribe para buscar clientes..." id="input-search-customer">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <div class="filter-controls">
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Estado del Cliente</mat-label>
+        <mat-select [formControl]="estadoFilterControl" id="select-filter-customer-estado">
+          <mat-option [value]="null">Todos los Clientes</mat-option>
+          <mat-option [value]="true">Solo Activos</mat-option>
+          <mat-option [value]="false">Solo Inactivos / Baja Lógica</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="resetFilters()" id="btn-reset-customer-filters" class="btn-reset">
+        <mat-icon>filter_alt_off</mat-icon>
+        <span>Limpiar</span>
+      </button>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<!-- Loading Bar -->
+<mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+<!-- Tabla ERP de Clientes -->
+<div class="table-container mat-elevation-z2">
+  <table mat-table [dataSource]="dataSource" class="custom-table">
+    
+    <!-- ID Column -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let cliente" class="id-cell"> #{{ cliente.id }} </td>
+    </ng-container>
+
+    <!-- Cliente Name & Avatar Column -->
+    <ng-container matColumnDef="cliente">
+      <th mat-header-cell *matHeaderCellDef> Cliente </th>
+      <td mat-cell *matCellDef="let cliente">
+        <div class="user-profile-cell">
+          <div class="avatar-circle" [ngClass]="{'avatar-inactive': !cliente.activo}">
+            {{ cliente.nombre.charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-name-box">
+            <span class="user-fullname">{{ cliente.nombre }} {{ cliente.apellido || '' }}</span>
+            <span class="user-alias">&#64;{{ cliente.email.split('&#64;')[0] }}</span>
+          </div>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Email Column -->
+    <ng-container matColumnDef="email">
+      <th mat-header-cell *matHeaderCellDef> Correo Electrónico </th>
+      <td mat-cell *matCellDef="let cliente">
+        <div class="email-cell">
+          <mat-icon class="inline-icon">email</mat-icon>
+          <span>{{ cliente.email }}</span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Phone Column -->
+    <ng-container matColumnDef="telefono">
+      <th mat-header-cell *matHeaderCellDef> Teléfono / WhatsApp </th>
+      <td mat-cell *matCellDef="let cliente">
+        <span *ngIf="cliente.telefono" class="phone-tag">
+          <mat-icon class="inline-icon">phone</mat-icon>
+          {{ cliente.telefono }}
+        </span>
+        <span *ngIf="!cliente.telefono" class="text-muted">-</span>
+      </td>
+    </ng-container>
+
+    <!-- Estado Column -->
+    <ng-container matColumnDef="activo">
+      <th mat-header-cell *matHeaderCellDef> Estado </th>
+      <td mat-cell *matCellDef="let cliente">
+        <div class="status-toggle-box">
+          <mat-slide-toggle 
+            [checked]="cliente.activo" 
+            color="primary" 
+            (change)="onToggleStatus(cliente)"
+            matTooltip="Activar / Desactivar cliente"
+            id="toggle-customer-{{ cliente.id }}">
+          </mat-slide-toggle>
+          <span class="status-badge" [ngClass]="cliente.activo ? 'status-active' : 'status-inactive'">
+            {{ cliente.activo ? 'Activo' : 'Inactivo' }}
+          </span>
+        </div>
+      </td>
+    </ng-container>
+
+    <!-- Registration Date Column -->
+    <ng-container matColumnDef="fechacreacion">
+      <th mat-header-cell *matHeaderCellDef> Fecha Registro </th>
+      <td mat-cell *matCellDef="let cliente" class="date-cell">
+        <mat-icon class="inline-icon">event</mat-icon>
+        <span>{{ (cliente.created_at || cliente.fechacreacion || '2026-09-04') | date:'dd/MM/yyyy' }}</span>
+      </td>
+    </ng-container>
+
+    <!-- Actions Column -->
+    <ng-container matColumnDef="acciones">
+      <th mat-header-cell *matHeaderCellDef> Acciones </th>
+      <td mat-cell *matCellDef="let cliente">
+        <div class="action-buttons">
+          <button mat-icon-button color="accent" (click)="openViewDialog(cliente)" matTooltip="Ver Perfil e Historial" id="btn-view-customer-{{ cliente.id }}">
+            <mat-icon>account_circle</mat-icon>
+          </button>
+          <button mat-icon-button color="primary" (click)="openEditDialog(cliente)" matTooltip="Editar Cliente" id="btn-edit-customer-{{ cliente.id }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteCliente(cliente)" matTooltip="Baja Lógica" id="btn-delete-customer-{{ cliente.id }}">
+            <mat-icon>delete_forever</mat-icon>
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+    <!-- Empty State -->
+    <tr class="mat-row" *matNoDataRow>
+      <td class="mat-cell empty-table" [attr.colspan]="displayedColumns.length">
+        <div class="empty-state">
+          <mat-icon class="empty-icon">person_search</mat-icon>
+          <p class="empty-title">No se encontraron clientes</p>
+          <p class="empty-desc">No existen clientes registrados con los filtros seleccionados.</p>
+        </div>
+      </td>
+    </tr>
+  </table>
+</div>
