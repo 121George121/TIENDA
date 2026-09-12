@@ -14,8 +14,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { CartService } from '../../services/cart.service';
 import { InventoryService } from '../../services/inventory.service';
+import { ReservationService } from '../../services/reservation.service';
 import { Carrito, CarritoItem } from '../../models/cart.model';
 import { SucursalItem } from '../../models/inventory.model';
+import { Reserva } from '../../models/reservation.model';
 
 @Component({
   selector: 'app-cart-view',
@@ -37,9 +39,16 @@ export class CartViewComponent implements OnInit {
   loading = true;
   procesandoId: number | null = null;
 
+  // Estado del Modal de Reserva (CU10)
+  mostrarModalReserva = false;
+  observacionesReserva = '';
+  procesandoReserva = false;
+  reservaExitosa: Reserva | null = null;
+
   constructor(
     private cartService: CartService,
     private inventoryService: InventoryService,
+    private reservationService: ReservationService,
     private router: Router
   ) {}
 
@@ -139,6 +148,38 @@ export class CartViewComponent implements OnInit {
       return;
     }
 
-    alert(`¡Excelente! Carrito validado para ${this.carrito.sucursal_nombre}.\nListo para generar la Reserva (CU10).`);
+    this.observacionesReserva = '';
+    this.reservaExitosa = null;
+    this.mostrarModalReserva = true;
+  }
+
+  cerrarModalReserva(): void {
+    if (this.procesandoReserva) return;
+    this.mostrarModalReserva = false;
+  }
+
+  confirmarReserva(): void {
+    if (!this.carrito || !this.carrito.sucursal_id) return;
+
+    this.procesandoReserva = true;
+    this.reservationService.crearReserva({
+      sucursal_id: this.carrito.sucursal_id,
+      observaciones: this.observacionesReserva.trim() || undefined
+    }).subscribe({
+      next: (nuevaReserva) => {
+        this.procesandoReserva = false;
+        this.reservaExitosa = nuevaReserva;
+      },
+      error: (err) => {
+        this.procesandoReserva = false;
+        alert(err.error?.detail || 'Error al procesar la reserva. Por favor intenta de nuevo.');
+      }
+    });
+  }
+
+  irAMisReservas(): void {
+    this.mostrarModalReserva = false;
+    this.router.navigate(['/mis-reservas']);
   }
 }
+

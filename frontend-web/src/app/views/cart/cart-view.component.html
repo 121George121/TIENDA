@@ -187,4 +187,100 @@
       </aside>
     </div>
   </main>
+
+  <!-- Modal de Confirmación de Reserva (CU10) -->
+  <div *ngIf="mostrarModalReserva" class="modal-backdrop" (click)="cerrarModalReserva()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <!-- PASO 1: Formulario de Confirmación -->
+      <div *ngIf="!reservaExitosa" class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-box">
+            <mat-icon class="modal-header-icon">event_seat</mat-icon>
+            <div>
+              <h3>Confirmar Reserva en Tienda</h3>
+              <span class="modal-sub">Caso de Uso: CU10 - Reservas de Prendas</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="cerrarModalReserva()" [disabled]="procesandoReserva">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Tarjeta de Sucursal Seleccionada -->
+          <div class="modal-branch-card">
+            <mat-icon class="pin-icon">place</mat-icon>
+            <div>
+              <strong>Sucursal de Retiro:</strong>
+              <p>{{ carrito?.sucursal_nombre }}</p>
+            </div>
+          </div>
+
+          <!-- Resumen de Totales -->
+          <div class="modal-summary-box">
+            <div class="summary-line">
+              <span>Total de prendas apartadas:</span>
+              <strong>{{ carrito?.total_items }} unidades</strong>
+            </div>
+            <div class="summary-line">
+              <span>Monto total a pagar en tienda:</span>
+              <strong class="text-accent">Bs. {{ carrito?.total_precio | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <!-- Campo de Observaciones -->
+          <div class="form-group">
+            <label for="observaciones">Observaciones o Notas (Opcional):</label>
+            <textarea
+              id="observaciones"
+              [(ngModel)]="observacionesReserva"
+              rows="3"
+              placeholder="Ej: Pasaré a recoger después de las 4:00 PM..."
+              [disabled]="procesandoReserva"
+              class="notes-textarea"
+            ></textarea>
+          </div>
+
+          <div class="info-alert">
+            <mat-icon>info</mat-icon>
+            <span>Al confirmar, el stock físico quedará bloqueado en la tienda como <strong>stock reservado</strong> para garantizar que tus prendas no sean vendidas a otros clientes.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalReserva()" [disabled]="procesandoReserva">
+            Cancelar
+          </button>
+          <button type="button" class="btn-confirm-reserve" (click)="confirmarReserva()" [disabled]="procesandoReserva">
+            <mat-icon *ngIf="!procesandoReserva">check_circle</mat-icon>
+            <span *ngIf="!procesandoReserva">Generar Código de Reserva</span>
+            <span *ngIf="procesandoReserva">Apartando inventario...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 2: Éxito con Código de Reserva Generado -->
+      <div *ngIf="reservaExitosa" class="modal-content success-modal">
+        <div class="success-icon-wrapper">
+          <mat-icon class="success-icon">check_circle</mat-icon>
+        </div>
+        <h3>¡Reserva Confirmada con Éxito!</h3>
+        <p class="success-desc">Tus prendas han sido apartadas en la sucursal. Presenta el siguiente código en caja para pagar y retirar:</p>
+
+        <div class="reservation-code-banner">
+          <span class="code-title">CÓDIGO DE RESERVA</span>
+          <strong class="code-display">{{ reservaExitosa.codigo_reserva }}</strong>
+          <span class="code-branch">Tienda: {{ reservaExitosa.sucursal?.nombre }}</span>
+        </div>
+
+        <div class="success-actions">
+          <button type="button" class="btn-goto-reservations" (click)="irAMisReservas()">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Ver Mis Reservas (CU10)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
+

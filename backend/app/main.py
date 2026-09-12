@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.database import Base, engine
 from app.models import models # Registra todos los modelos ORM
 from app.views import auth_views, user_views, role_views
-from app.routes import cliente_routes, sucursal_routes, clasificacion_routes, producto_routes, proveedor_routes, inventario_routes, carrito_routes
+from app.routes import cliente_routes, sucursal_routes, clasificacion_routes, producto_routes, proveedor_routes, inventario_routes, carrito_routes, reserva_routes
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -47,6 +47,8 @@ app.include_router(producto_routes.router, prefix=settings.API_V1_STR)
 app.include_router(proveedor_routes.router, prefix=settings.API_V1_STR)
 app.include_router(inventario_routes.router, prefix=settings.API_V1_STR)
 app.include_router(carrito_routes.router, prefix=settings.API_V1_STR)
+app.include_router(reserva_routes.router, prefix=settings.API_V1_STR)
+
 
 @app.get("/", tags=["Inicio"])
 def read_root():

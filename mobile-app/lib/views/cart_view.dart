@@ -7,6 +7,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/cart_controller.dart';
+import '../controllers/reservation_controller.dart';
+import 'my_reservations_view.dart';
 
 class CartView extends StatelessWidget {
   const CartView({Key? key}) : super(key: key);
@@ -23,6 +25,16 @@ class CartView extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'Mis Reservas (CU10)',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyReservationsView()),
+              );
+            },
+          ),
           if (cartCtrl.items.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep),
@@ -145,7 +157,7 @@ class CartView extends StatelessWidget {
                                       children: [
                                         Container(
                                           decoration: BoxDecoration(
-                                            border: Border.Border.all(color: Colors.grey.shade300),
+                                            border: Border.all(color: Colors.grey.shade300),
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
@@ -253,13 +265,84 @@ class CartView extends StatelessWidget {
                             'Proceder a Reservar en Tienda (CU10)',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Carrito listo para generar Reserva (CU10)'),
-                                backgroundColor: Color(0xFF0F172A),
-                              ),
+                          onPressed: () async {
+                            final sucursalId = cartCtrl.sucursalId ?? 1;
+                            final resCtrl = context.read<ReservationController>();
+
+                            showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (_) => const Center(child: CircularProgressIndicator(color: Colors.white)),
                             );
+
+                            final nuevaReserva = await resCtrl.crearReserva(
+                              sucursalId: sucursalId,
+                              observaciones: 'Reserva generada desde App Móvil',
+                            );
+
+                            Navigator.pop(context); // Cerrar loading
+
+                            if (nuevaReserva != null) {
+                              cartCtrl.limpiarCarrito();
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  backgroundColor: const Color(0xFF1E293B),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle, color: Colors.greenAccent),
+                                      SizedBox(width: 8),
+                                      Text('¡Reserva Exitosa!', style: TextStyle(color: Colors.white)),
+                                    ],
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Código de Retiro en Tienda:',
+                                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        nuevaReserva.codigoReserva,
+                                        style: const TextStyle(
+                                          color: Color(0xFF38BDF8),
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Presenta este código en sucursal para abonar y retirar tus prendas.',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8)),
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (_) => const MyReservationsView()),
+                                        );
+                                      },
+                                      child: const Text('Ver Mis Reservas', style: TextStyle(color: Colors.black)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(resCtrl.error ?? 'Error al procesar reserva'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
                           },
                         ),
                       ),

@@ -32,8 +32,13 @@ def get_current_cart_user_id(
             if user:
                 return user.id
 
-    # Usuario cliente predeterminado (o primer usuario encontrado)
-    default_user = db.query(UsuarioModel).first()
+    # Priorizar usuario cliente@tienda.com o el primer usuario
+    default_user = (
+        db.query(UsuarioModel)
+        .filter(UsuarioModel.email == "cliente@tienda.com")
+        .first()
+        or db.query(UsuarioModel).first()
+    )
     return default_user.id if default_user else 1
 
 @router.get("", response_model=CarritoResponse, summary="Obtener carrito activo")
