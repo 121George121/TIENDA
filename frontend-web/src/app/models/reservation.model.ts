@@ -30,6 +30,10 @@ export interface Reserva {
   fecha_reserva: string;
   estado: 'PENDIENTE' | 'CONFIRMADA' | 'ENTREGADA' | 'CANCELADA' | 'EXPIRADA' | string;
   observaciones?: string;
+  cliente_id?: number;
+  cliente_nombre?: string;
+  cliente_email?: string;
+  cliente_telefono?: string;
   sucursal?: ReservaSucursal;
   detalles: ReservaDetalle[];
   total_items: number;
@@ -44,3 +48,9 @@ export interface CrearReservaDTO {
 export interface CancelarReservaDTO {
   motivo?: string;
 }
+
+export interface AtenderReservaDTO {
+  accion: 'ENTREGAR' | 'CANCELAR';
+  observaciones?: string;
+}
+

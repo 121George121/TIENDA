@@ -15,10 +15,11 @@ from app.schemas.reserva_schema import (
     ReservaResponse,
     ReservaCreate,
     CancelarReservaRequest,
+    AtenderReservaRequest,
 )
 from app.controllers.reserva_controller import ReservaController
 
-router = APIRouter(prefix="/reservas", tags=["CU10 - Reservas de Prendas"])
+router = APIRouter(prefix="/reservas", tags=["CU10 y CU11 - Reservas de Prendas"])
 
 
 def get_current_user_id(
@@ -67,6 +68,54 @@ def listar_mis_reservas(
     return ReservaController.listar_reservas_usuario(db=db, usuario_id=usuario_id)
 
 
+# ==============================================================================
+# ENDPOINTS ADMINISTRATIVOS Y DE SUCURSAL (CU11 - ATENDER RESERVAS)
+# ==============================================================================
+
+@router.get("/admin/listado", response_model=List[ReservaResponse], summary="Listado general de reservas para sucursal/admin")
+def listar_reservas_admin(
+    sucursal_id: Optional[int] = None,
+    estado: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    CU11: Retorna todas las reservas filtradas por sucursal física y/o estado para el personal de tienda.
+    """
+    return ReservaController.listar_reservas_admin(db=db, sucursal_id=sucursal_id, estado=estado)
+
+
+@router.get("/admin/buscar/{codigo}", response_model=ReservaResponse, summary="Búsqueda rápida por código de reserva")
+def buscar_por_codigo(
+    codigo: str,
+    db: Session = Depends(get_db),
+):
+    """
+    CU11: Permite al cajero buscar inmediatamente una reserva por su código alfanumérico (ej: RES-NWDTBO).
+    """
+    return ReservaController.buscar_reserva_codigo(db=db, codigo=codigo)
+
+
+@router.post("/{reserva_id}/atender", response_model=ReservaResponse, summary="Atender y entregar o cancelar reserva en tienda")
+def atender_reserva(
+    reserva_id: int,
+    datos: AtenderReservaRequest,
+    db: Session = Depends(get_db),
+    usuario_id: int = Depends(get_current_user_id),
+):
+    """
+    CU11: Atender reserva en caja/mostrador.
+    - ENTREGAR: Marca como ENTREGADA, libera el stock reservado y descuenta definitivamente el stock físico.
+    - CANCELAR: Marca como CANCELADA y libera el stock reservado para venta general.
+    """
+    return ReservaController.atender_reserva_sucursal(
+        db=db, reserva_id=reserva_id, datos=datos, usuario_staff_id=usuario_id
+    )
+
+
+# ==============================================================================
+# ENDPOINTS ESPECÍFICOS POR ID O CÓDIGO
+# ==============================================================================
+
 @router.get("/{id_o_codigo}", response_model=ReservaResponse, summary="Obtener detalle de reserva por ID o código")
 def obtener_reserva(
     id_o_codigo: str,
@@ -79,7 +128,7 @@ def obtener_reserva(
     return ReservaController.obtener_reserva_por_id_o_codigo(db=db, id_o_codigo=id_o_codigo, usuario_id=usuario_id)
 
 
-@router.patch("/{reserva_id}/cancelar", response_model=ReservaResponse, summary="Cancelar reserva pendiente")
+@router.patch("/{reserva_id}/cancelar", response_model=ReservaResponse, summary="Cancelar reserva pendiente por el cliente")
 def cancelar_reserva(
     reserva_id: int,
     datos: Optional[CancelarReservaRequest] = None,
@@ -93,3 +142,4 @@ def cancelar_reserva(
     return ReservaController.cancelar_reserva_cliente(
         db=db, reserva_id=reserva_id, usuario_id=usuario_id, motivo=motivo
     )
+

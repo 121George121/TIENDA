@@ -102,4 +102,27 @@ class ReservationController extends ChangeNotifier {
       return false;
     }
   }
+
+  /// CU11: Atender reserva en sucursal (ENTREGAR o CANCELAR)
+  Future<bool> atenderReserva(int id, String accion, {String? notas}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_reservasUrl/$id/atender'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'accion': accion,
+          if (notas != null) 'observaciones': notas,
+        }),
+      );
+      if (response.statusCode == 200) {
+        await cargarMisReservas();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error al atender reserva: $e');
+      return false;
+    }
+  }
 }
+

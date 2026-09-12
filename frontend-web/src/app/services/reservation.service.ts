@@ -44,4 +44,28 @@ export class ReservationService {
     const payload: CancelarReservaDTO = { motivo };
     return this.http.patch<Reserva>(`${this.apiUrl}/${reservaId}/cancelar`, payload);
   }
+
+  /** CU11: Listado general de reservas para administración y encargados de sucursal */
+  getReservasAdmin(sucursalId?: number | null, estado?: string | null): Observable<Reserva[]> {
+    let params: any = {};
+    if (sucursalId) params.sucursal_id = sucursalId;
+    if (estado && estado !== 'TODAS') params.estado = estado;
+    return this.http.get<Reserva[]>(`${this.apiUrl}/admin/listado`, { params });
+  }
+
+  /** CU11: Búsqueda rápida por código alfanumérico para el punto de atención */
+  buscarPorCodigo(codigo: string): Observable<Reserva> {
+    const codigoLimpio = codigo.trim().toUpperCase();
+    return this.http.get<Reserva>(`${this.apiUrl}/admin/buscar/${codigoLimpio}`);
+  }
+
+  /** CU11: Atender reserva en caja/mostrador (Entregar y cobrar o Cancelar) */
+  atenderReserva(reservaId: number, accion: 'ENTREGAR' | 'CANCELAR', observaciones?: string): Observable<Reserva> {
+    const payload = {
+      accion: accion,
+      observaciones: observaciones
+    };
+    return this.http.post<Reserva>(`${this.apiUrl}/${reservaId}/atender`, payload);
+  }
 }
+

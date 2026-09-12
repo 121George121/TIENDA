@@ -35,6 +35,10 @@ class ReservaResponse(BaseModel):
     fecha_reserva: datetime
     estado: str
     observaciones: Optional[str] = None
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
+    cliente_email: Optional[str] = None
+    cliente_telefono: Optional[str] = None
     sucursal: Optional[ReservaSucursalResponse] = None
     detalles: List[ReservaDetalleResponse] = []
     total_items: int = 0
@@ -51,3 +55,9 @@ class ReservaCreate(BaseModel):
 
 class CancelarReservaRequest(BaseModel):
     motivo: Optional[str] = None
+
+
+class AtenderReservaRequest(BaseModel):
+    accion: str  # 'ENTREGAR' o 'CANCELAR'
+    observaciones: Optional[str] = None
+

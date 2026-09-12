@@ -14,6 +14,7 @@ import { ProveedorListComponent } from './views/admin/suppliers/proveedor-list/p
 import { ProductCatalogComponent } from './views/product-catalog/product-catalog.component';
 import { CartViewComponent } from './views/cart/cart-view.component';
 import { MyReservationsComponent } from './views/reservations/my-reservations.component';
+import { AdminReservasComponent } from './views/admin/reservas/admin-reservas.component';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'catalogo', component: ProductCatalogComponent },
   { path: 'carrito', component: CartViewComponent },
   { path: 'mis-reservas', component: MyReservationsComponent },
+  { path: 'atencion-reservas', component: AdminReservasComponent },
   { path: 'recover-password', component: RecoverPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   {
@@ -38,6 +40,7 @@ export const routes: Routes = [
       { path: 'catalogo', component: ProductCatalogComponent },
       { path: 'carrito', component: CartViewComponent },
       { path: 'mis-reservas', component: MyReservationsComponent },
+      { path: 'reservas', component: AdminReservasComponent },
       { path: 'suppliers', component: ProveedorListComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]
