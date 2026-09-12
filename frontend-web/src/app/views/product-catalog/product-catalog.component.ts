@@ -17,6 +17,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { InventoryService } from '../../services/inventory.service';
+import { CartService } from '../../services/cart.service';
 import {
   ProductoCatalogoItem,
   SucursalItem,
@@ -65,11 +66,19 @@ export class ProductCatalogComponent implements OnInit {
   // Carrito local rápido (contador para el header)
   itemsCarritoCount = 0;
 
-  constructor(private inventoryService: InventoryService) {}
+  constructor(
+    private inventoryService: InventoryService,
+    private cartService: CartService
+  ) {}
 
   ngOnInit(): void {
     this.cargarSucursales();
     this.cargarCatalogo();
+
+    // Sincronizar contador del carrito
+    this.cartService.cartCount$.subscribe(count => {
+      this.itemsCarritoCount = count;
+    });
   }
 
   cargarSucursales(): void {
@@ -172,8 +181,14 @@ export class ProductCatalogComponent implements OnInit {
     const variante = this.getVarianteSeleccionada(producto.id);
     if (!variante || variante.stock <= 0) return;
 
-    this.itemsCarritoCount++;
-    // Feedback visual
-    alert(`¡Añadido al carrito! \n${producto.nombre} (Talla: ${variante.talla}, Color: ${variante.color})`);
+    this.cartService.agregarItem(variante.variante_id, 1, this.sucursalSeleccionadaId).subscribe({
+      next: () => {
+        // Feedback visual inmediato
+        alert(`¡Añadido al carrito con éxito!\n${producto.nombre}\nTalla: ${variante.talla} | Color: ${variante.color}`);
+      },
+      error: (err) => {
+        alert(err.error?.detail || 'Error al agregar al carrito');
+      }
+    });
   }
 }

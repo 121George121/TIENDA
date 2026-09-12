@@ -12,12 +12,14 @@ import { ClasificacionListComponent } from './views/admin/categorias/clasificaci
 import { ProductListComponent } from './views/admin/products/product-list/product-list.component';
 import { ProveedorListComponent } from './views/admin/suppliers/proveedor-list/proveedor-list.component';
 import { ProductCatalogComponent } from './views/product-catalog/product-catalog.component';
+import { CartViewComponent } from './views/cart/cart-view.component';
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'catalogo', component: ProductCatalogComponent },
+  { path: 'carrito', component: CartViewComponent },
   { path: 'recover-password', component: RecoverPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   {
@@ -32,6 +34,7 @@ export const routes: Routes = [
       { path: 'categorias', component: ClasificacionListComponent },
       { path: 'products', component: ProductListComponent },
       { path: 'catalogo', component: ProductCatalogComponent },
+      { path: 'carrito', component: CartViewComponent },
       { path: 'suppliers', component: ProveedorListComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]

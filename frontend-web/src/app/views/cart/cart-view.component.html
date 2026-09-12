@@ -1,0 +1,190 @@
+<!-- ==============================================================================
+     CAPA VISTA (MVC - VIEW EN ANGULAR 18)
+     Módulo: CU09 - Gestionar Carrito de Compras
+     Ubicación: frontend-web/src/app/views/cart/cart-view.component.html
+     ============================================================================== -->
+
+<div class="cart-page">
+  <!-- Header -->
+  <header class="cart-header">
+    <div class="header-container">
+      <div class="header-left">
+        <button mat-icon-button routerLink="/catalogo" class="btn-back" matTooltip="Regresar al Catálogo">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div>
+          <h1>Mi Carrito de Compras <span>(CU09)</span></h1>
+          <p class="subtitle">Gestiona tus prendas y valida existencias en tiendas físicas</p>
+        </div>
+      </div>
+      <button *ngIf="carrito && carrito.items.length > 0" class="btn-clear-cart" (click)="vaciar()">
+        <mat-icon>delete_sweep</mat-icon>
+        <span>Vaciar Carrito</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="cart-main">
+    <!-- Estado de Carga -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando tu carrito desde la base de datos...</p>
+    </div>
+
+    <!-- Estado Vacío -->
+    <div *ngIf="!loading && (!carrito || carrito.items.length === 0)" class="empty-cart-card">
+      <mat-icon class="empty-icon">shopping_cart_checkout</mat-icon>
+      <h2>Tu carrito de compras está vacío</h2>
+      <p>Aún no has agregado poleras a tu pedido. Explora nuestro catálogo y selecciona tus tallas favoritas.</p>
+      <button routerLink="/catalogo" class="btn-explore">
+        <mat-icon>storefront</mat-icon>
+        <span>Explorar Catálogo</span>
+      </button>
+    </div>
+
+    <!-- Contenido del Carrito Activo -->
+    <div *ngIf="!loading && carrito && carrito.items.length > 0" class="cart-layout">
+      <!-- Columna Izquierda: Ítems y Sucursal -->
+      <section class="items-column">
+        <!-- Selector de Tienda Física para Retiro/Compra -->
+        <div class="branch-selector-card">
+          <div class="branch-header">
+            <mat-icon class="branch-icon">storefront</mat-icon>
+            <div>
+              <h3>Sucursal Física de Retiro</h3>
+              <p>Las existencias se validan en tiempo real para la tienda seleccionada:</p>
+            </div>
+          </div>
+
+          <select [ngModel]="carrito.sucursal_id" (change)="onCambioSucursal($event)" class="branch-select">
+            <option [ngValue]="null" disabled>-- Selecciona una sucursal para tu pedido --</option>
+            <option *ngFor="let s of sucursales" [value]="s.id">
+              📍 {{ s.nombre }} ({{ s.ciudad }}) - {{ s.direccion }}
+            </option>
+          </select>
+
+          <div *ngIf="!carrito.sucursal_id" class="alert-box alert-warning">
+            <mat-icon>info</mat-icon>
+            <span>Por favor selecciona la tienda donde retirarás o comprarás tus prendas.</span>
+          </div>
+
+          <div *ngIf="carrito.tiene_alertas_stock" class="alert-box alert-danger">
+            <mat-icon>warning</mat-icon>
+            <span>Atención: Algunas prendas en tu carrito superan el stock de esta tienda. Ajusta las cantidades antes de continuar.</span>
+          </div>
+        </div>
+
+        <!-- Lista de Prendas en el Carrito -->
+        <div class="items-list">
+          <div *ngFor="let item of carrito.items" class="cart-item-card" [class.item-warning]="!item.stock_suficiente">
+            <img
+              [src]="item.imagen_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300'"
+              [alt]="item.producto_nombre"
+              class="item-img"
+            />
+
+            <div class="item-details">
+              <div class="item-header-row">
+                <h4 class="item-title">{{ item.producto_nombre }}</h4>
+                <button mat-icon-button (click)="eliminar(item)" class="btn-delete" matTooltip="Eliminar del carrito">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+
+              <!-- Badges de Talla, Color y SKU -->
+              <div class="item-specs">
+                <span class="spec-chip">Talla: <strong>{{ item.talla }}</strong></span>
+                <span class="spec-chip color-chip">
+                  <span class="color-dot" [style.backgroundColor]="item.codigohex || '#999'"></span>
+                  {{ item.color }}
+                </span>
+                <span *ngIf="item.sku" class="sku-tag">{{ item.sku }}</span>
+              </div>
+
+              <!-- Indicador de Stock en la Tienda -->
+              <div class="stock-info">
+                <span *ngIf="item.stock_suficiente" class="stock-badge in-stock">
+                  <mat-icon>check</mat-icon> Stock en tienda: {{ item.stock_disponible }} uds
+                </span>
+                <span *ngIf="!item.stock_suficiente" class="stock-badge out-stock">
+                  <mat-icon>error_outline</mat-icon> ¡Solo quedan {{ item.stock_disponible }} uds disponibles!
+                </span>
+              </div>
+
+              <!-- Controles de Cantidad y Precio -->
+              <div class="item-bottom-row">
+                <div class="quantity-stepper">
+                  <button
+                    type="button"
+                    class="step-btn"
+                    [disabled]="item.cantidad <= 1 || procesandoId === item.variante_id"
+                    (click)="decrementar(item)"
+                  >
+                    -
+                  </button>
+                  <span class="qty-number">{{ item.cantidad }}</span>
+                  <button
+                    type="button"
+                    class="step-btn"
+                    [disabled]="item.cantidad >= item.stock_disponible || procesandoId === item.variante_id"
+                    (click)="incrementar(item)"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div class="price-box">
+                  <span class="unit-price">Bs. {{ item.precio_unitario | number:'1.2-2' }} c/u</span>
+                  <span class="subtotal-price">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Resumen del Pedido -->
+      <aside class="summary-column">
+        <div class="summary-card">
+          <h3>Resumen del Pedido</h3>
+
+          <div class="summary-row">
+            <span>Total de prendas:</span>
+            <strong>{{ carrito.total_items }} unidades</strong>
+          </div>
+
+          <div class="summary-row">
+            <span>Tienda de retiro:</span>
+            <span class="suc-name">{{ carrito.sucursal_nombre || 'No seleccionada' }}</span>
+          </div>
+
+          <div class="summary-divider"></div>
+
+          <div class="summary-total-row">
+            <span>Total a Pagar:</span>
+            <span class="total-amount">Bs. {{ carrito.total_precio | number:'1.2-2' }}</span>
+          </div>
+
+          <p class="summary-note">
+            💡 Al continuar podrás <strong>Reservar tus prendas (CU10)</strong> para retirarlas y pagarlas directamente en la sucursal física.
+          </p>
+
+          <button
+            type="button"
+            class="btn-checkout"
+            [disabled]="!carrito.sucursal_id || carrito.tiene_alertas_stock"
+            (click)="procederAReserva()"
+          >
+            <mat-icon>event_seat</mat-icon>
+            <span>Proceder a Reservar en Tienda (CU10)</span>
+          </button>
+
+          <button routerLink="/catalogo" class="btn-keep-shopping">
+            <mat-icon>add_circle_outline</mat-icon>
+            <span>Seguir agregando prendas</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>

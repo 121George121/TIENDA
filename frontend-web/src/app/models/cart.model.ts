@@ -1,20 +1,40 @@
 // ==============================================================================
 // CAPA MODELO (MVC - MODEL EN ANGULAR)
-// Estructuras de datos para el Carrito de Compras
+// Módulo: CU09 - Gestionar Carrito de Compras
+// Ubicación: frontend-web/src/app/models/cart.model.ts
 // ==============================================================================
 
-import { Producto } from './product.model';
-
-export interface CartItem {
-  producto: Producto;
+export interface CarritoItem {
+  variante_id: number;
+  producto_id: number;
+  producto_nombre: string;
+  imagen_url?: string;
+  sku?: string;
+  talla?: string;
+  color?: string;
+  codigohex?: string;
+  precio_unitario: number;
   cantidad: number;
   subtotal: number;
+  stock_disponible: number;
+  stock_suficiente: boolean;
 }
 
-export interface OrdenRequest {
-  direccion_envio: string;
-  items: {
-    producto_id: number;
-    cantidad: number;
-  }[];
+export interface Carrito {
+  id: number;
+  estado: string;
+  cliente_id: number;
+  sucursal_id?: number | null;
+  sucursal_nombre?: string | null;
+  items: CarritoItem[];
+  total_items: number;
+  total_precio: number;
+  tiene_alertas_stock: boolean;
+  fecha_actualizacion?: string;
+}
+
+export interface AgregarItemCarritoDTO {
+  variante_id: number;
+  cantidad?: number;
+  sucursal_id?: number | null;
 }

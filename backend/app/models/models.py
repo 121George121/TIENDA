@@ -183,9 +183,38 @@ class InventarioSucursalModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     varianteid = Column(Integer, ForeignKey("variante_producto.id", ondelete="CASCADE"), nullable=False, index=True)
     sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="CASCADE"), nullable=False, index=True)
-    cantidad = Column(Integer, default=0, nullable=False)
+    cantidad = Column(Integer, default=0, nullable=False) # stock físico
+    stockreservado = Column(Integer, default=0, nullable=False) # stock apartado para reservas
     stockminimo = Column(Integer, default=5, nullable=True)
     fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     variante = relationship("VarianteProductoModel", backref="inventarios")
     sucursal = relationship("SucursalModel", backref="inventarios")
+
+
+class CarritoModel(Base):
+    __tablename__ = "carrito"
+
+    id = Column(Integer, primary_key=True, index=True)
+    estado = Column(String(50), default="ACTIVO", nullable=False) # ACTIVO, ABANDONADO, CONVERTIDO
+    fechacreacion = Column(DateTime, default=datetime.utcnow, nullable=False)
+    fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    clienteid = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False, index=True)
+    sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="RESTRICT"), nullable=True, index=True)
+
+    cliente = relationship("UsuarioModel", backref="carritos")
+    sucursal = relationship("SucursalModel", backref="carritos")
+    items = relationship("CarritoItemModel", back_populates="carrito", cascade="all, delete-orphan")
+
+
+class CarritoItemModel(Base):
+    __tablename__ = "carrito_item"
+
+    carritoid = Column(Integer, ForeignKey("carrito.id", ondelete="CASCADE"), primary_key=True)
+    varianteid = Column(Integer, ForeignKey("variante_producto.id", ondelete="RESTRICT"), primary_key=True)
+    cantidad = Column(Integer, default=1, nullable=False)
+    preciounitario = Column(Numeric(12, 2), nullable=False)
+    fechaagregado = Column(DateTime, default=datetime.utcnow)
+
+    carrito = relationship("CarritoModel", back_populates="items")
+    variante = relationship("VarianteProductoModel")
