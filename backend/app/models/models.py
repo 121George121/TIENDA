@@ -175,3 +175,17 @@ class ProductoProveedorModel(Base):
 
     proveedor = relationship("ProveedorModel", back_populates="productos_suministrados")
     producto = relationship("ProductoModel")
+
+
+class InventarioSucursalModel(Base):
+    __tablename__ = "inventario_sucursal"
+
+    id = Column(Integer, primary_key=True, index=True)
+    varianteid = Column(Integer, ForeignKey("variante_producto.id", ondelete="CASCADE"), nullable=False, index=True)
+    sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="CASCADE"), nullable=False, index=True)
+    cantidad = Column(Integer, default=0, nullable=False)
+    stockminimo = Column(Integer, default=5, nullable=True)
+    fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    variante = relationship("VarianteProductoModel", backref="inventarios")
+    sucursal = relationship("SucursalModel", backref="inventarios")

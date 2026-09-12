@@ -1,40 +1,310 @@
 <!-- ==============================================================================
-     CAPA VISTA (MVC - VIEW EN ANGULAR)
-     Componente Visual: Catálogo de Productos y Carrito interactivo
+     CAPA VISTA (MVC - VIEW EN ANGULAR 18)
+     Módulo: CU08 - Consultar Catálogo y Disponibilidad de Inventario
+     Ubicación: frontend-web/src/app/views/product-catalog/product-catalog.component.html
      ============================================================================== -->
 
-<div class="store-container">
-  <header class="header">
-    <h1>🛒 Tienda Virtual E-Commerce</h1>
-    <div class="cart-badge">
-      <span>Items en Carrito: <strong>{{ totalItems }}</strong></span>
-      <span>Total: <strong>${{ totalPrice | number:'1.2-2' }}</strong></span>
+<div class="catalog-page">
+  <!-- Top Navigation & Brand Header -->
+  <header class="catalog-header">
+    <div class="header-content">
+      <div class="brand-zone">
+        <button mat-icon-button routerLink="/admin/products" class="btn-back" matTooltip="Regresar al panel de gestión">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div class="brand-title">
+          <h1>T-Shirt Boutique <span>Retail</span></h1>
+          <p class="subtitle">Catálogo Exclusivo y Disponibilidad en Tiendas Físicas (CU08)</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Selector de Tienda / Sucursal Física -->
+        <div class="sucursal-picker">
+          <mat-icon class="picker-icon">storefront</mat-icon>
+          <div class="picker-info">
+            <span class="picker-label">Estás consultando:</span>
+            <select [(ngModel)]="sucursalSeleccionadaId" (change)="onCambioSucursal()" class="custom-select">
+              <option [ngValue]="null">🌐 Todas las Sucursales (Stock Global)</option>
+              <option *ngFor="let s of sucursales" [ngValue]="s.id">
+                📍 {{ s.nombre }} ({{ s.ciudad }})
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Indicador de Carrito -->
+        <div class="cart-pill">
+          <mat-icon>shopping_bag</mat-icon>
+          <span class="cart-count">{{ itemsCarritoCount }}</span>
+        </div>
+      </div>
     </div>
   </header>
 
-  <main class="main-content">
-    <!-- Lista de Productos -->
-    <section class="products-section">
-      <h2>Catálogo de Productos</h2>
-      
-      <div *ngIf="loading" class="loading">Cargando productos desde FastAPI...</div>
-      
-      <div class="grid-products">
-        <div *ngFor="let prod of productos" class="card-product">
-          <img [src]="prod.imagen_url || 'https://via.placeholder.com/200'" [alt]="prod.nombre" class="prod-img">
-          <div class="card-body">
-            <h3>{{ prod.nombre }}</h3>
-            <p class="desc">{{ prod.descripcion }}</p>
-            <div class="price-row">
-              <span class="price">${{ prod.precio }}</span>
-              <span class="stock">Stock: {{ prod.stock }}</span>
+  <main class="catalog-main">
+    <!-- Barra de Filtros y Búsqueda -->
+    <section class="filters-bar">
+      <!-- Buscador -->
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          [(ngModel)]="searchTerm"
+          (input)="onBusqueda()"
+          placeholder="Buscar por nombre, modelo, corte o marca..."
+        />
+        <button *ngIf="searchTerm" (click)="searchTerm = ''; onBusqueda()" class="btn-clear">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Filtros de Género -->
+      <div class="gender-chips">
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="generoSeleccionado === 'TODOS'"
+          (click)="onFiltroGenero('TODOS')"
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="generoSeleccionado === 'Unisex'"
+          (click)="onFiltroGenero('Unisex')"
+        >
+          Unisex
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="generoSeleccionado === 'Caballeros'"
+          (click)="onFiltroGenero('Caballeros')"
+        >
+          Caballeros
+        </button>
+        <button
+          type="button"
+          class="chip-btn"
+          [class.active]="generoSeleccionado === 'Damas'"
+          (click)="onFiltroGenero('Damas')"
+        >
+          Damas
+        </button>
+      </div>
+
+      <!-- Switch de Solo Disponibles -->
+      <button
+        type="button"
+        class="filter-available-btn"
+        [class.active]="soloDisponibles"
+        (click)="toggleSoloDisponibles()"
+      >
+        <mat-icon>{{ soloDisponibles ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        <span>Solo con stock disponible</span>
+      </button>
+    </section>
+
+    <!-- Indicador de Carga -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Consultando inventario en tiempo real desde FastAPI...</p>
+    </div>
+
+    <!-- Estado Vacío -->
+    <div *ngIf="!loading && productos.length === 0" class="empty-state">
+      <mat-icon class="empty-icon">search_off</mat-icon>
+      <h3>No se encontraron prendas con los filtros seleccionados</h3>
+      <p>Intenta buscando con otro término o seleccionando otra sucursal física.</p>
+    </div>
+
+    <!-- Grilla de Productos con Disponibilidad en Tiempo Real -->
+    <section *ngIf="!loading && productos.length > 0" class="products-grid">
+      <div *ngFor="let prod of productos" class="product-card">
+        <!-- Imagen y Badges -->
+        <div class="image-wrapper">
+          <img
+            [src]="prod.imagenprincipal || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500'"
+            [alt]="prod.nombre"
+            class="product-image"
+          />
+          <span class="category-tag">{{ prod.categoria_nombre || 'Boutique' }}</span>
+          <span class="gender-tag">{{ prod.genero }}</span>
+        </div>
+
+        <!-- Cuerpo de la Tarjeta -->
+        <div class="card-content">
+          <div class="brand-row">
+            <span class="brand-name">{{ prod.marca || 'T-Shirt Studio' }}</span>
+            <span class="price">Bs. {{ prod.preciobase | number:'1.2-2' }}</span>
+          </div>
+
+          <h3 class="product-title">{{ prod.nombre }}</h3>
+          <p class="product-desc">{{ prod.descripcion }}</p>
+
+          <!-- Selector de Variantes (Tallas y Colores) -->
+          <div *ngIf="prod.variantes && prod.variantes.length > 0" class="variants-section">
+            <span class="section-label">Tallas y Colores disponibles:</span>
+            <div class="variants-chips">
+              <button
+                *ngFor="let v of prod.variantes"
+                type="button"
+                class="variant-btn"
+                [class.selected]="getVarianteSeleccionada(prod.id)?.variante_id === v.variante_id"
+                [class.disabled]="v.stock <= 0"
+                (click)="seleccionarVariante(prod.id, v)"
+              >
+                <span class="size-badge">{{ v.talla }}</span>
+                <span class="color-dot" [style.backgroundColor]="v.codigohex || '#999'"></span>
+                <span class="stock-mini">({{ v.stock }})</span>
+              </button>
             </div>
-            <button (click)="agregarAlCarrito(prod)" class="btn-primary" [disabled]="prod.stock <= 0">
-              {{ prod.stock > 0 ? 'Agregar al Carrito' : 'Agotado' }}
+          </div>
+
+          <!-- Indicador de Disponibilidad en Sucursal Actual -->
+          <div class="availability-status">
+            <ng-container *ngIf="getVarianteSeleccionada(prod.id) as varSel">
+              <div *ngIf="varSel.stock > 3" class="badge-stock in-stock">
+                <mat-icon>check_circle</mat-icon>
+                <span>En stock: <strong>{{ varSel.stock }} uds</strong> en {{ getNombreSucursalActual() }}</span>
+              </div>
+              <div *ngIf="varSel.stock > 0 && varSel.stock <= 3" class="badge-stock low-stock">
+                <mat-icon>warning</mat-icon>
+                <span>¡Últimas <strong>{{ varSel.stock }} uds</strong> en {{ getNombreSucursalActual() }}!</span>
+              </div>
+              <div *ngIf="varSel.stock <= 0" class="badge-stock out-of-stock">
+                <mat-icon>cancel</mat-icon>
+                <span>Agotado en {{ getNombreSucursalActual() }}</span>
+              </div>
+            </ng-container>
+          </div>
+
+          <!-- Acciones -->
+          <div class="card-actions">
+            <!-- Botón Consultar en Otras Sucursales (CU08 Requerimiento Crítico) -->
+            <button
+              type="button"
+              class="btn-other-stores"
+              (click)="abrirModalDisponibilidad(prod.id)"
+              matTooltip="Consultar stock en otras tiendas físicas"
+            >
+              <mat-icon>travel_explore</mat-icon>
+              <span>Ver en otras tiendas</span>
+            </button>
+
+            <!-- Botón Agregar al Carrito -->
+            <button
+              type="button"
+              class="btn-add-cart"
+              [disabled]="!getVarianteSeleccionada(prod.id) || getVarianteSeleccionada(prod.id)!.stock <= 0"
+              (click)="agregarAlCarrito(prod)"
+            >
+              <mat-icon>add_shopping_cart</mat-icon>
+              <span>{{ (getVarianteSeleccionada(prod.id)?.stock || 0) > 0 ? 'Agregar' : 'Agotado' }}</span>
             </button>
           </div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- ==============================================================================
+       MODAL DE DISPONIBILIDAD MULTITIENDA (CU08)
+       Permite al Cliente, Encargado o Cajero ver el stock en cada sucursal física
+       ============================================================================== -->
+  <div *ngIf="modalDisponibilidadAbierto" class="modal-backdrop" (click)="cerrarModalDisponibilidad()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon>store</mat-icon>
+          <h2>Disponibilidad en Tiendas Físicas (CU08)</h2>
+        </div>
+        <button mat-icon-button (click)="cerrarModalDisponibilidad()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div *ngIf="cargandoDisponibilidad" class="modal-loading">
+          <div class="spinner"></div>
+          <p>Consultando existencias en todas las sucursales...</p>
+        </div>
+
+        <div *ngIf="!cargandoDisponibilidad && productoDisponibilidad" class="disponibilidad-content">
+          <div class="product-preview-bar">
+            <img
+              [src]="productoDisponibilidad.imagenprincipal || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300'"
+              [alt]="productoDisponibilidad.producto_nombre"
+              class="preview-img"
+            />
+            <div>
+              <h3>{{ productoDisponibilidad.producto_nombre }}</h3>
+              <p class="preview-brand">{{ productoDisponibilidad.marca }} | Precio: <strong>Bs. {{ productoDisponibilidad.preciobase | number:'1.2-2' }}</strong></p>
+            </div>
+          </div>
+
+          <div class="sucursales-list">
+            <div *ngFor="let suc of productoDisponibilidad.sucursales" class="sucursal-card">
+              <div class="sucursal-header">
+                <div class="suc-info">
+                  <h4>{{ suc.sucursal_nombre }}</h4>
+                  <p class="suc-addr">
+                    <mat-icon>location_on</mat-icon> {{ suc.direccion }} ({{ suc.ciudad }})
+                  </p>
+                  <p *ngIf="suc.telefono" class="suc-tel">
+                    <mat-icon>phone</mat-icon> {{ suc.telefono }}
+                  </p>
+                </div>
+                <div class="stock-total-badge" [class.has-stock]="suc.stock_total > 0">
+                  <span class="label">Total en tienda:</span>
+                  <span class="count">{{ suc.stock_total }} uds</span>
+                </div>
+              </div>
+
+              <!-- Desglose de Variantes en esta Sucursal -->
+              <div class="variantes-table-wrapper">
+                <table class="variantes-table">
+                  <thead>
+                    <tr>
+                      <th>Talla</th>
+                      <th>Color</th>
+                      <th>SKU</th>
+                      <th>Existencias</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let v of suc.variantes" [class.row-out]="v.stock <= 0">
+                      <td><strong>{{ v.talla }}</strong></td>
+                      <td>
+                        <span class="color-chip">
+                          <span class="color-sample" [style.backgroundColor]="v.codigohex || '#999'"></span>
+                          {{ v.color }}
+                        </span>
+                      </td>
+                      <td class="sku-cell">{{ v.sku || 'N/A' }}</td>
+                      <td><strong>{{ v.stock }}</strong> unidades</td>
+                      <td>
+                        <span class="status-pill" [class.available]="v.stock > 0" [class.unavailable]="v.stock <= 0">
+                          {{ v.stock > 0 ? 'Disponible' : 'Sin existencias' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button class="btn-close-modal" (click)="cerrarModalDisponibilidad()">
+          Cerrar Consulta
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
