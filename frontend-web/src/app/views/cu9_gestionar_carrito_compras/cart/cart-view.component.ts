@@ -12,12 +12,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { CartService } from '../../services/cart.service';
-import { InventoryService } from '../../services/inventory.service';
-import { ReservationService } from '../../services/reservation.service';
-import { Carrito, CarritoItem } from '../../models/cart.model';
-import { SucursalItem } from '../../models/inventory.model';
-import { Reserva } from '../../models/reservation.model';
+import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
+import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
+import { ReservationService } from '../../../services/cu10_gestionar_reservas_prendas/reservation.service';
+import { Carrito, CarritoItem } from '../../../models/cu9_gestionar_carrito_compras/cart.model';
+import { SucursalItem } from '../../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
+import { Reserva } from '../../../models/cu10_gestionar_reservas_prendas/reservation.model';
 
 @Component({
   selector: 'app-cart-view',

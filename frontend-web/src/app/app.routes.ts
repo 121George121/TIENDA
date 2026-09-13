@@ -29,16 +29,16 @@ import { ClasificacionListComponent } from './views/cu6_gestionar_clasificacion_
 import { ProveedorListComponent } from './views/cu7_gestionar_proveedores_productos_suministrados/suppliers/proveedor-list/proveedor-list.component';
 
 // CU08: Catálogo y Disponibilidad Multitienda
-import { ProductCatalogComponent } from './views/product-catalog/product-catalog.component';
+import { ProductCatalogComponent } from './views/cu8_consultar_catalogo_disponibilidad/product-catalog/product-catalog.component';
 
 // CU09: Carrito de Compras
-import { CartViewComponent } from './views/cart/cart-view.component';
+import { CartViewComponent } from './views/cu9_gestionar_carrito_compras/cart/cart-view.component';
 
 // CU10: Gestión de Reservas de Prendas
-import { MyReservationsComponent } from './views/reservations/my-reservations.component';
+import { MyReservationsComponent } from './views/cu10_gestionar_reservas_prendas/reservations/my-reservations.component';
 
 // CU11: Atender Reservas en Sucursal
-import { AdminReservasComponent } from './views/admin/reservas/admin-reservas.component';
+import { AdminReservasComponent } from './views/cu11_atender_reservas_sucursal/admin-reservas/admin-reservas.component';
 
 // CU13: Inventario y Movimientos de Poleras
 import { InventarioListComponent } from './views/cu13_gestionar_inventario_movimientos/inventario/inventario-list/inventario-list.component';

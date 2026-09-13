@@ -35,29 +35,8 @@ from app.models.cu13_gestionar_inventario_movimientos.inventario_model import (
 InventarioSucursalModel = InventarioModel
 
 
-# CU10 & CU11 - Modelos de Reserva de Prendas
-class ReservaModel(Base):
-    __tablename__ = "reserva"
-
-    id = Column(Integer, primary_key=True, index=True)
-    codigoreserva = Column(String(100), unique=True, nullable=False, index=True)
-    fechareserva = Column(DateTime, default=datetime.utcnow, nullable=False)
-    estado = Column(String(50), default="PENDIENTE", nullable=False)  # PENDIENTE, CONFIRMADA, ENTREGADA, CANCELADA, EXPIRADA
-    observaciones = Column(Text, nullable=True)
-    sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="RESTRICT"), nullable=False, index=True)
-    clienteid = Column(Integer, ForeignKey("cliente.id", ondelete="RESTRICT"), nullable=False, index=True)
-
-    sucursal = relationship("SucursalModel", backref="reservas")
-    cliente = relationship("ClienteModel", backref="reservas")
-    detalles = relationship("ReservaDetalleModel", back_populates="reserva", cascade="all, delete-orphan")
-
-
-class ReservaDetalleModel(Base):
-    __tablename__ = "reserva_detalle"
-
-    varianteid = Column(Integer, ForeignKey("variante_producto.id", ondelete="RESTRICT"), primary_key=True)
-    reservaid = Column(Integer, ForeignKey("reserva.id", ondelete="CASCADE"), primary_key=True)
-    cantidad = Column(Integer, nullable=False)
-
-    reserva = relationship("ReservaModel", back_populates="detalles")
-    variante = relationship("VarianteProductoModel")
+# CU10 & CU11 - Modelos de Reserva de Prendas (modularizados)
+from app.models.cu10_gestionar_reservas_prendas.reserva_model import (
+    ReservaModel,
+    ReservaDetalleModel,
+)

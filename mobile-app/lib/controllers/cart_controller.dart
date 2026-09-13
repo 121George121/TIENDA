@@ -1,6 +1,6 @@
 // ==============================================================================
 // CAPA CONTROLADOR (MVC - CONTROLLER EN FLUTTER / DART)
-// Controlador del Carrito de Compras en la Aplicación Móvil (CU09 & CU15)
+// Controlador del Carrito de Compras en la Aplicación Móvil (CU09)
 // ==============================================================================
 
 import 'dart:convert';
@@ -19,7 +19,7 @@ class CartController extends ChangeNotifier {
 
   static String get _carritoUrl => '$_host/carrito';
   static String get _orderUrl => '$_host/ordenes/';
-  
+
   final Map<int, CartItemModel> _items = {};
   int? _sucursalId;
   String? _sucursalNombre;
@@ -38,7 +38,7 @@ class CartController extends ChangeNotifier {
     return _items.values.fold(0.0, (sum, item) => sum + item.subtotal);
   }
 
-  /// Lógica del controlador para añadir producto al carrito
+  /// Añadir producto al carrito
   void agregarProducto(ProductModel producto) {
     if (_items.containsKey(producto.id)) {
       _items[producto.id]!.cantidad += 1;

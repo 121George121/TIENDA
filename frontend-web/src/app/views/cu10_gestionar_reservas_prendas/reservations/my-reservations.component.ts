@@ -11,8 +11,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { ReservationService } from '../../services/reservation.service';
-import { Reserva } from '../../models/reservation.model';
+import { ReservationService } from '../../../services/cu10_gestionar_reservas_prendas/reservation.service';
+import { Reserva } from '../../../models/cu10_gestionar_reservas_prendas/reservation.model';
 
 @Component({
   selector: 'app-my-reservations',

@@ -16,14 +16,14 @@ import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { InventoryService } from '../../services/inventory.service';
-import { CartService } from '../../services/cart.service';
+import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
+import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
 import {
   ProductoCatalogoItem,
   SucursalItem,
   DisponibilidadProducto,
   DisponibilidadVariante
-} from '../../models/inventory.model';
+} from '../../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
 
 @Component({
   selector: 'app-product-catalog',

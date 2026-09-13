@@ -16,10 +16,13 @@ from app.views.cu4_gestionar_sucursales import sucursal_views
 from app.views.cu5_gestionar_productos import producto_views
 from app.views.cu6_gestionar_clasificacion_prendas import clasificacion_views
 from app.views.cu7_gestionar_proveedores_productos_suministrados import proveedor_views
+from app.views.cu8_consultar_catalogo_disponibilidad import catalogo_views
+from app.views.cu9_gestionar_carrito_compras import carrito_views
+from app.views.cu10_gestionar_reservas_prendas import reserva_views
+from app.views.cu11_atender_reservas_sucursal import atender_reserva_views
 from app.views.cu13_gestionar_inventario_movimientos import inventario_views
 from app.views.cu14_registrar_ventas_presenciales import venta_presencial_views
 from app.views.cu15_realizar_compras_digitales import compra_digital_views
-from app.routes import carrito_routes, reserva_routes, inventario_routes
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -54,14 +57,13 @@ app.include_router(sucursal_views.router, prefix=settings.API_V1_STR)
 app.include_router(clasificacion_views.router, prefix=settings.API_V1_STR)
 app.include_router(producto_views.router, prefix=settings.API_V1_STR)
 app.include_router(proveedor_views.router, prefix=settings.API_V1_STR)
+app.include_router(catalogo_views.router, prefix=settings.API_V1_STR)
+app.include_router(carrito_views.router, prefix=settings.API_V1_STR)
+app.include_router(atender_reserva_views.router, prefix=settings.API_V1_STR)
+app.include_router(reserva_views.router, prefix=settings.API_V1_STR)
 app.include_router(inventario_views.router, prefix=settings.API_V1_STR)
 app.include_router(venta_presencial_views.router, prefix=settings.API_V1_STR)
 app.include_router(compra_digital_views.router, prefix=settings.API_V1_STR)
-
-# Rutas de Casos de Uso CU08, CU09, CU10 y CU11
-app.include_router(inventario_routes.router, prefix=settings.API_V1_STR)
-app.include_router(carrito_routes.router, prefix=settings.API_V1_STR)
-app.include_router(reserva_routes.router, prefix=settings.API_V1_STR)
 
 
 
