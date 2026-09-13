@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from datetime import datetime
 from app.core.database import Base
 
@@ -20,9 +20,13 @@ class InventarioModel(Base):
     sucursalid = Column(Integer, ForeignKey("sucursal.id"), nullable=False)
     varianteid = Column(Integer, ForeignKey("variante_producto.id"), nullable=False)
 
+    # Alias de compatibilidad: CU08-CU11 usan .cantidad para referirse al stock físico
+    cantidad = synonym("stockfisico")
+
     sucursal = relationship("app.models.cu4_gestionar_sucursales.sucursal_model.SucursalModel")
     variante = relationship("app.models.cu5_gestionar_productos.producto_model.VarianteProductoModel")
     movimientos = relationship("MovimientoInventarioModel", back_populates="inventario", cascade="all, delete-orphan")
+
 
 
 class MovimientoInventarioModel(Base):

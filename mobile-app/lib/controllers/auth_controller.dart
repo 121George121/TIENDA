@@ -25,6 +25,7 @@ class AuthController with ChangeNotifier {
 
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
+  bool get isAuthenticated => isLoggedIn;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;

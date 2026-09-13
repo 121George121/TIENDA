@@ -1,0 +1,224 @@
+<!-- ==============================================================================
+     CAPA VISTA (MVC - VIEW EN ANGULAR 18)
+     Módulo: CU10 - Gestionar Reservas de Prendas
+     Ubicación: frontend-web/src/app/views/reservations/my-reservations.component.html
+     ============================================================================== -->
+
+<div class="reservations-page">
+  <!-- Header de la Página -->
+  <header class="page-header">
+    <div class="header-container">
+      <div class="header-left">
+        <button mat-icon-button routerLink="/catalogo" class="btn-back" matTooltip="Volver al Catálogo">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div>
+          <h1>Mis Reservas de Prendas <span class="cu-badge">CU10</span></h1>
+          <p class="subtitle">Consulta tus códigos de retiro, el stock apartado y el estado en sucursales físicas</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button routerLink="/carrito" class="btn-cart-link">
+          <mat-icon>shopping_bag</mat-icon>
+          <span>Ir a Mi Carrito</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="reservations-main">
+    <!-- Métricas Rápidas -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon total-icon">
+          <mat-icon>event_note</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ reservas.length }}</span>
+          <span class="metric-lbl">Total Reservas</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon pending-icon">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ pendientesCount }}</span>
+          <span class="metric-lbl">Pendientes de Retiro</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon delivered-icon">
+          <mat-icon>verified</mat-icon>
+        </div>
+        <div class="metric-info">
+          <span class="metric-val">{{ entregadasCount }}</span>
+          <span class="metric-lbl">Entregadas en Tienda</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="filters-bar">
+      <span class="filter-label">Filtrar por:</span>
+      <div class="filter-pills">
+        <button
+          type="button"
+          class="pill-btn"
+          [class.active]="filtroActual === 'TODAS'"
+          (click)="aplicarFiltro('TODAS')"
+        >
+          Todas ({{ reservas.length }})
+        </button>
+        <button
+          type="button"
+          class="pill-btn"
+          [class.active]="filtroActual === 'PENDIENTE'"
+          (click)="aplicarFiltro('PENDIENTE')"
+        >
+          Pendientes ({{ pendientesCount }})
+        </button>
+        <button
+          type="button"
+          class="pill-btn"
+          [class.active]="filtroActual === 'ENTREGADA'"
+          (click)="aplicarFiltro('ENTREGADA')"
+        >
+          Entregadas ({{ entregadasCount }})
+        </button>
+        <button
+          type="button"
+          class="pill-btn"
+          [class.active]="filtroActual === 'CANCELADA'"
+          (click)="aplicarFiltro('CANCELADA')"
+        >
+          Canceladas
+        </button>
+      </div>
+    </div>
+
+    <!-- Spinner de Carga -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando tus reservas...</p>
+    </div>
+
+    <!-- Estado Vacío -->
+    <div *ngIf="!loading && reservasFiltradas.length === 0" class="empty-card">
+      <mat-icon class="empty-icon">bookmark_border</mat-icon>
+      <h3>No se encontraron reservas</h3>
+      <p *ngIf="filtroActual === 'TODAS'">Aún no has generado reservas. Agrega prendas a tu carrito y resérvalas para retirarlas en tu tienda favorita.</p>
+      <p *ngIf="filtroActual !== 'TODAS'">No hay reservas en estado <strong>{{ filtroActual }}</strong>.</p>
+      <button routerLink="/catalogo" class="btn-primary-explore">
+        <mat-icon>storefront</mat-icon>
+        <span>Explorar Catálogo</span>
+      </button>
+    </div>
+
+    <!-- Lista de Reservas -->
+    <div *ngIf="!loading && reservasFiltradas.length > 0" class="reservations-list">
+      <article *ngFor="let res of reservasFiltradas" class="reservation-card" [class.status-pending]="res.estado === 'PENDIENTE'" [class.status-delivered]="res.estado === 'ENTREGADA'" [class.status-cancelled]="res.estado === 'CANCELADA'">
+        <!-- Cabecera de la Tarjeta -->
+        <div class="card-header">
+          <div class="code-box">
+            <span class="code-label">CÓDIGO DE RETIRO</span>
+            <div class="code-value-row">
+              <strong class="code-text">{{ res.codigo_reserva }}</strong>
+              <button
+                type="button"
+                class="btn-copy"
+                (click)="copiarCodigo(res.codigo_reserva, res.id)"
+                matTooltip="Copiar código para presentar en caja"
+              >
+                <mat-icon>{{ copiadoId === res.id ? 'check' : 'content_copy' }}</mat-icon>
+                <span>{{ copiadoId === res.id ? 'Copiado' : 'Copiar' }}</span>
+              </button>
+            </div>
+            <span class="res-date">Creada: {{ res.fecha_reserva | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+
+          <!-- Estado Badge -->
+          <div class="status-box">
+            <span class="status-badge" [ngClass]="'badge-' + res.estado.toLowerCase()">
+              <mat-icon *ngIf="res.estado === 'PENDIENTE'">schedule</mat-icon>
+              <mat-icon *ngIf="res.estado === 'CONFIRMADA'">done</mat-icon>
+              <mat-icon *ngIf="res.estado === 'ENTREGADA'">verified</mat-icon>
+              <mat-icon *ngIf="res.estado === 'CANCELADA'">cancel</mat-icon>
+              {{ res.estado }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Información de Sucursal -->
+        <div *ngIf="res.sucursal" class="branch-info-bar">
+          <mat-icon class="branch-pin">place</mat-icon>
+          <div>
+            <strong>Retiro en: {{ res.sucursal.nombre }}</strong>
+            <span class="branch-sub">{{ res.sucursal.ciudad }} — {{ res.sucursal.direccion }} (Tel: {{ res.sucursal.telefono || 'Sin teléfono' }})</span>
+          </div>
+        </div>
+
+        <!-- Lista de Prendas Apartadas -->
+        <div class="items-section">
+          <h4 class="section-title">Prendas Reservadas ({{ res.total_items }} unidades):</h4>
+          <div class="items-grid">
+            <div *ngFor="let det of res.detalles" class="item-mini-card">
+              <img
+                [src]="det.imagen_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=200'"
+                [alt]="det.producto_nombre"
+                class="item-thumb"
+              />
+              <div class="item-meta">
+                <span class="item-name">{{ det.producto_nombre }}</span>
+                <div class="chips-row">
+                  <span *ngIf="det.talla" class="mini-chip">Talla: {{ det.talla }}</span>
+                  <span *ngIf="det.color" class="mini-chip color-mini-chip">
+                    <span class="color-dot" [style.backgroundColor]="det.codigo_hex || '#888'"></span>
+                    {{ det.color }}
+                  </span>
+                </div>
+                <div class="price-row">
+                  <span>{{ det.cantidad }} x Bs. {{ det.precio_unitario | number:'1.2-2' }}</span>
+                  <strong class="subtotal-val">Bs. {{ det.subtotal | number:'1.2-2' }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Observaciones si existen -->
+        <div *ngIf="res.observaciones" class="notes-box">
+          <mat-icon>notes</mat-icon>
+          <span><strong>Notas:</strong> {{ res.observaciones }}</span>
+        </div>
+
+        <!-- Pie de Tarjeta con Total y Acciones -->
+        <div class="card-footer">
+          <div class="total-box">
+            <span class="total-label">Total a abonar en caja:</span>
+            <span class="total-price">Bs. {{ res.total_estimado | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="card-actions">
+            <button
+              *ngIf="res.estado === 'PENDIENTE'"
+              type="button"
+              class="btn-cancel"
+              [disabled]="cancelandoId === res.id"
+              (click)="cancelar(res)"
+            >
+              <mat-icon>cancel</mat-icon>
+              <span>{{ cancelandoId === res.id ? 'Cancelando...' : 'Cancelar Reserva' }}</span>
+            </button>
+
+            <span *ngIf="res.estado === 'PENDIENTE'" class="pickup-hint">
+              Preséntate en tienda con el código <strong>{{ res.codigo_reserva }}</strong>
+            </span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+</div>

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.models import models  # Registra todos los modelos ORM
 from app.views.cu1_gestionar_autenticacion import auth_views
 from app.views.cu2_gestionar_usuarios_roles import user_views, role_views
 from app.views.cu3_gestionar_clientes import cliente_views
@@ -18,6 +19,7 @@ from app.views.cu7_gestionar_proveedores_productos_suministrados import proveedo
 from app.views.cu13_gestionar_inventario_movimientos import inventario_views
 from app.views.cu14_registrar_ventas_presenciales import venta_presencial_views
 from app.views.cu15_realizar_compras_digitales import compra_digital_views
+from app.routes import carrito_routes, reserva_routes, inventario_routes
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -25,19 +27,19 @@ app = FastAPI(
     description="API RESTful siguiendo el patrón de arquitectura Modelo-Vista-Controlador (MVC)"
 )
 
-# Configuración de CORS para permitir conexiones desde Angular y Flutter (Web / Móvil)
+@app.on_event("startup")
+def on_startup():
+    try:
+        # Crear automáticamente las tablas en PostgreSQL si aún no existen
+        Base.metadata.create_all(bind=engine)
+        print("✓ Tablas de la base de datos sincronizadas correctamente.")
+    except Exception as e:
+        print(f"⚠️ Advertencia al conectar con la base de datos: {e}")
+
+# Configuración de CORS para permitir conexiones desde Angular y Flutter
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200", 
-        "http://127.0.0.1:4200", 
-        "http://localhost:5050", 
-        "http://127.0.0.1:5050",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",
-    ],
-    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -56,6 +58,10 @@ app.include_router(inventario_views.router, prefix=settings.API_V1_STR)
 app.include_router(venta_presencial_views.router, prefix=settings.API_V1_STR)
 app.include_router(compra_digital_views.router, prefix=settings.API_V1_STR)
 
+# Rutas de Casos de Uso CU08, CU09, CU10 y CU11
+app.include_router(inventario_routes.router, prefix=settings.API_V1_STR)
+app.include_router(carrito_routes.router, prefix=settings.API_V1_STR)
+app.include_router(reserva_routes.router, prefix=settings.API_V1_STR)
 
 
 

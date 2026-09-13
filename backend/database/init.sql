@@ -2,7 +2,6 @@
 -- BASE DE DATOS: ECOMMERCE_TIENDA (PostgreSQL)
 -- Ubicacion: backend/database/init.sql
 -- Generado con: pg_dump --schema-only sobre la base de datos real del proyecto
--- (el init.sql anterior solo creaba 2 de las 28 tablas que la app realmente usa)
 -- ==============================================================================
 
 SET statement_timeout = 0;
@@ -1595,3 +1594,4 @@ ON CONFLICT (id) DO NOTHING;
 -- Sincroniza la secuencia tras el seed con id explicito (evita choques de
 -- llave primaria en el primer INSERT hecho por la API tras un setup limpio).
 SELECT setval('public.rol_id_seq', (SELECT MAX(id) FROM public.rol), true);
+

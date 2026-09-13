@@ -9,6 +9,7 @@ import 'controllers/auth_controller.dart';
 import 'controllers/product_controller.dart';
 import 'controllers/cart_controller.dart';
 import 'controllers/order_controller.dart';
+import 'controllers/reservation_controller.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
 import 'views/recover_password_view.dart';
@@ -16,6 +17,7 @@ import 'views/reset_password_view.dart';
 import 'views/product_list_view.dart';
 import 'views/cart_view.dart';
 import 'views/orders_history_view.dart';
+import 'views/my_reservations_view.dart';
 
 void main() {
   runApp(
@@ -25,6 +27,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => ProductController()),
         ChangeNotifierProvider(create: (_) => CartController()),
         ChangeNotifierProvider(create: (_) => OrderController()),
+        ChangeNotifierProvider(create: (_) => ReservationController()),
       ],
       child: const ECommerceMobileApp(),
     ),
@@ -53,6 +56,7 @@ class ECommerceMobileApp extends StatelessWidget {
         '/': (context) => const ProductListView(),
         '/cart': (context) => const CartView(),
         '/orders': (context) => const OrdersHistoryView(),
+        '/reservas': (context) => const MyReservationsView(),
       },
     );
   }

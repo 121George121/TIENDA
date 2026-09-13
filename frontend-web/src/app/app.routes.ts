@@ -28,6 +28,18 @@ import { ClasificacionListComponent } from './views/cu6_gestionar_clasificacion_
 // CU7: Proveedores y Suministros
 import { ProveedorListComponent } from './views/cu7_gestionar_proveedores_productos_suministrados/suppliers/proveedor-list/proveedor-list.component';
 
+// CU08: Catálogo y Disponibilidad Multitienda
+import { ProductCatalogComponent } from './views/product-catalog/product-catalog.component';
+
+// CU09: Carrito de Compras
+import { CartViewComponent } from './views/cart/cart-view.component';
+
+// CU10: Gestión de Reservas de Prendas
+import { MyReservationsComponent } from './views/reservations/my-reservations.component';
+
+// CU11: Atender Reservas en Sucursal
+import { AdminReservasComponent } from './views/admin/reservas/admin-reservas.component';
+
 // CU13: Inventario y Movimientos de Poleras
 import { InventarioListComponent } from './views/cu13_gestionar_inventario_movimientos/inventario/inventario-list/inventario-list.component';
 
@@ -42,13 +54,19 @@ import { MisPedidosWebComponent } from './views/cu15_realizar_compras_digitales/
 import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
-  // CU1
+  // CU1: Autenticación
   { path: 'login', component: LoginComponent },
   { path: 'recover-password', component: RecoverPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
 
   // Dashboard
   { path: 'dashboard', component: DashboardComponent },
+
+  // CU08, CU09, CU10, CU11 (Vistas directas)
+  { path: 'catalogo', component: ProductCatalogComponent },
+  { path: 'carrito', component: CartViewComponent },
+  { path: 'mis-reservas', component: MyReservationsComponent },
+  { path: 'atencion-reservas', component: AdminReservasComponent },
 
   // CU15: Tienda Online & Compras Digitales
   { path: 'tienda', component: TiendaOnlineComponent },
@@ -60,25 +78,33 @@ export const routes: Routes = [
     component: AdminLayoutComponent,
     canActivate: [adminGuard],
     children: [
-      // CU2
+      // CU2: Usuarios y Roles
       { path: 'users', component: UserListComponent },
       { path: 'roles', component: RoleListComponent },
-      // CU3
+      // CU3: Clientes
       { path: 'customers', component: CustomerListComponent },
-      // CU4
+      // CU4: Sucursales
       { path: 'sucursales', component: SucursalListComponent },
-      // CU6
+      // CU6: Clasificación de Prendas
       { path: 'categorias', component: ClasificacionListComponent },
-      // CU5
+      // CU5: Poleras y Productos
       { path: 'products', component: ProductListComponent },
-      // CU7
+      // CU7: Proveedores
       { path: 'suppliers', component: ProveedorListComponent },
-      // CU13
+      // CU08: Catálogo
+      { path: 'catalogo', component: ProductCatalogComponent },
+      // CU09: Carrito
+      { path: 'carrito', component: CartViewComponent },
+      // CU10: Mis Reservas
+      { path: 'mis-reservas', component: MyReservationsComponent },
+      // CU11: Atender Reservas
+      { path: 'reservas', component: AdminReservasComponent },
+      // CU13: Inventario y Kardex
       { path: 'inventario', component: InventarioListComponent },
-      // CU14
+      // CU14: POS y Ventas
       { path: 'pos', component: PosVentaComponent },
       { path: 'ventas', component: VentasListComponent },
-      // CU15 Shortcut in admin
+      // CU15: Tienda Digital
       { path: 'tienda-digital', component: TiendaOnlineComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]

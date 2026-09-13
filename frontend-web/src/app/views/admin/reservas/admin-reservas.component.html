@@ -1,0 +1,262 @@
+<!-- ==============================================================================
+     CAPA VISTA (MVC - VIEW EN ANGULAR 18)
+     Módulo: CU11 - Atender Reservas en Sucursal
+     Ubicación: frontend-web/src/app/views/admin/reservas/admin-reservas.component.html
+     ============================================================================== -->
+
+<div class="admin-reservas-page">
+  <!-- Cabecera de Sección -->
+  <div class="page-title-bar">
+    <div>
+      <h2>Atención de Reservas en Sucursal <span class="badge-cu">CU11</span></h2>
+      <p class="subtitle">Búsqueda rápida en caja, verificación física de prendas y confirmación de entrega con descuento de stock</p>
+    </div>
+    <button class="btn-refresh" (click)="cargarReservas()" matTooltip="Refrescar listado">
+      <mat-icon>refresh</mat-icon>
+      <span>Actualizar</span>
+    </button>
+  </div>
+
+  <!-- Barra de Búsqueda Rápida para Caja -->
+  <div class="cashier-search-card">
+    <div class="search-input-group">
+      <mat-icon class="search-icon">qr_code_scanner</mat-icon>
+      <input
+        type="text"
+        [(ngModel)]="codigoBusqueda"
+        (keyup.enter)="buscarPorCodigo()"
+        placeholder="Ingresar o escanear código de reserva (ej: RES-SJB9MQ)..."
+        class="cashier-input"
+      />
+      <button type="button" class="btn-search-cashier" (click)="buscarPorCodigo()" [disabled]="buscando">
+        <mat-icon *ngIf="!buscando">search</mat-icon>
+        <span *ngIf="!buscando">Buscar en Caja</span>
+        <span *ngIf="buscando">Buscando...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros -->
+  <div class="filters-card">
+    <div class="filter-col">
+      <label>Filtrar por Sucursal Física:</label>
+      <select [(ngModel)]="sucursalIdFiltro" (change)="cargarReservas()" class="filter-select">
+        <option [ngValue]="null">🌐 Todas las Sucursales</option>
+        <option *ngFor="let s of sucursales" [ngValue]="s.id">
+          📍 {{ s.nombre }} ({{ s.ciudad }})
+        </option>
+      </select>
+    </div>
+
+    <div class="filter-col">
+      <label>Estado de Reserva:</label>
+      <select [(ngModel)]="estadoFiltro" (change)="cargarReservas()" class="filter-select">
+        <option value="TODAS">Todos los Estados</option>
+        <option value="PENDIENTE">⏳ Pendientes de Retiro</option>
+        <option value="ENTREGADA">✅ Entregadas en Tienda</option>
+        <option value="CANCELADA">❌ Canceladas</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Estado de Carga -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando reservas de la base de datos...</p>
+  </div>
+
+  <!-- Tabla de Reservas -->
+  <div *ngIf="!loading" class="table-container">
+    <table class="reservas-table" *ngIf="reservas.length > 0">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Fecha Creación</th>
+          <th>Sucursal</th>
+          <th>Cliente</th>
+          <th>Prendas</th>
+          <th>Total a Cobrar</th>
+          <th>Estado</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reservas" [class.row-pending]="r.estado === 'PENDIENTE'">
+          <td>
+            <span class="code-pill">{{ r.codigo_reserva }}</span>
+          </td>
+          <td>{{ r.fecha_reserva | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td>
+            <strong>{{ r.sucursal?.nombre || 'Sucursal Desconocida' }}</strong>
+            <span class="sub-text">{{ r.sucursal?.ciudad }}</span>
+          </td>
+          <td>
+            <strong>{{ r.cliente_nombre || 'Cliente' }}</strong>
+            <span class="sub-text">{{ r.cliente_email || 'Sin correo' }}</span>
+          </td>
+          <td>
+            <span class="qty-badge">{{ r.total_items }} uds</span>
+          </td>
+          <td>
+            <strong class="price-text">Bs. {{ r.total_estimado | number:'1.2-2' }}</strong>
+          </td>
+          <td>
+            <span class="status-chip" [ngClass]="'chip-' + r.estado.toLowerCase()">
+              {{ r.estado }}
+            </span>
+          </td>
+          <td class="text-center">
+            <button
+              type="button"
+              class="btn-action-attend"
+              [class.btn-view-only]="r.estado !== 'PENDIENTE'"
+              (click)="abrirAtencion(r)"
+              matTooltip="Ver prendas y procesar entrega"
+            >
+              <mat-icon>{{ r.estado === 'PENDIENTE' ? 'check_circle_outline' : 'visibility' }}</mat-icon>
+              <span>{{ r.estado === 'PENDIENTE' ? 'Atender en Caja' : 'Ver Detalle' }}</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div *ngIf="reservas.length === 0" class="empty-state">
+      <mat-icon class="empty-icon">event_busy</mat-icon>
+      <h3>No se encontraron reservas</h3>
+      <p>No existen reservas registradas con los filtros seleccionados.</p>
+    </div>
+  </div>
+
+  <!-- MODAL DE ATENCIÓN Y ENTREGA EN CAJA (CU11) -->
+  <div *ngIf="mostrarModalAtencion && reservaSeleccionada" class="modal-backdrop" (click)="cerrarModal()">
+    <div class="modal-dialog-large" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="header-icon">storefront</mat-icon>
+          <div>
+            <h3>Atención de Reserva: <span class="highlight-code">{{ reservaSeleccionada.codigo_reserva }}</span></h3>
+            <span class="modal-sub">Verificación de prendas y confirmación de cobro en mostrador</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" (click)="cerrarModal()" [disabled]="procesandoAccion">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tarjeta de Información General -->
+        <div class="modal-info-grid">
+          <div class="info-card">
+            <span class="info-lbl">CLIENTE</span>
+            <strong>{{ reservaSeleccionada.cliente_nombre }}</strong>
+            <span class="info-val">{{ reservaSeleccionada.cliente_email }}</span>
+            <span class="info-val" *ngIf="reservaSeleccionada.cliente_telefono">Tel: {{ reservaSeleccionada.cliente_telefono }}</span>
+          </div>
+
+          <div class="info-card">
+            <span class="info-lbl">TIENDA FÍSICA</span>
+            <strong>{{ reservaSeleccionada.sucursal?.nombre }}</strong>
+            <span class="info-val">{{ reservaSeleccionada.sucursal?.direccion }}</span>
+          </div>
+
+          <div class="info-card">
+            <span class="info-lbl">ESTADO ACTUAL</span>
+            <span class="status-chip" [ngClass]="'chip-' + reservaSeleccionada.estado.toLowerCase()">
+              {{ reservaSeleccionada.estado }}
+            </span>
+            <span class="info-val" *ngIf="reservaSeleccionada.observaciones">
+              Obs: {{ reservaSeleccionada.observaciones }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Verificación de Prendas Apartadas -->
+        <h4 class="section-title">Prendas a Entregar al Cliente ({{ reservaSeleccionada.total_items }} unidades):</h4>
+        <div class="garments-table-wrapper">
+          <table class="garments-table">
+            <thead>
+              <tr>
+                <th>Prenda</th>
+                <th>Talla</th>
+                <th>Color</th>
+                <th class="text-center">Cantidad</th>
+                <th class="text-right">Precio Unit.</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let det of reservaSeleccionada.detalles">
+                <td class="garment-cell">
+                  <img
+                    [src]="det.imagen_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=100'"
+                    [alt]="det.producto_nombre"
+                    class="garment-thumb"
+                  />
+                  <span class="garment-name">{{ det.producto_nombre }}</span>
+                </td>
+                <td><span class="mini-tag">{{ det.talla || 'N/A' }}</span></td>
+                <td>
+                  <div class="color-cell">
+                    <span class="color-circle" [style.backgroundColor]="det.codigo_hex || '#888'"></span>
+                    <span>{{ det.color || 'Único' }}</span>
+                  </div>
+                </td>
+                <td class="text-center"><strong>{{ det.cantidad }}</strong></td>
+                <td class="text-right">Bs. {{ det.precio_unitario | number:'1.2-2' }}</td>
+                <td class="text-right"><strong>Bs. {{ det.subtotal | number:'1.2-2' }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Total a Cobrar -->
+        <div class="total-banner">
+          <span class="total-banner-lbl">Total a Cobrar en Caja:</span>
+          <span class="total-banner-amount">Bs. {{ reservaSeleccionada.total_estimado | number:'1.2-2' }}</span>
+        </div>
+
+        <!-- Notas del Cajero -->
+        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE'" class="cashier-notes-box">
+          <label for="notas">Notas de la atención en caja (opcional):</label>
+          <input
+            id="notas"
+            type="text"
+            [(ngModel)]="notasAtencion"
+            placeholder="Ej: Cobrado en efectivo con comprobante #1042..."
+            class="input-notes"
+            [disabled]="procesandoAccion"
+          />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel-modal" (click)="cerrarModal()" [disabled]="procesandoAccion">
+          Cerrar
+        </button>
+
+        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE'" class="action-buttons-group">
+          <button
+            type="button"
+            class="btn-reject"
+            (click)="procesarEntrega('CANCELAR')"
+            [disabled]="procesandoAccion"
+          >
+            <mat-icon>cancel</mat-icon>
+            <span>Cancelar / No se presentó</span>
+          </button>
+
+          <button
+            type="button"
+            class="btn-confirm-delivery"
+            (click)="procesarEntrega('ENTREGAR')"
+            [disabled]="procesandoAccion"
+          >
+            <mat-icon>check_circle</mat-icon>
+            <span>Confirmar Entrega y Cobro</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

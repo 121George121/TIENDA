@@ -12,6 +12,9 @@ backend/*/*/*/__pycache__/
 *.pyd
 .pytest_cache/
 backend/.env
+backend/venv/
+venv/
+.claude/
 
 # Node.js / Angular Frontend
 frontend-web/node_modules/
