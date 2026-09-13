@@ -4,12 +4,14 @@
 // Ubicación: mobile-app/lib/views/product_list_view.dart
 // ==============================================================================
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/product_controller.dart';
 import '../controllers/cart_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../models/product_model.dart';
+import '../models/inventory_model.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
 
@@ -22,6 +24,7 @@ class ProductListView extends StatefulWidget {
 
 class _ProductListViewState extends State<ProductListView> {
   final TextEditingController _searchCtrl = TextEditingController();
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -35,8 +38,18 @@ class _ProductListViewState extends State<ProductListView> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        context.read<ProductController>().fetchCatalogoConDisponibilidad(search: query);
+      }
+    });
   }
 
   @override
@@ -194,6 +207,7 @@ class _ProductListViewState extends State<ProductListView> {
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
+              onChanged: _onSearchChanged,
               onSubmitted: (term) {
                 productCtrl.fetchCatalogoConDisponibilidad(search: term);
               },
@@ -326,45 +340,64 @@ class _ProductListViewState extends State<ProductListView> {
                                                 ],
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
+                                            const SizedBox(height: 10),
 
-                                            // Botón Agregar al Carrito
-                                            Align(
-                                              alignment: Alignment.centerRight,
-                                              child: SizedBox(
-                                                height: 34,
-                                                child: ElevatedButton.icon(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFF0F172A),
-                                                    foregroundColor: Colors.white,
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            // Botones de Acción (CU08: Ver otras tiendas + Agregar al Carrito)
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                // Botón Consultar Otras Tiendas
+                                                SizedBox(
+                                                  height: 34,
+                                                  child: OutlinedButton.icon(
+                                                    style: OutlinedButton.styleFrom(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                    ),
+                                                    icon: const Icon(Icons.storefront, size: 14, color: Color(0xFF0F172A)),
+                                                    label: const Text('Otras tiendas', style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
+                                                    onPressed: () => _mostrarDisponibilidadModal(context, prod),
                                                   ),
-                                                  icon: const Icon(Icons.add_shopping_cart, size: 16),
-                                                  label: Text(enStock ? 'Agregar' : 'Sin stock', style: const TextStyle(fontSize: 12)),
-                                                  onPressed: enStock
-                                                      ? () {
-                                                          final pmodel = ProductModel(
-                                                            id: prod.id,
-                                                            nombre: prod.nombre,
-                                                            descripcion: prod.descripcion,
-                                                            precio: prod.preciobase,
-                                                            stock: prod.stockSucursal,
-                                                            imagenUrl: prod.imagenprincipal,
-                                                            activo: prod.disponible,
-                                                          );
-                                                          cartCtrl.agregarProducto(pmodel);
-                                                          ScaffoldMessenger.of(context).showSnackBar(
-                                                            SnackBar(
-                                                              content: Text('${prod.nombre} añadido al carrito'),
-                                                              duration: const Duration(milliseconds: 900),
-                                                              backgroundColor: const Color(0xFF0F172A),
-                                                            ),
-                                                          );
-                                                        }
-                                                      : null,
                                                 ),
-                                              ),
+                                                const SizedBox(width: 8),
+
+                                                // Botón Agregar
+                                                SizedBox(
+                                                  height: 34,
+                                                  child: ElevatedButton.icon(
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: const Color(0xFF0F172A),
+                                                      foregroundColor: Colors.white,
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                    ),
+                                                    icon: const Icon(Icons.add_shopping_cart, size: 14),
+                                                    label: Text(enStock ? 'Agregar' : 'Sin stock', style: const TextStyle(fontSize: 11)),
+                                                    onPressed: enStock
+                                                        ? () {
+                                                            final pmodel = ProductModel(
+                                                              id: prod.id,
+                                                              nombre: prod.nombre,
+                                                              descripcion: prod.descripcion,
+                                                              precio: prod.preciobase,
+                                                              stock: prod.stockSucursal,
+                                                              imagenUrl: prod.imagenprincipal,
+                                                              activo: prod.disponible,
+                                                            );
+                                                            cartCtrl.agregarProducto(pmodel);
+                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                              SnackBar(
+                                                                content: Text('${prod.nombre} añadido al carrito'),
+                                                                duration: const Duration(milliseconds: 900),
+                                                                backgroundColor: const Color(0xFF0F172A),
+                                                              ),
+                                                            );
+                                                          }
+                                                        : null,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
@@ -378,6 +411,176 @@ class _ProductListViewState extends State<ProductListView> {
           ),
         ],
       ),
+    );
+  }
+
+  /// CU08: Modal interactivo que consulta la disponibilidad multitienda en tiempo real
+  void _mostrarDisponibilidadModal(BuildContext context, CatalogProductModel prod) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.72,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    const Icon(Icons.storefront, color: Color(0xFF0F172A), size: 26),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            prod.nombre,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const Text(
+                            'Disponibilidad en Tiendas Físicas (CU08)',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: FutureBuilder<ProductAvailabilityModel?>(
+                  future: context.read<ProductController>().fetchDisponibilidadProducto(prod.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError || snapshot.data == null) {
+                      return const Center(
+                        child: Text('No se pudo cargar la disponibilidad en otras tiendas.'),
+                      );
+                    }
+                    final disp = snapshot.data!;
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: disp.sucursales.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final suc = disp.sucursales[index];
+                        final bool hasStock = suc.stockTotal > 0;
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: hasStock ? const Color(0xFFCBD5E1) : const Color(0xFFF1F5F9),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.store,
+                                          size: 18,
+                                          color: hasStock ? const Color(0xFF0F172A) : Colors.grey,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            '${suc.sucursalNombre} (${suc.ciudad ?? "Bolivia"})',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: hasStock ? const Color(0xFF0F172A) : Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: hasStock ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      hasStock ? '${suc.stockTotal} disponibles' : 'Agotado',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: hasStock ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (suc.direccion != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  suc.direccion!,
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                              if (hasStock && suc.variantes.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: suc.variantes.where((v) => v.stock > 0).map((v) {
+                                    return Chip(
+                                      labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                                      visualDensity: VisualDensity.compact,
+                                      label: Text(
+                                        '${v.talla ?? "M"} - ${v.color ?? "Color"} (${v.stock} uds)',
+                                        style: const TextStyle(fontSize: 11),
+                                      ),
+                                      backgroundColor: Colors.white,
+                                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

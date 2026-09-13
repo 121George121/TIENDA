@@ -48,12 +48,25 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Incrementar cantidad
-  void incrementar(int productoId) {
+  /// Establecer sucursal activa para reserva o retiro
+  void setSucursal(int id, String nombre) {
+    _sucursalId = id;
+    _sucursalNombre = nombre;
+    notifyListeners();
+  }
+
+  /// Incrementar cantidad validando el stock disponible del producto
+  bool incrementar(int productoId) {
     if (_items.containsKey(productoId)) {
-      _items[productoId]!.cantidad += 1;
-      notifyListeners();
+      final item = _items[productoId]!;
+      if (item.cantidad < item.product.stock) {
+        item.cantidad += 1;
+        notifyListeners();
+        return true;
+      }
+      return false; // Límite de stock alcanzado
     }
+    return false;
   }
 
   /// Decrementar cantidad o remover si llega a 0

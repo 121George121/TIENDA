@@ -656,3 +656,164 @@ h1 {
     align-items: flex-start;
   }
 }
+
+/* --- Botón e Interfaz del Ticket Digital (CU10 Senior) --- */
+.btn-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ticket:hover {
+  background: linear-gradient(135deg, #0369a1, #075985);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+}
+
+.ticket-dialog {
+  max-width: 480px;
+  background: #0f172a;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+.ticket-body {
+  padding: 1.5rem;
+}
+
+.ticket-store-info {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.ticket-store-info h4 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0 0 0.25rem 0;
+}
+
+.ticket-store-info p {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.ticket-code-card {
+  background: #020617;
+  border: 2px dashed #38bdf8;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.ticket-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.ticket-big-code {
+  font-family: monospace;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #38bdf8;
+  letter-spacing: 3px;
+  margin: 0.5rem 0;
+}
+
+.ticket-barcode {
+  font-family: monospace;
+  font-size: 1.4rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 2px;
+  user-select: none;
+}
+
+.ticket-disclaimer {
+  display: block;
+  font-size: 0.8rem;
+  color: #fbbf24;
+  margin-top: 0.5rem;
+}
+
+.ticket-summary {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ticket-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #cbd5e1;
+  padding: 0.25rem 0;
+}
+
+.ticket-total {
+  color: #38bdf8;
+  font-size: 1.05rem;
+}
+
+.ticket-instructions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  background: rgba(56, 189, 248, 0.05);
+  border-left: 3px solid #38bdf8;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+}
+
+.ticket-instructions p {
+  margin: 0;
+}
+
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-print:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.btn-copy-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.1rem;
+  background: #38bdf8;
+  border: none;
+  border-radius: 8px;
+  color: #020617;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-copy-code:hover {
+  background: #7dd3fc;
+}

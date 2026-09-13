@@ -203,6 +203,16 @@
 
           <div class="card-actions">
             <button
+              type="button"
+              class="btn-ticket"
+              (click)="abrirTicket(res)"
+              matTooltip="Ver voucher digital y código de barras"
+            >
+              <mat-icon>qr_code_2</mat-icon>
+              <span>Ticket Digital</span>
+            </button>
+
+            <button
               *ngIf="res.estado === 'PENDIENTE'"
               type="button"
               class="btn-cancel"
@@ -210,7 +220,7 @@
               (click)="cancelar(res)"
             >
               <mat-icon>cancel</mat-icon>
-              <span>{{ cancelandoId === res.id ? 'Cancelando...' : 'Cancelar Reserva' }}</span>
+              <span>{{ cancelandoId === res.id ? 'Cancelando...' : 'Cancelar' }}</span>
             </button>
 
             <span *ngIf="res.estado === 'PENDIENTE'" class="pickup-hint">
@@ -221,4 +231,60 @@
       </article>
     </div>
   </main>
+
+  <!-- Modal Voucher / Ticket Digital (CU10 Senior Feature) -->
+  <div *ngIf="ticketReserva" class="modal-backdrop" (click)="cerrarTicket()">
+    <div class="modal-dialog ticket-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="header-left-title">
+          <mat-icon>confirmation_number</mat-icon>
+          <h3>Comprobante de Reserva Digital</h3>
+        </div>
+        <button mat-icon-button (click)="cerrarTicket()" class="btn-close-modal">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-store-info">
+          <h4>{{ ticketReserva.sucursal?.nombre || 'Sucursal Central' }}</h4>
+          <p>{{ ticketReserva.sucursal?.direccion || 'Av. Principal #123' }} ({{ ticketReserva.sucursal?.ciudad || 'Santa Cruz' }})</p>
+        </div>
+
+        <div class="ticket-code-card">
+          <span class="ticket-label">CÓDIGO DE RETIRO</span>
+          <div class="ticket-big-code">{{ ticketReserva.codigo_reserva }}</div>
+          <div class="ticket-barcode">║▌│█║▌│ █║▌│█│║▌║▌│█</div>
+          <span class="ticket-disclaimer">⏱️ Válido por 48 horas desde la reserva</span>
+        </div>
+
+        <div class="ticket-summary">
+          <div class="ticket-summary-row">
+            <span>Prendas reservadas:</span>
+            <strong>{{ ticketReserva.total_items }} unidades</strong>
+          </div>
+          <div class="ticket-summary-row">
+            <span>Total a abonar en sucursal:</span>
+            <strong class="ticket-total">Bs. {{ ticketReserva.total_estimado | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="ticket-instructions">
+          <mat-icon>info</mat-icon>
+          <p>Presenta este código al cajero para inspeccionar las prendas en físico, probártelas y abonar en caja (efectivo, tarjeta o QR).</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-print" (click)="imprimirTicket()">
+          <mat-icon>print</mat-icon>
+          <span>Imprimir Voucher</span>
+        </button>
+        <button class="btn-copy-code" (click)="copiarCodigo(ticketReserva.codigo_reserva, ticketReserva.id)">
+          <mat-icon>{{ copiadoId === ticketReserva.id ? 'check' : 'content_copy' }}</mat-icon>
+          <span>{{ copiadoId === ticketReserva.id ? '¡Copiado!' : 'Copiar Código' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

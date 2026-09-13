@@ -49,4 +49,12 @@ export class MisPedidosWebComponent implements OnInit {
   volverATienda(): void {
     this.router.navigate(['/tienda']);
   }
+
+  getOrderStep(estado: string): number {
+    const s = (estado || '').toUpperCase();
+    if (s.includes('PREPAR') || s.includes('CONFIRMAD')) return 1;
+    if (s.includes('CAMINO') || s.includes('ENVIAD') || s.includes('TRANSITO')) return 2;
+    if (s.includes('ENTREGAD') || s.includes('COMPLETAD') || s.includes('FINALIZAD')) return 3;
+    return 0; // REGISTRADO
+  }
 }

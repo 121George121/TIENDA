@@ -188,7 +188,19 @@ class CartView extends StatelessWidget {
                                                 style: const TextStyle(fontWeight: FontWeight.bold),
                                               ),
                                               InkWell(
-                                                onTap: () => cartCtrl.incrementar(item.product.id),
+                                                onTap: () {
+                                                  final ok = cartCtrl.incrementar(item.product.id);
+                                                  if (!ok) {
+                                                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Límite de stock alcanzado (${item.product.stock} uds. disponibles)'),
+                                                        backgroundColor: Colors.orange.shade800,
+                                                        duration: const Duration(seconds: 2),
+                                                      ),
+                                                    );
+                                                  }
+                                                },
                                                 child: const Padding(
                                                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                                   child: Icon(Icons.add, size: 16),
@@ -235,6 +247,55 @@ class CartView extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Selector de Sucursal para Retiro / Reserva
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.storefront, size: 20, color: Color(0xFF0F172A)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'SUCURSAL SELECCIONADA',
+                                    style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                                  ),
+                                  Text(
+                                    cartCtrl.sucursalNombre ?? 'Sucursal Central (Principal)',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuButton<int>(
+                              tooltip: 'Cambiar Sucursal',
+                              icon: const Icon(Icons.swap_horiz, color: Color(0xFF0F172A)),
+                              onSelected: (id) {
+                                final sucursales = {
+                                  1: 'Sucursal Central (Principal)',
+                                  2: 'Sucursal Equipetrol',
+                                  3: 'Sucursal Norte',
+                                };
+                                cartCtrl.setSucursal(id, sucursales[id] ?? 'Sucursal #$id');
+                              },
+                              itemBuilder: (ctx) => const [
+                                PopupMenuItem(value: 1, child: Text('Sucursal Central (Principal)')),
+                                PopupMenuItem(value: 2, child: Text('Sucursal Equipetrol')),
+                                PopupMenuItem(value: 3, child: Text('Sucursal Norte')),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

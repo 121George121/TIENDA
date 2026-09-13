@@ -102,4 +102,19 @@ export class MyReservationsComponent implements OnInit {
   get entregadasCount(): number {
     return this.reservas.filter(r => r.estado === 'ENTREGADA').length;
   }
+
+  // --- Modal Ticket Digital de Reserva (CU10 Senior Feature) ---
+  ticketReserva: Reserva | null = null;
+
+  abrirTicket(r: Reserva): void {
+    this.ticketReserva = r;
+  }
+
+  cerrarTicket(): void {
+    this.ticketReserva = null;
+  }
+
+  imprimirTicket(): void {
+    window.print();
+  }
 }

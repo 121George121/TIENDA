@@ -55,6 +55,32 @@
           </div>
         </div>
 
+        <!-- Timeline de Estado del Pedido -->
+        <div class="order-timeline">
+          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 0" [class.active]="getOrderStep(orden.estado) === 0">
+            <div class="step-circle"><mat-icon>receipt</mat-icon></div>
+            <span class="step-title">Registrado</span>
+          </div>
+          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 1"></div>
+
+          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 1" [class.active]="getOrderStep(orden.estado) === 1">
+            <div class="step-circle"><mat-icon>inventory_2</mat-icon></div>
+            <span class="step-title">Preparación</span>
+          </div>
+          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 2"></div>
+
+          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 2" [class.active]="getOrderStep(orden.estado) === 2">
+            <div class="step-circle"><mat-icon>local_shipping</mat-icon></div>
+            <span class="step-title">En Camino</span>
+          </div>
+          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 3"></div>
+
+          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 3" [class.active]="getOrderStep(orden.estado) === 3">
+            <div class="step-circle"><mat-icon>done_all</mat-icon></div>
+            <span class="step-title">Entregado</span>
+          </div>
+        </div>
+
         <div class="order-footer">
           <span class="order-msg">
             <mat-icon>verified</mat-icon>

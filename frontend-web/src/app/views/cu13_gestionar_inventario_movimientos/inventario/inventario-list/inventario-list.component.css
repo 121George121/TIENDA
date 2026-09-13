@@ -260,11 +260,19 @@
 .badge-alerta {
   background: #fef3c7;
   color: #b45309;
+  border: 1px solid #fde68a;
+  animation: pulse-soft 2.5s infinite ease-in-out;
 }
 
 .badge-agotado {
   background: #fee2e2;
   color: #b91c1c;
+  border: 1px solid #fecdd3;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.03); }
 }
 
 .actions-wrapper {

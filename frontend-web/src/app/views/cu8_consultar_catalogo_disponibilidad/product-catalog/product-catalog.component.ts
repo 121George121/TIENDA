@@ -4,7 +4,7 @@
 // Ubicación: frontend-web/src/app/views/product-catalog/product-catalog.component.ts
 // ==============================================================================
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -15,6 +15,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
@@ -43,17 +45,19 @@ import {
   templateUrl: './product-catalog.component.html',
   styleUrls: ['./product-catalog.component.css']
 })
-export class ProductCatalogComponent implements OnInit {
+export class ProductCatalogComponent implements OnInit, OnDestroy {
   // Datos principales
   productos: ProductoCatalogoItem[] = [];
   sucursales: SucursalItem[] = [];
   loading = true;
 
-  // Filtros interactivos
+  // Filtros interactivos y búsqueda reactiva
   sucursalSeleccionadaId: number | null = null;
   generoSeleccionado: string = 'TODOS';
   searchTerm: string = '';
   soloDisponibles: boolean = false;
+  private searchSubject = new Subject<string>();
+  private searchSub?: Subscription;
 
   // Mapa de variante seleccionada por producto (id_producto -> variante)
   variantesSeleccionadas: { [productoId: number]: DisponibilidadVariante } = {};
@@ -79,6 +83,19 @@ export class ProductCatalogComponent implements OnInit {
     this.cartService.cartCount$.subscribe(count => {
       this.itemsCarritoCount = count;
     });
+
+    // Búsqueda con debounce reactivo de 300ms
+    this.searchSub = this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(term => {
+      this.searchTerm = term;
+      this.cargarCatalogo();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
   }
 
   cargarSucursales(): void {
@@ -132,7 +149,7 @@ export class ProductCatalogComponent implements OnInit {
   }
 
   onBusqueda(): void {
-    this.cargarCatalogo();
+    this.searchSubject.next(this.searchTerm);
   }
 
   toggleSoloDisponibles(): void {

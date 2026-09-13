@@ -166,3 +166,73 @@
   width: 18px;
   height: 18px;
 }
+
+/* Timeline Tracker */
+.order-timeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px;
+  margin-bottom: 8px;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 2;
+}
+
+.step-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+
+.step-circle mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.step-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.timeline-step.completed .step-circle {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.timeline-step.completed .step-title {
+  color: #1e3a8a;
+}
+
+.timeline-step.active .step-circle {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+}
+
+.timeline-line {
+  flex: 1;
+  height: 3px;
+  background: #e2e8f0;
+  margin: 0 -8px 22px -8px;
+  z-index: 1;
+  transition: background 0.2s;
+}
+
+.timeline-line.completed {
+  background: #2563eb;
+}

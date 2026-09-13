@@ -82,13 +82,14 @@ export class AdminReservasComponent implements OnInit {
   }
 
   buscarPorCodigo(): void {
-    if (!this.codigoBusqueda.trim()) {
+    const code = this.codigoBusqueda.trim().toUpperCase();
+    if (!code) {
       this.cargarReservas();
       return;
     }
 
     this.buscando = true;
-    this.reservationService.buscarPorCodigo(this.codigoBusqueda).subscribe({
+    this.reservationService.buscarPorCodigo(code).subscribe({
       next: (reserva) => {
         this.buscando = false;
         // Abrir directamente el modal de atención con la reserva encontrada
@@ -96,7 +97,7 @@ export class AdminReservasComponent implements OnInit {
       },
       error: (err) => {
         this.buscando = false;
-        alert(err.error?.detail || `No se encontró reserva con código "${this.codigoBusqueda}"`);
+        alert(err.error?.detail || `No se encontró reserva con código "${code}"`);
       }
     });
   }

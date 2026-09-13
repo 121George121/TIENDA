@@ -110,6 +110,20 @@ class ProductController extends ChangeNotifier {
     }
   }
 
+  /// CU08: Consulta la disponibilidad detallada de un producto en todas las sucursales
+  Future<ProductAvailabilityModel?> fetchDisponibilidadProducto(int productoId) async {
+    try {
+      final response = await http.get(Uri.parse('$inventarioUrl/producto/$productoId/disponibilidad'));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        return ProductAvailabilityModel.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('Error al consultar disponibilidad multitienda: $e');
+    }
+    return null;
+  }
+
   /// Consulta tradicional de productos
   Future<void> fetchProductos() async {
     await fetchSucursales();

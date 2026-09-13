@@ -28,6 +28,76 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     Provider.of<OrderController>(context, listen: false).fetchMisOrdenes(token);
   }
 
+  Widget _buildOrderTimeline(String estado) {
+    final steps = ['REGISTRADO', 'PREPARACIÓN', 'EN CAMINO', 'ENTREGADO'];
+    int currentStep = 0;
+    final normalized = estado.toUpperCase();
+    if (normalized.contains('PREPAR') || normalized.contains('CONFIRMAD')) {
+      currentStep = 1;
+    } else if (normalized.contains('CAMINO') || normalized.contains('ENVIAD') || normalized.contains('TRANSITO')) {
+      currentStep = 2;
+    } else if (normalized.contains('ENTREGAD') || normalized.contains('COMPLETAD') || normalized.contains('FINALIZAD')) {
+      currentStep = 3;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Column(
+        children: [
+          Row(
+            children: List.generate(steps.length * 2 - 1, (index) {
+              if (index.isOdd) {
+                final lineIndex = index ~/ 2;
+                final isCompleted = lineIndex < currentStep;
+                return Expanded(
+                  child: Container(
+                    height: 2,
+                    color: isCompleted ? Colors.indigo : Colors.grey.shade300,
+                  ),
+                );
+              } else {
+                final stepIndex = index ~/ 2;
+                final isCompleted = stepIndex <= currentStep;
+                return Container(
+                  width: 18,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Colors.indigo : Colors.white,
+                    border: Border.all(
+                      color: isCompleted ? Colors.indigo : Colors.grey.shade400,
+                      width: 2,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: isCompleted
+                      ? const Icon(Icons.check, size: 12, color: Colors.white)
+                      : null,
+                );
+              }
+            }),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: steps.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final label = entry.value;
+              final isActive = idx <= currentStep;
+              return Text(
+                label,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  color: isActive ? Colors.indigo.shade900 : Colors.grey,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final orderCtrl = Provider.of<OrderController>(context);
@@ -180,6 +250,9 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                       )
                                     ],
                                   ),
+                                  const SizedBox(height: 12),
+                                  // Tracker Visual de Estado
+                                  _buildOrderTimeline(orden.estado),
                                   const Divider(height: 20),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

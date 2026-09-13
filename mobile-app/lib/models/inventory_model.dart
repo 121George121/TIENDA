@@ -65,6 +65,69 @@ class ProductVariantModel {
   }
 }
 
+class BranchAvailabilityDetailModel {
+  final int sucursalId;
+  final String sucursalNombre;
+  final String? ciudad;
+  final String? direccion;
+  final String? telefono;
+  final int stockTotal;
+  final List<ProductVariantModel> variantes;
+
+  BranchAvailabilityDetailModel({
+    required this.sucursalId,
+    required this.sucursalNombre,
+    this.ciudad,
+    this.direccion,
+    this.telefono,
+    required this.stockTotal,
+    required this.variantes,
+  });
+
+  factory BranchAvailabilityDetailModel.fromJson(Map<String, dynamic> json) {
+    var rawVars = json['variantes'] as List? ?? [];
+    return BranchAvailabilityDetailModel(
+      sucursalId: json['sucursal_id'],
+      sucursalNombre: json['sucursal_nombre'],
+      ciudad: json['ciudad'],
+      direccion: json['direccion'],
+      telefono: json['telefono'],
+      stockTotal: json['stock_total'] ?? 0,
+      variantes: rawVars.map((v) => ProductVariantModel.fromJson(v)).toList(),
+    );
+  }
+}
+
+class ProductAvailabilityModel {
+  final int productoId;
+  final String productoNombre;
+  final String? marca;
+  final double preciobase;
+  final String? imagenprincipal;
+  final List<BranchAvailabilityDetailModel> sucursales;
+
+  ProductAvailabilityModel({
+    required this.productoId,
+    required this.productoNombre,
+    this.marca,
+    required this.preciobase,
+    this.imagenprincipal,
+    required this.sucursales,
+  });
+
+  factory ProductAvailabilityModel.fromJson(Map<String, dynamic> json) {
+    var rawSucs = json['sucursales'] as List? ?? [];
+    return ProductAvailabilityModel(
+      productoId: json['producto_id'],
+      productoNombre: json['producto_nombre'],
+      marca: json['marca'],
+      preciobase: (json['preciobase'] as num).toDouble(),
+      imagenprincipal: json['imagenprincipal'],
+      sucursales: rawSucs.map((s) => BranchAvailabilityDetailModel.fromJson(s)).toList(),
+    );
+  }
+}
+
 class CatalogProductModel {
   final int id;
   final String nombre;

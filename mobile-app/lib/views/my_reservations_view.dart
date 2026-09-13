@@ -5,9 +5,10 @@
 // ==============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../controllers/reservation_controller.dart';
-
+import '../models/reservation_model.dart';
 
 class MyReservationsView extends StatefulWidget {
   const MyReservationsView({super.key});
@@ -23,6 +24,123 @@ class _MyReservationsViewState extends State<MyReservationsView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReservationController>().cargarMisReservas();
     });
+  }
+
+  void _mostrarTicketDigital(BuildContext context, ReservaModel reserva) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF1E293B),
+        child: Padding(
+          padding: const EdgeInsets.all(22.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.confirmation_number_outlined, color: Color(0xFF38BDF8), size: 22),
+                      SizedBox(width: 8),
+                      Text('TICKET DIGITAL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white60, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(color: Colors.white24, height: 24),
+              const Text(
+                'Presenta este código al cajero en sucursal:',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      reserva.codigoReserva,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        color: Color(0xFF38BDF8),
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Simulación visual de código de barras
+                    const Text(
+                      '║▌│█║▌│ █║▌│█│║▌║▌│█',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        color: Colors.white38,
+                        fontSize: 20,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF38BDF8),
+                  side: const BorderSide(color: Color(0xFF38BDF8)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                icon: const Icon(Icons.copy, size: 16),
+                label: const Text('Copiar Código'),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: reserva.codigoReserva));
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('¡Código de reserva copiado al portapapeles!'),
+                      backgroundColor: Colors.teal,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.withAlpha(80)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_outlined, color: Colors.amber, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Válido por 48 horas en ${reserva.sucursalNombre ?? "Sucursal Central"}. Las prendas se reservan automáticamente.',
+                        style: const TextStyle(color: Colors.amber, fontSize: 11),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Color _getStatusColor(String estado) {
@@ -237,38 +355,56 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                                 ),
                               ],
                             ),
-                            if (reserva.estado == 'PENDIENTE')
-                              TextButton.icon(
-                                onPressed: () async {
-                                  final confirmar = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Cancelar Reserva'),
-                                      content: Text('¿Deseas cancelar la reserva ${reserva.codigoReserva}? El stock apartado será liberado.'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(ctx, false),
-                                          child: const Text('No'),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                                          onPressed: () => Navigator.pop(ctx, true),
-                                          child: const Text('Sí, Cancelar'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (confirmar == true) {
-                                    await controller.cancelarReserva(reserva.id);
-                                  }
-                                },
-                                icon: const Icon(Icons.cancel_outlined, size: 16, color: Colors.redAccent),
-                                label: const Text(
-                                  'Cancelar',
-                                  style: TextStyle(color: Colors.redAccent),
+                            Row(
+                              children: [
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0284C7),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    elevation: 0,
+                                  ),
+                                  onPressed: () => _mostrarTicketDigital(context, reserva),
+                                  icon: const Icon(Icons.qr_code_2, size: 16),
+                                  label: const Text('Ticket', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 ),
-                              ),
+                                if (reserva.estado == 'PENDIENTE') ...[
+                                  const SizedBox(width: 4),
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      final confirmar = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text('Cancelar Reserva'),
+                                          content: Text('¿Deseas cancelar la reserva ${reserva.codigoReserva}? El stock apartado será liberado.'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: const Text('No'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              child: const Text('Sí, Cancelar'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirmar == true) {
+                                        await controller.cancelarReserva(reserva.id);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.cancel_outlined, size: 14, color: Colors.redAccent),
+                                    label: const Text(
+                                      'Cancelar',
+                                      style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ],
                         ),
                       ],
