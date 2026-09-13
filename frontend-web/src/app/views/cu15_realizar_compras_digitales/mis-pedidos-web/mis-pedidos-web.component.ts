@@ -1,11 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
-import { Router } from '@angular/router';
 
 import { CompraDigitalController } from '../../../controllers/cu15_realizar_compras_digitales/compra-digital.controller';
 import { OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digitales/compra-digital.service';
@@ -15,6 +15,7 @@ import { OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digita
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -47,7 +48,7 @@ export class MisPedidosWebComponent implements OnInit {
   }
 
   volverATienda(): void {
-    this.router.navigate(['/tienda']);
+    this.router.navigate(['/catalogo']);
   }
 
   getOrderStep(estado: string): number {

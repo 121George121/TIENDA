@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
 import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 import { ReservationService } from '../../../services/cu10_gestionar_reservas_prendas/reservation.service';
+import { CompraDigitalService, OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digitales/compra-digital.service';
 import { Carrito, CarritoItem } from '../../../models/cu9_gestionar_carrito_compras/cart.model';
 import { SucursalItem } from '../../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
 import { Reserva } from '../../../models/cu10_gestionar_reservas_prendas/reservation.model';
@@ -39,16 +40,24 @@ export class CartViewComponent implements OnInit {
   loading = true;
   procesandoId: number | null = null;
 
-  // Estado del Modal de Reserva (CU10)
+  // Estado del Modal de Reserva en Tienda Física (CU10)
   mostrarModalReserva = false;
   observacionesReserva = '';
   procesandoReserva = false;
   reservaExitosa: Reserva | null = null;
 
+  // Estado del Modal de Compra Digital con Envío a Domicilio (CU15)
+  mostrarModalCompra = false;
+  direccionEnvio = 'Av. San Martín #450, Equipetrol, Santa Cruz';
+  metodoPagoDigital = 'TARJETA_DEBITO';
+  procesandoCompra = false;
+  compraExitosa: OrdenResponseDTO | null = null;
+
   constructor(
     private cartService: CartService,
     private inventoryService: InventoryService,
     private reservationService: ReservationService,
+    private compraDigitalService: CompraDigitalService,
     private router: Router
   ) {}
 
@@ -180,6 +189,60 @@ export class CartViewComponent implements OnInit {
   irAMisReservas(): void {
     this.mostrarModalReserva = false;
     this.router.navigate(['/mis-reservas']);
+  }
+
+  // --- CU15: Métodos para Compra Digital con Envío a Domicilio ---
+  procederACompra(): void {
+    if (!this.carrito || this.carrito.items.length === 0) return;
+
+    if (this.carrito.tiene_alertas_stock) {
+      alert('Hay prendas en tu carrito que superan el stock disponible. Por favor ajusta las cantidades antes de continuar.');
+      return;
+    }
+
+    this.compraExitosa = null;
+    this.mostrarModalCompra = true;
+  }
+
+  cerrarModalCompra(): void {
+    if (this.procesandoCompra) return;
+    this.mostrarModalCompra = false;
+  }
+
+  confirmarCompra(): void {
+    if (!this.carrito || this.carrito.items.length === 0) return;
+    if (!this.direccionEnvio.trim()) {
+      alert('Por favor ingresa una dirección de envío válida.');
+      return;
+    }
+
+    this.procesandoCompra = true;
+    const dto = {
+      direccion_envio: this.direccionEnvio.trim(),
+      sucursal_id: this.carrito.sucursal_id || undefined,
+      items: this.carrito.items.map(item => ({
+        producto_id: item.producto_id,
+        cantidad: item.cantidad,
+        variante_id: item.variante_id
+      }))
+    };
+
+    this.compraDigitalService.crearOrdenDigital(dto).subscribe({
+      next: (orden) => {
+        this.procesandoCompra = false;
+        this.compraExitosa = orden;
+        this.cartService.vaciarCarrito().subscribe();
+      },
+      error: (err) => {
+        this.procesandoCompra = false;
+        alert(err.error?.detail || 'Error al procesar la compra digital.');
+      }
+    });
+  }
+
+  irAMisPedidos(): void {
+    this.mostrarModalCompra = false;
+    this.router.navigate(['/mis-pedidos']);
   }
 }
 

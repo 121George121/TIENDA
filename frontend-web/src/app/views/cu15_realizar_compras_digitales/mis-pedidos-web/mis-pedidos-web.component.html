@@ -3,11 +3,21 @@
   <header class="orders-header">
     <button mat-stroked-button (click)="volverATienda()" class="btn-back">
       <mat-icon>arrow_back</mat-icon>
-      <span>Volver a la Tienda</span>
+      <span>Volver al Catálogo</span>
     </button>
     <div class="header-text">
       <h1 class="page-title">Historial de Mis Compras Online</h1>
-      <p class="page-sub">CU15 - Comprobantes digitales, estado de despacho y seguimiento</p>
+      <p class="page-sub">CU15 - Comprobantes digitales, estado de despacho y seguimiento en tiempo real</p>
+    </div>
+    <div class="header-right-actions" style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+      <button mat-stroked-button routerLink="/mis-reservas">
+        <mat-icon>receipt_long</mat-icon>
+        <span>Mis Reservas (CU10)</span>
+      </button>
+      <button mat-raised-button color="primary" routerLink="/carrito">
+        <mat-icon>shopping_bag</mat-icon>
+        <span>Mi Carrito (CU09)</span>
+      </button>
     </div>
   </header>
 

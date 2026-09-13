@@ -62,15 +62,22 @@ export const routes: Routes = [
   // Dashboard
   { path: 'dashboard', component: DashboardComponent },
 
-  // CU08, CU09, CU10, CU11 (Vistas directas)
+  // CU08: Catálogo y Vitrina Omnicanal Unificada
   { path: 'catalogo', component: ProductCatalogComponent },
+  { path: 'tienda', redirectTo: 'catalogo', pathMatch: 'full' },
+
+  // CU09: Carrito de Compras Omnicanal
   { path: 'carrito', component: CartViewComponent },
+
+  // CU10: Gestión de Reservas de Prendas
   { path: 'mis-reservas', component: MyReservationsComponent },
+
+  // CU11: Atender Reservas en Sucursal Física (Caja)
   { path: 'atencion-reservas', component: AdminReservasComponent },
 
-  // CU15: Tienda Online & Compras Digitales
-  { path: 'tienda', component: TiendaOnlineComponent },
-  { path: 'tienda/mis-pedidos', component: MisPedidosWebComponent },
+  // CU15: Compras Digitales (Mis Pedidos Online)
+  { path: 'mis-pedidos', component: MisPedidosWebComponent },
+  { path: 'tienda/mis-pedidos', redirectTo: 'mis-pedidos', pathMatch: 'full' },
 
   // Backoffice / Admin
   {
@@ -104,8 +111,8 @@ export const routes: Routes = [
       // CU14: POS y Ventas
       { path: 'pos', component: PosVentaComponent },
       { path: 'ventas', component: VentasListComponent },
-      // CU15: Tienda Digital
-      { path: 'tienda-digital', component: TiendaOnlineComponent },
+      // CU15: Vitrina & Tienda Unificada
+      { path: 'tienda-digital', redirectTo: '/catalogo', pathMatch: 'full' },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]
   },

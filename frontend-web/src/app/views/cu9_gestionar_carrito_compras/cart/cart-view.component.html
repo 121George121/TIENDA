@@ -166,9 +166,21 @@
           </div>
 
           <p class="summary-note">
-            💡 Al continuar podrás <strong>Reservar tus prendas (CU10)</strong> para retirarlas y pagarlas directamente en la sucursal física.
+            💡 Elige cómo prefieres recibir tu pedido: <strong>compra digital con envío directo (CU15)</strong> o <strong>apartar para retiro en tienda física (CU10)</strong>.
           </p>
 
+          <!-- Botón 1: Comprar Online a Domicilio (CU15) -->
+          <button
+            type="button"
+            class="btn-buy-online"
+            [disabled]="carrito.items.length === 0 || carrito.tiene_alertas_stock"
+            (click)="procederACompra()"
+          >
+            <mat-icon>local_shipping</mat-icon>
+            <span>Comprar Online (Envío a Domicilio - CU15)</span>
+          </button>
+
+          <!-- Botón 2: Reservar en Tienda Física (CU10) -->
           <button
             type="button"
             class="btn-checkout"
@@ -176,7 +188,7 @@
             (click)="procederAReserva()"
           >
             <mat-icon>event_seat</mat-icon>
-            <span>Proceder a Reservar en Tienda (CU10)</span>
+            <span>Apartar y Pagar en Tienda (CU10)</span>
           </button>
 
           <button routerLink="/catalogo" class="btn-keep-shopping">
@@ -277,6 +289,110 @@
           <button type="button" class="btn-goto-reservations" (click)="irAMisReservas()">
             <mat-icon>receipt_long</mat-icon>
             <span>Ver Mis Reservas (CU10)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Compra Digital Online (CU15) -->
+  <div *ngIf="mostrarModalCompra" class="modal-backdrop" (click)="cerrarModalCompra()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <!-- PASO 1: Formulario de Envío y Pago -->
+      <div *ngIf="!compraExitosa" class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-box">
+            <mat-icon class="modal-header-icon" style="color: #10b981;">shopping_bag</mat-icon>
+            <div>
+              <h3>Comprar Online con Despacho a Domicilio</h3>
+              <span class="modal-sub">Caso de Uso: CU15 - Compra Digital</span>
+            </div>
+          </div>
+          <button type="button" class="btn-close-modal" (click)="cerrarModalCompra()" [disabled]="procesandoCompra">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="direccion-envio">Dirección de Entrega a Domicilio:</label>
+            <input
+              id="direccion-envio"
+              type="text"
+              class="notes-textarea"
+              style="min-height: 44px; padding: 10px 14px;"
+              [(ngModel)]="direccionEnvio"
+              placeholder="Ej: Av. San Martín #450, Barrio Equipetrol, Santa Cruz"
+              [disabled]="procesandoCompra"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="metodo-pago">Método de Pago Digital:</label>
+            <select
+              id="metodo-pago"
+              class="notes-textarea"
+              style="min-height: 44px; padding: 10px 14px;"
+              [(ngModel)]="metodoPagoDigital"
+              [disabled]="procesandoCompra"
+            >
+              <option value="TARJETA_DEBITO">💳 Tarjeta de Débito / Crédito (Pago Seguro)</option>
+              <option value="QR_SIMPLE">📲 QR Simple Bolivia (Transferencia Inmediata)</option>
+              <option value="PAGO_CONTRA_ENTREGA">💵 Pago contra entrega en efectivo</option>
+            </select>
+          </div>
+
+          <div class="modal-summary-box">
+            <div class="summary-line">
+              <span>Prendas a despachar:</span>
+              <strong>{{ carrito?.total_items }} unidades</strong>
+            </div>
+            <div class="summary-line">
+              <span>Despacho desde sucursal:</span>
+              <strong>{{ carrito?.sucursal_nombre || 'Sucursal Central (Principal)' }}</strong>
+            </div>
+            <div class="summary-line">
+              <span>Total a debitar:</span>
+              <strong class="text-accent" style="color: #10b981;">Bs. {{ carrito?.total_precio | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="info-alert" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            <mat-icon style="color: #10b981;">local_shipping</mat-icon>
+            <span>Al confirmar, la orden de venta se procesará de forma inmediata, descontando el stock físico de la tienda y preparando la guía de envío a tu dirección.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" (click)="cerrarModalCompra()" [disabled]="procesandoCompra">
+            Cancelar
+          </button>
+          <button type="button" class="btn-confirm-buy" (click)="confirmarCompra()" [disabled]="procesandoCompra">
+            <mat-icon *ngIf="!procesandoCompra">verified</mat-icon>
+            <span *ngIf="!procesandoCompra">Confirmar Compra (Bs. {{ carrito?.total_precio | number:'1.2-2' }})</span>
+            <span *ngIf="procesandoCompra">Procesando Pago y Stock...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PASO 2: Éxito con Orden Digital Confirmada -->
+      <div *ngIf="compraExitosa" class="modal-content success-modal">
+        <div class="success-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981;">
+          <mat-icon class="success-icon" style="color: #10b981;">task_alt</mat-icon>
+        </div>
+        <h3>¡Pedido Confirmado Exitosamente!</h3>
+        <p class="success-desc">Tu compra ha sido registrada en el sistema y el inventario ha sido descontado en tiempo real.</p>
+
+        <div class="reservation-code-banner" style="border-color: #10b981; background: #064e3b;">
+          <span class="code-title" style="color: #6ee7b7;">CÓDIGO DE ORDEN / VENTA</span>
+          <strong class="code-display" style="color: #a7f3d0;">{{ compraExitosa.codigoventa }}</strong>
+          <span class="code-branch" style="color: #d1fae5;">Total Pagado: Bs. {{ compraExitosa.total | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="success-actions">
+          <button type="button" class="btn-goto-reservations" style="background: #10b981;" (click)="irAMisPedidos()">
+            <mat-icon>local_shipping</mat-icon>
+            <span>Ver Seguimiento en Mis Pedidos (CU15)</span>
           </button>
         </div>
       </div>
