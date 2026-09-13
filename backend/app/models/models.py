@@ -27,3 +27,15 @@ from app.models.cu6_gestionar_clasificacion_prendas.clasificacion_model import (
 from app.models.cu7_gestionar_proveedores_productos_suministrados.proveedor_model import (
     ProveedorModel, ProductoProveedorModel
 )
+from app.models.cu14_registrar_ventas_presenciales.venta_presencial_model import (
+    VentaModel, DetalleVentaModel, MetodoPagoModel, PagoModel, ReciboModel
+)
+from app.models.cu15_realizar_compras_digitales.compra_digital_model import (
+    CarritoModel, CarritoItemModel
+)
+
+from app.models.cu13_gestionar_inventario_movimientos.inventario_model import (
+    InventarioModel, MovimientoInventarioModel
+)
+
+

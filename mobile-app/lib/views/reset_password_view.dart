@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 
 class ResetPasswordView extends StatefulWidget {
-  const ResetPasswordView({Key? key}) : super(key: key);
+  const ResetPasswordView({super.key});
 
   @override
   State<ResetPasswordView> createState() => _ResetPasswordViewState();
@@ -100,8 +100,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE4E6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFE4E6),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -132,7 +132,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
                 Card(
                   elevation: 2,
-                  shadowColor: Colors.black.withOpacity(0.05),
+                  shadowColor: Colors.black12,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   color: Colors.white,
                   child: Padding(

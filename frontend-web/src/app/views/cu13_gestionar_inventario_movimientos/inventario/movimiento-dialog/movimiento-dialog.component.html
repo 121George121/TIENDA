@@ -1,0 +1,77 @@
+<div class="dialog-header">
+  <div class="header-icon-box">
+    <mat-icon>swap_vertical_circle</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>Registrar Movimiento de Inventario</h2>
+    <p class="dialog-subtitle">
+      {{ item.producto_nombre }} &bull; Talla: {{ item.talla }} &bull; Color: {{ item.color }} &bull; {{ item.sucursal_nombre }}
+    </p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+  <mat-dialog-content class="dialog-content">
+
+    <!-- KPI preview banner -->
+    <div class="stock-preview-card">
+      <div class="preview-item">
+        <span class="preview-label">Stock Actual</span>
+        <span class="preview-value current">{{ item.stockfisico }} un.</span>
+      </div>
+      <div class="preview-arrow">
+        <mat-icon>arrow_forward</mat-icon>
+      </div>
+      <div class="preview-item">
+        <span class="preview-label">Stock Proyectado</span>
+        <span class="preview-value projected" [class.alert]="stockProyectado <= item.stockminimo">
+          {{ stockProyectado }} un.
+        </span>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Tipo de Movimiento</mat-label>
+        <mat-select formControlName="tipo_movimiento" id="select-tipo-movimiento">
+          <mat-option *ngFor="let tm of tiposMovimiento" [value]="tm.value">
+            <span class="option-content">
+              <mat-icon [style.color]="tm.color">{{ tm.icon }}</mat-icon>
+              {{ tm.label }}
+            </span>
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Cantidad</mat-label>
+        <input matInput formControlName="cantidad" type="number" min="1" id="input-mov-cantidad">
+        <mat-icon matSuffix>pin</mat-icon>
+        <mat-error *ngIf="form.get('cantidad')?.hasError('required')">La cantidad es obligatoria.</mat-error>
+        <mat-error *ngIf="form.get('cantidad')?.hasError('min')">Mínimo 1 unidad.</mat-error>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Motivo o Justificación</mat-label>
+      <input matInput formControlName="motivo" placeholder="Ej: Ingreso de nuevo lote de producción, Daño de prenda..." id="input-mov-motivo">
+      <mat-icon matSuffix>edit_note</mat-icon>
+      <mat-error *ngIf="form.get('motivo')?.hasError('required')">El motivo es obligatorio para auditoría.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Documento de Referencia / Factura / Lote (Opcional)</mat-label>
+      <input matInput formControlName="referencia" placeholder="Ej: REMISION-8832" id="input-mov-ref">
+      <mat-icon matSuffix>receipt_long</mat-icon>
+    </mat-form-field>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" id="btn-cancel-mov">Cancelar</button>
+    <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid" id="btn-confirm-mov" class="btn-save">
+      <mat-icon>check_circle</mat-icon>
+      <span>Confirmar Movimiento</span>
+    </button>
+  </mat-dialog-actions>
+</form>

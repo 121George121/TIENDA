@@ -10,7 +10,7 @@ import '../controllers/cart_controller.dart';
 import '../controllers/auth_controller.dart';
 
 class ProductListView extends StatefulWidget {
-  const ProductListView({Key? key}) : super(key: key);
+  const ProductListView({super.key});
 
   @override
   State<ProductListView> createState() => _ProductListViewState();
@@ -21,9 +21,11 @@ class _ProductListViewState extends State<ProductListView> {
   void initState() {
     super.initState();
     // 1. Invoca al Controlador para obtener los datos desde FastAPI al cargar la pantalla
-    Future.microtask(() =>
-      Provider.of<ProductController>(context, listen: false).fetchProductos()
-    );
+    Future.microtask(() {
+      if (mounted) {
+        Provider.of<ProductController>(context, listen: false).fetchProductos();
+      }
+    });
   }
 
   @override
@@ -64,6 +66,13 @@ class _ProductListViewState extends State<ProductListView> {
             ],
           ),
           IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'Mis Pedidos',
+            onPressed: () {
+              Navigator.pushNamed(context, '/orders');
+            },
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar Sesión',
             onPressed: () {
@@ -93,9 +102,15 @@ class _ProductListViewState extends State<ProductListView> {
                       elevation: 3,
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       child: ListTile(
-                        leading: prod.imagenUrl != null
-                            ? Image.network(prod.imagenUrl!, width: 50, fit: BoxFit.cover)
-                            : const Icon(Icons.shopping_bag, size: 40),
+                        leading: (prod.imagenUrl != null && prod.imagenUrl!.isNotEmpty)
+                            ? Image.network(
+                                prod.imagenUrl!,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (ctx, err, stack) => const Icon(Icons.checkroom, size: 40, color: Colors.indigo),
+                              )
+                            : const Icon(Icons.checkroom, size: 40, color: Colors.indigo),
                         title: Text(prod.nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('\$${prod.precio.toStringAsFixed(2)} | Stock: ${prod.stock}'),
                         trailing: ElevatedButton(

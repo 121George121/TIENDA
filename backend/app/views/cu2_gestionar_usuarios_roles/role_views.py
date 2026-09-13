@@ -10,10 +10,15 @@ from typing import List
 from app.core.database import get_db
 from app.schemas.schemas import RolResponse, RolCreate, PermisosUpdate
 from app.controllers.cu2_gestionar_usuarios_roles.role_controller import RoleController
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_active_user, require_admin
 from app.models.models import UsuarioModel
 
-router = APIRouter(prefix="/roles", tags=["Roles (Vista API)"])
+router = APIRouter(
+    prefix="/roles",
+    tags=["Roles (Vista API)"],
+    dependencies=[Depends(require_admin)]
+)
+
 
 @router.get("/", response_model=List[RolResponse], summary="Listar todos los roles")
 def listar_roles(

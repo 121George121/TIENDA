@@ -9,7 +9,7 @@ import '../controllers/auth_controller.dart';
 import 'register_view.dart';
 
 class LoginView extends StatefulWidget {
-  const LoginView({Key? key}) : super(key: key);
+  const LoginView({super.key});
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -65,8 +65,8 @@ class _LoginViewState extends State<LoginView> {
                 // Header Logo / Branding
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE4E6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFE4E6),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -97,7 +97,7 @@ class _LoginViewState extends State<LoginView> {
                 // Card Contenedor del Formulario
                 Card(
                   elevation: 2,
-                  shadowColor: Colors.black.withOpacity(0.05),
+                  shadowColor: Colors.black12,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

@@ -10,10 +10,15 @@ from typing import List, Optional
 from app.core.database import get_db
 from app.schemas.schemas import UsuarioResponse, UsuarioAdminCreate, UsuarioUpdate, UsuarioEstadoUpdate, UsuarioRolUpdate
 from app.controllers.cu2_gestionar_usuarios_roles.user_controller import UserController
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_active_user, require_admin
 from app.models.models import UsuarioModel
 
-router = APIRouter(prefix="/usuarios", tags=["Usuarios (Vista API)"])
+router = APIRouter(
+    prefix="/usuarios",
+    tags=["Usuarios (Vista API)"],
+    dependencies=[Depends(require_admin)]
+)
+
 
 @router.get("/", response_model=List[UsuarioResponse], summary="Listar y filtrar usuarios")
 def listar_usuarios(

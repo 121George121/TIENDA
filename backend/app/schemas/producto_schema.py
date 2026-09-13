@@ -40,6 +40,10 @@ class ProductoResponse(ProductoBase):
     fechacreacion: Optional[datetime] = None
     fechaactualizacion: Optional[datetime] = None
     categoria: Optional[CategoriaResponse] = None
+    precio: Optional[Decimal] = None
+    stock: Optional[int] = 20
+    imagen_url: Optional[str] = None
+    categoria_id: Optional[int] = None
 
     class Config:
         from_attributes = True

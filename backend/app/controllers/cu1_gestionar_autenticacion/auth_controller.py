@@ -8,11 +8,13 @@
 import random
 import secrets
 from datetime import datetime, timedelta
+from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.models import UsuarioModel, RolModel
 from app.schemas.schemas import UsuarioCreate
-from app.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token
+from app.core.config import settings
+from app.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token, create_reset_token
 from app.core.email import send_recovery_email, send_otp_email
 from fastapi import HTTPException, status
 
@@ -155,6 +157,12 @@ class AuthController:
         
         if not usuario.activo:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El usuario se encuentra inactivo")
+
+        if not usuario.verificado:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tu cuenta aún no ha sido verificada. Por favor ingresa el código OTP de 6 dígitos que fue enviado a tu correo."
+            )
         
         access_token = create_access_token(subject=usuario.email)
         refresh_token = create_refresh_token(subject=usuario.email)
@@ -190,7 +198,7 @@ class AuthController:
         if not usuario:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No existe una cuenta con ese correo")
 
-        reset_token = secrets.token_urlsafe(32)
+        reset_token = create_reset_token(clean_email)
         usuario.codigoverificacion = get_password_hash(reset_token)
         usuario.codigoexpiracion = datetime.utcnow() + timedelta(minutes=15)
         db.commit()
@@ -205,16 +213,35 @@ class AuthController:
 
     @staticmethod
     def reset_password(db: Session, token: str, new_password: str):
-        """Busca al usuario cuyo token de recuperación cifrado coincide y actualiza su contraseña"""
-        candidatos = db.query(UsuarioModel).filter(
-            UsuarioModel.codigoverificacion.isnot(None),
-            UsuarioModel.codigoexpiracion.isnot(None),
-            UsuarioModel.codigoexpiracion >= datetime.utcnow()
-        ).all()
+        """Busca al usuario de forma segura y eficiente O(1) y actualiza su contraseña"""
+        usuario = None
+        # 1. Intentar decodificar el token JWT firmado de recuperación
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            if payload.get("type") == "password_reset":
+                token_email = payload.get("sub")
+                if token_email:
+                    usuario = db.query(UsuarioModel).filter(func.lower(UsuarioModel.email) == token_email.strip().lower()).first()
+        except JWTError:
+            pass
 
-        usuario = next((u for u in candidatos if verify_password(token, u.codigoverificacion)), None)
-        if not usuario:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de recuperación es inválido o ha expirado")
+        # 2. Si se resolvió por JWT, validar hash almacenado y expiración
+        if usuario:
+            if not usuario.codigoverificacion or not verify_password(token, usuario.codigoverificacion):
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de recuperación ya fue utilizado o es inválido")
+            if usuario.codigoexpiracion and usuario.codigoexpiracion < datetime.utcnow():
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de recuperación ha expirado")
+        else:
+            # Fallback seguro para tokens antiguos generados previamente (acotado a 15 candidatos)
+            candidatos = db.query(UsuarioModel).filter(
+                UsuarioModel.codigoverificacion.isnot(None),
+                UsuarioModel.codigoexpiracion.isnot(None),
+                UsuarioModel.codigoexpiracion >= datetime.utcnow()
+            ).limit(15).all()
+
+            usuario = next((u for u in candidatos if verify_password(token, u.codigoverificacion)), None)
+            if not usuario:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El enlace de recuperación es inválido o ha expirado")
 
         usuario.passwordhash = get_password_hash(new_password)
         usuario.codigoverificacion = None

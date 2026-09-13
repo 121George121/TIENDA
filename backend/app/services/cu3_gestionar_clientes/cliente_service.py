@@ -5,7 +5,8 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-from app.models.models import UsuarioModel, RolModel, ClienteModel
+from sqlalchemy import func
+from app.models.models import UsuarioModel, RolModel, ClienteModel, VentaModel
 from app.schemas.cliente_schema import ClienteCreate, ClienteUpdate
 from app.core.security import get_password_hash
 from fastapi import HTTPException, status
@@ -21,7 +22,21 @@ class ClienteService:
         return db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
 
     @staticmethod
-    def _to_dict(usuario: UsuarioModel, perfil: Optional[ClienteModel]) -> Dict:
+    def _to_dict(usuario: UsuarioModel, perfil: Optional[ClienteModel], db: Optional[Session] = None) -> Dict:
+        total_ordenes = 0
+        total_gastado = Decimal('0.00')
+        if db:
+            ventas_agg = db.query(
+                func.count(VentaModel.id),
+                func.coalesce(func.sum(VentaModel.total), Decimal('0.00'))
+            ).filter(
+                (VentaModel.usuarioid == usuario.id) | 
+                (VentaModel.clienteid == (perfil.id if perfil else -1))
+            ).first()
+            if ventas_agg:
+                total_ordenes = ventas_agg[0] or 0
+                total_gastado = Decimal(str(ventas_agg[1] or '0.00'))
+
         return {
             "id": usuario.id,
             "nombre": usuario.nombre,
@@ -33,8 +48,8 @@ class ClienteService:
             "created_at": usuario.fechacreacion,
             "fechanac": perfil.fechanac if perfil else None,
             "genero": perfil.genero if perfil else None,
-            "total_ordenes": 0,
-            "total_gastado": Decimal('0.00')
+            "total_ordenes": total_ordenes,
+            "total_gastado": total_gastado
         }
 
     @staticmethod
@@ -77,7 +92,7 @@ class ClienteService:
         clientes = query.order_by(UsuarioModel.id.desc()).offset(skip).limit(limit).all()
 
         return [
-            ClienteService._to_dict(c, ClienteService._get_perfil(db, c.id))
+            ClienteService._to_dict(c, ClienteService._get_perfil(db, c.id), db=db)
             for c in clientes
         ]
 
@@ -88,7 +103,8 @@ class ClienteService:
         if not cliente:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente no encontrado")
 
-        return ClienteService._to_dict(cliente, ClienteService._get_perfil(db, cliente.id))
+        return ClienteService._to_dict(cliente, ClienteService._get_perfil(db, cliente.id), db=db)
+
 
     @staticmethod
     def create(db: Session, cliente_data: ClienteCreate) -> Dict:
@@ -206,10 +222,41 @@ class ClienteService:
 
     @staticmethod
     def get_historial_compras(db: Session, cliente_id: int) -> List[Dict]:
-        """Obtener el historial de compras del cliente"""
-        return []
+        """Obtener el historial de compras del cliente desde la tabla venta"""
+        # cliente_id puede ser usuario.id o perfil cliente.id
+        perfil = db.query(ClienteModel).filter(
+            (ClienteModel.usuarioid == cliente_id) | (ClienteModel.id == cliente_id)
+        ).first()
+        perfil_id = perfil.id if perfil else -1
+
+        ventas = db.query(VentaModel).filter(
+            (VentaModel.usuarioid == cliente_id) | (VentaModel.clienteid == perfil_id)
+        ).order_by(VentaModel.id.desc()).all()
+
+        resultado = []
+        for v in ventas:
+            detalles_list = []
+            for d in v.detalles:
+                detalles_list.append({
+                    "id": d.ventaid,
+                    "producto_id": d.variante.productoid if d.variante else 0,
+                    "cantidad": d.cantidad,
+                    "precio_unitario": d.preciounitario,
+                    "subtotal": d.subtotal
+                })
+            resultado.append({
+                "id": v.id,
+                "usuario_id": v.usuarioid,
+                "total": v.total,
+                "estado": v.estado,
+                "direccion_envio": "Entrega en Tienda / Dirección Registrada",
+                "created_at": v.fecha,
+                "detalles": detalles_list
+            })
+        return resultado
 
     @staticmethod
     def get_historial_reservas(db: Session, cliente_id: int) -> List[Dict]:
         """Obtener historial de reservas del cliente"""
         return []
+

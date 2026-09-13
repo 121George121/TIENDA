@@ -50,7 +50,7 @@ class CartController extends ChangeNotifier {
   }
 
   /// Procesa la compra enviando el payload JSON a FastAPI
-  Future<bool> procesarCompra(String direccion) async {
+  Future<bool> procesarCompra(String direccion, {String? authToken}) async {
     if (_items.isEmpty) return false;
 
     final body = {
@@ -62,13 +62,20 @@ class CartController extends ChangeNotifier {
     };
 
     try {
+      final headers = <String, String>{
+        "Content-Type": "application/json",
+      };
+      if (authToken != null && authToken.isNotEmpty) {
+        headers["Authorization"] = "Bearer $authToken";
+      }
+
       final response = await http.post(
         Uri.parse(_orderUrl),
-        headers: {"Content-Type": "application/json"},
+        headers: headers,
         body: json.encode(body),
-      );
+      ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         limpiarCarrito();
         return true;
       }
@@ -78,3 +85,4 @@ class CartController extends ChangeNotifier {
     }
   }
 }
+

@@ -1,0 +1,99 @@
+<div class="store-container">
+
+  <!-- Header / Barra de Navegación E-Commerce -->
+  <header class="store-header">
+    <div class="header-left">
+      <div class="store-brand" (click)="volverAlPanel()">
+        <mat-icon class="brand-icon">checkroom</mat-icon>
+        <span class="brand-name">BOUTIQUE STREETWEAR</span>
+      </div>
+      <span class="cu-badge">CU15 - E-Commerce Web</span>
+    </div>
+
+    <div class="header-center">
+      <div class="search-wrapper">
+        <mat-icon>search</mat-icon>
+        <input [formControl]="searchControl" placeholder="Buscar poleras por diseño, estilo o corte..." id="input-search-store">
+      </div>
+    </div>
+
+    <div class="header-right">
+      <button mat-button class="btn-orders" (click)="irAMisPedidos()" id="btn-web-mis-pedidos">
+        <mat-icon>receipt_long</mat-icon>
+        <span>Mis Pedidos</span>
+      </button>
+
+      <button mat-raised-button color="primary" class="btn-cart" (click)="abrirCarrito()" id="btn-web-cart">
+        <mat-icon [matBadge]="cartCtrl.totalItems" [matBadgeHidden]="cartCtrl.totalItems === 0" matBadgeColor="warn">
+          shopping_bag
+        </mat-icon>
+        <span>Mi Bolsa (Bs. {{ cartCtrl.subtotal | number:'1.2-2' }})</span>
+      </button>
+
+      <button mat-stroked-button (click)="volverAlPanel()" class="btn-admin" id="btn-volver-admin">
+        <mat-icon>dashboard</mat-icon>
+        <span>Panel ERP</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <div class="hero-banner">
+    <div class="hero-content">
+      <span class="hero-tag">Colección Exclusiva 2026</span>
+      <h1 class="hero-title">POLERAS OVERSIZED & HEAVYWEIGHT</h1>
+      <p class="hero-sub">Calidad premium 100% algodón peinado. Envíos a todo el país desde nuestras sucursales físicas.</p>
+    </div>
+  </div>
+
+  <!-- Barra de progreso -->
+  <mat-progress-bar *ngIf="loading" mode="indeterminate" class="store-loader"></mat-progress-bar>
+
+  <!-- Catálogo de Productos -->
+  <main class="store-main">
+    <div *ngIf="!loading && productosFiltrados.length === 0" class="empty-store">
+      <mat-icon>search_off</mat-icon>
+      <h3>No encontramos prendas que coincidan con tu búsqueda</h3>
+      <p>Intenta con otros términos o explora toda nuestra colección.</p>
+    </div>
+
+    <div class="products-grid" *ngIf="!loading && productosFiltrados.length > 0">
+      <mat-card *ngFor="let prod of productosFiltrados" class="product-card">
+        
+        <div class="card-image-box">
+          <mat-icon class="cloth-icon">checkroom</mat-icon>
+          <span class="badge-price">Bs. {{ (prod.preciobase || prod.precio || 85) | number:'1.2-2' }}</span>
+        </div>
+
+        <mat-card-content class="card-details">
+          <span class="prod-category">Polera Premium Streetwear</span>
+          <h3 class="prod-name">{{ prod.nombre }}</h3>
+          <p class="prod-desc">{{ prod.descripcion || 'Confección de alta densidad con acabados reforzados en cuello y mangas.' }}</p>
+
+          <!-- Selector de Tallas -->
+          <div class="sizes-row">
+            <span class="size-label">Talla:</span>
+            <div class="size-chips">
+              <button 
+                *ngFor="let t of tallasDisponibles" 
+                type="button" 
+                class="size-chip"
+                [class.active]="tallaSeleccionadaMap[prod.id] === t"
+                (click)="selectTalla(prod.id, t)"
+              >
+                {{ t }}
+              </button>
+            </div>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions class="card-actions">
+          <button mat-raised-button color="primary" class="btn-add-bag" (click)="agregar(prod)">
+            <mat-icon>add_shopping_cart</mat-icon>
+            <span>Añadir a la Bolsa</span>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </main>
+</div>

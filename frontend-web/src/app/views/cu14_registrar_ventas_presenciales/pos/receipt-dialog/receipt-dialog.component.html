@@ -1,0 +1,89 @@
+<div class="receipt-container" id="printable-receipt">
+  
+  <div class="receipt-header">
+    <div class="receipt-icon">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <h2 class="store-name">BOUTIQUE T-SHIRTS</h2>
+    <p class="receipt-sub">Comprobante de Venta Presencial (POS)</p>
+    <div class="receipt-badge">{{ venta.codigoventa }}</div>
+  </div>
+
+  <div class="meta-section">
+    <div class="meta-row">
+      <span>Fecha / Hora:</span>
+      <strong>{{ venta.fecha | date:'dd/MM/yyyy HH:mm' }}</strong>
+    </div>
+    <div class="meta-row">
+      <span>Sucursal:</span>
+      <strong>{{ venta.sucursal_nombre }}</strong>
+    </div>
+    <div class="meta-row">
+      <span>Cliente:</span>
+      <strong>{{ venta.cliente_nombre || 'Consumidor Final' }}</strong>
+    </div>
+    <div class="meta-row">
+      <span>Método de Pago:</span>
+      <strong>{{ venta.metodo_pago_nombre || 'Efectivo' }}</strong>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="items-section">
+    <div class="items-header">
+      <span class="col-prod">Producto</span>
+      <span class="col-cant">Cant.</span>
+      <span class="col-price">P. Unit</span>
+      <span class="col-sub">Subtotal</span>
+    </div>
+    
+    <div *ngFor="let it of items" class="item-row">
+      <div class="col-prod">
+        <span class="item-name">{{ it.nombre }}</span>
+        <span class="item-var" *ngIf="it.variante">{{ it.variante }}</span>
+      </div>
+      <span class="col-cant">{{ it.cantidad }}</span>
+      <span class="col-price">Bs. {{ it.precio | number:'1.2-2' }}</span>
+      <span class="col-sub">Bs. {{ it.subtotal | number:'1.2-2' }}</span>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="totals-section">
+    <div class="total-row">
+      <span>Subtotal:</span>
+      <span>Bs. {{ venta.subtotal | number:'1.2-2' }}</span>
+    </div>
+    <div class="total-row" *ngIf="venta.descuento > 0">
+      <span>Descuento:</span>
+      <span>- Bs. {{ venta.descuento | number:'1.2-2' }}</span>
+    </div>
+    <div class="total-row grand-total">
+      <span>TOTAL PAGADO:</span>
+      <span>Bs. {{ venta.total | number:'1.2-2' }}</span>
+    </div>
+    <div class="total-row change-row" *ngIf="montoRecibido && montoRecibido > 0">
+      <span>Efectivo Recibido:</span>
+      <span>Bs. {{ montoRecibido | number:'1.2-2' }}</span>
+    </div>
+    <div class="total-row change-row highlight" *ngIf="cambio !== undefined">
+      <span>Cambio / Vuelto:</span>
+      <strong>Bs. {{ cambio | number:'1.2-2' }}</strong>
+    </div>
+  </div>
+
+  <div class="receipt-footer">
+    <p class="thank-you">¡Gracias por su preferencia!</p>
+    <p class="footnote">Transacción registrada en PostgreSQL &bull; ERP Boutique</p>
+  </div>
+</div>
+
+<mat-dialog-actions align="end" class="dialog-actions no-print">
+  <button mat-button (click)="onClose()">Cerrar</button>
+  <button mat-raised-button color="primary" (click)="printReceipt()">
+    <mat-icon>print</mat-icon>
+    <span>Imprimir Recibo</span>
+  </button>
+</mat-dialog-actions>

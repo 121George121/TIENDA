@@ -1,0 +1,160 @@
+<div class="checkout-dialog-container">
+
+  <!-- Estado 1: Orden Confirmada con Éxito -->
+  <div *ngIf="ordenConfirmada" class="success-screen">
+    <div class="success-icon-box">
+      <mat-icon>check_circle</mat-icon>
+    </div>
+    <h2 class="success-title">¡Compra Digital Confirmada!</h2>
+    <p class="success-sub">Tu pedido ha sido procesado y el stock fue reservado inmediatamente.</p>
+
+    <div class="order-summary-card">
+      <div class="summary-row">
+        <span>Código de Seguimiento:</span>
+        <strong class="code-tag">{{ ordenConfirmada.codigoventa }}</strong>
+      </div>
+      <div class="summary-row">
+        <span>Estado:</span>
+        <span class="badge-status">{{ ordenConfirmada.estado }}</span>
+      </div>
+      <div class="summary-row">
+        <span>Canal:</span>
+        <span>{{ ordenConfirmada.tipoventa }}</span>
+      </div>
+      <mat-divider></mat-divider>
+      <div class="summary-row total-row">
+        <span>Total Pagado:</span>
+        <span class="total-price">Bs. {{ ordenConfirmada.total | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <div class="success-actions">
+      <button mat-raised-button color="primary" (click)="cerrar()" class="btn-continue">
+        <mat-icon>shopping_bag</mat-icon>
+        <span>Continuar Comprando</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Estado 2: Proceso de Checkout y Bolsa de Compras -->
+  <div *ngIf="!ordenConfirmada">
+    <div class="dialog-header">
+      <div class="header-icon-box">
+        <mat-icon>shopping_bag</mat-icon>
+      </div>
+      <div class="header-title-box">
+        <h2 mat-dialog-title>Bolsa de Compras & Checkout Digital</h2>
+        <p class="dialog-subtitle">CU15 - Compra online directa con entrega a domicilio</p>
+      </div>
+    </div>
+
+    <mat-progress-bar *ngIf="procesando" mode="indeterminate" class="loader"></mat-progress-bar>
+
+    <div class="dialog-body">
+      
+      <!-- Lista de Artículos -->
+      <div class="cart-section">
+        <h3 class="section-title">Prendas Seleccionadas ({{ cartCtrl.totalItems }})</h3>
+
+        <div *ngIf="cartCtrl.cart.length === 0" class="empty-cart-box">
+          <mat-icon>shopping_cart</mat-icon>
+          <p>No tienes prendas en tu bolsa todavía.</p>
+        </div>
+
+        <div class="items-list" *ngIf="cartCtrl.cart.length > 0">
+          <div *ngFor="let item of cartCtrl.cart" class="cart-item-row">
+            <div class="item-info">
+              <span class="item-name">{{ item.producto.nombre }}</span>
+              <span class="item-spec">Talla: {{ item.tallaSeleccionada }} &bull; Color: {{ item.colorSeleccionado }}</span>
+              <span class="item-price">Bs. {{ item.precioUnitario | number:'1.2-2' }} c/u</span>
+            </div>
+
+            <div class="item-stepper">
+              <button mat-icon-button (click)="decrement(item)" class="btn-step">
+                <mat-icon>remove</mat-icon>
+              </button>
+              <span class="item-qty">{{ item.cantidad }}</span>
+              <button mat-icon-button (click)="increment(item)" class="btn-step">
+                <mat-icon>add</mat-icon>
+              </button>
+            </div>
+
+            <div class="item-subtotal-box">
+              <span class="item-subtotal">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+              <button mat-icon-button color="warn" (click)="remove(item)" class="btn-remove">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Formulario de Entrega y Despacho -->
+      <form [formGroup]="form" class="delivery-form">
+        <h3 class="section-title">Datos de Despacho & Pago</h3>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Dirección de Envío a Domicilio</mat-label>
+          <input matInput formControlName="direccion" placeholder="Calle / Av., Número de casa, Ciudad" id="input-checkout-dir">
+          <mat-icon matSuffix>local_shipping</mat-icon>
+          <mat-error *ngIf="form.get('direccion')?.hasError('required')">La dirección es obligatoria.</mat-error>
+        </mat-form-field>
+
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Sucursal de Despacho (Almacén)</mat-label>
+            <mat-select formControlName="sucursal_id" id="select-checkout-sucursal">
+              <mat-option *ngFor="let s of sucursales" [value]="s.id">
+                {{ s.nombre }} ({{ s.ciudad }})
+              </mat-option>
+            </mat-select>
+            <mat-icon matSuffix>storefront</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Método de Pago Digital</mat-label>
+            <mat-select formControlName="metodo_pago" id="select-checkout-pago">
+              <mat-option value="Pago Online / Tarjeta de Débito">Tarjeta Débito / Crédito Online</mat-option>
+              <mat-option value="QR / Transferencia">Pago QR Express</mat-option>
+            </mat-select>
+            <mat-icon matSuffix>credit_card</mat-icon>
+          </mat-form-field>
+        </div>
+      </form>
+
+      <!-- Resumen Financiero -->
+      <div class="totals-summary">
+        <div class="tot-row">
+          <span>Subtotal:</span>
+          <span>Bs. {{ cartCtrl.subtotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="tot-row">
+          <span>Costo de Envío:</span>
+          <span class="free-shipping">GRATIS</span>
+        </div>
+        <div class="tot-row grand-total">
+          <span>TOTAL A PAGAR:</span>
+          <span class="total-val">Bs. {{ cartCtrl.subtotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <mat-dialog-actions align="end" class="dialog-actions">
+      <button mat-button (click)="cerrar()" id="btn-cancel-checkout">Cerrar</button>
+      <button 
+        mat-raised-button 
+        color="primary" 
+        [disabled]="cartCtrl.cart.length === 0 || form.invalid || procesando"
+        (click)="confirmarCompra()"
+        class="btn-checkout"
+        id="btn-confirm-checkout"
+      >
+        <mat-icon>lock</mat-icon>
+        <span>Confirmar Compra Online (Bs. {{ cartCtrl.subtotal | number:'1.2-2' }})</span>
+      </button>
+    </mat-dialog-actions>
+  </div>
+</div>

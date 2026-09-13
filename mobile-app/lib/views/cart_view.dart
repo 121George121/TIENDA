@@ -6,9 +6,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/cart_controller.dart';
+import '../controllers/auth_controller.dart';
 
 class CartView extends StatelessWidget {
-  const CartView({Key? key}) : super(key: key);
+  const CartView({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -66,12 +67,38 @@ class CartView extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           onPressed: () async {
-                            bool exito = await cartCtrl.procesarCompra("Av. Principal #123, Ciudad");
+                            final authCtrl = Provider.of<AuthController>(context, listen: false);
+                            if (!authCtrl.isLoggedIn || authCtrl.currentUser?.token == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Debes iniciar sesión para confirmar tu compra.'),
+                                  backgroundColor: Colors.orange,
+                                )
+                              );
+                              Navigator.pushNamed(context, '/login');
+                              return;
+                            }
+
+                            bool exito = await cartCtrl.procesarCompra(
+                              "Av. Principal #123, Santa Cruz",
+                              authToken: authCtrl.currentUser?.token
+                            );
+                            if (!context.mounted) return;
                             if (exito) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('¡Pedido realizado con éxito!'))
+                                const SnackBar(
+                                  content: Text('¡Pedido realizado con éxito!'),
+                                  backgroundColor: Colors.green,
+                                )
                               );
                               Navigator.pop(context);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('No se pudo procesar la orden. Verifica tu sesión o stock.'),
+                                  backgroundColor: Colors.red,
+                                )
+                              );
                             }
                           },
                           child: const Text('Confirmar Pedido', style: TextStyle(fontSize: 16)),

@@ -1,0 +1,67 @@
+<div class="orders-container">
+  
+  <header class="orders-header">
+    <button mat-stroked-button (click)="volverATienda()" class="btn-back">
+      <mat-icon>arrow_back</mat-icon>
+      <span>Volver a la Tienda</span>
+    </button>
+    <div class="header-text">
+      <h1 class="page-title">Historial de Mis Compras Online</h1>
+      <p class="page-sub">CU15 - Comprobantes digitales, estado de despacho y seguimiento</p>
+    </div>
+  </header>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate" class="loader"></mat-progress-bar>
+
+  <main class="orders-content">
+    <div *ngIf="!loading && ordenes.length === 0" class="empty-orders">
+      <mat-icon>receipt_long</mat-icon>
+      <h2>No tienes compras digitales registradas</h2>
+      <p>Cuando realices un pedido en nuestra tienda web o app móvil, aparecerá aquí.</p>
+      <button mat-raised-button color="primary" (click)="volverATienda()">
+        Explorar Colección de Poleras
+      </button>
+    </div>
+
+    <div class="orders-list" *ngIf="!loading && ordenes.length > 0">
+      <mat-card *ngFor="let orden of ordenes" class="order-card">
+        
+        <div class="order-top">
+          <div class="order-code-box">
+            <span class="code-label">Código de Pedido:</span>
+            <span class="code-val">{{ orden.codigoventa }}</span>
+          </div>
+          <span class="badge-status">{{ orden.estado }}</span>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <div class="order-meta-grid">
+          <div class="meta-item">
+            <span class="meta-lbl">Fecha de Compra</span>
+            <span class="meta-val">{{ orden.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-lbl">Canal</span>
+            <span class="meta-val">{{ orden.tipoventa }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-lbl">Subtotal</span>
+            <span class="meta-val">Bs. {{ orden.subtotal | number:'1.2-2' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-lbl">Total Pagado</span>
+            <span class="meta-val total-highlight">Bs. {{ orden.total | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="order-footer">
+          <span class="order-msg">
+            <mat-icon>verified</mat-icon>
+            {{ orden.mensaje || 'Pago confirmado y stock descontado exitosamente en PostgreSQL' }}
+          </span>
+        </div>
+      </mat-card>
+    </div>
+  </main>
+</div>

@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 
 class RecoverPasswordView extends StatefulWidget {
-  const RecoverPasswordView({Key? key}) : super(key: key);
+  const RecoverPasswordView({super.key});
 
   @override
   State<RecoverPasswordView> createState() => _RecoverPasswordViewState();
@@ -85,7 +85,7 @@ class _RecoverPasswordViewState extends State<RecoverPasswordView> {
 
                 Card(
                   elevation: 2,
-                  shadowColor: Colors.black.withOpacity(0.05),
+                  shadowColor: Colors.black12,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   color: Colors.white,
                   child: Padding(

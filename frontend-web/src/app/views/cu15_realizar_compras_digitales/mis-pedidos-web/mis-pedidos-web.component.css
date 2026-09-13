@@ -1,0 +1,168 @@
+.orders-container {
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 32px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.page-sub {
+  margin: 4px 0 0 0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.loader {
+  height: 3px;
+}
+
+.orders-content {
+  padding: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.empty-orders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty-orders mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-orders h2 {
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.empty-orders p {
+  margin: 0 0 24px 0;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.order-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.order-code-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-label {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.code-val {
+  font-family: monospace;
+  font-weight: 800;
+  font-size: 1rem;
+  color: #2563eb;
+}
+
+.badge-status {
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+}
+
+.order-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.meta-lbl {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.meta-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.total-highlight {
+  color: #1d4ed8;
+  font-size: 1.15rem;
+}
+
+.order-footer {
+  padding-top: 12px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.order-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.order-msg mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}

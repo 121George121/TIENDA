@@ -40,3 +40,14 @@ def verify_token(token: str) -> Optional[str]:
         return payload.get("sub")
     except Exception:
         return None
+
+def create_reset_token(subject: Union[str, Any], expires_delta: timedelta = None) -> str:
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    
+    to_encode = {"exp": expire, "sub": str(subject), "type": "password_reset"}
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+

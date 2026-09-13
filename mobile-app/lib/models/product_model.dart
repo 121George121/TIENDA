@@ -24,16 +24,28 @@ class ProductModel {
     required this.activo,
   });
 
-  // Método de Fábrica para mapear el JSON recibido de la API FastAPI
+  // Método de Fábrica para mapear el JSON recibido de la API FastAPI de forma robusta y segura
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    // Parsing seguro para precio (soporta 'precio', 'preciobase', num o string numérico)
+    final rawPrecio = json['precio'] ?? json['preciobase'] ?? 0;
+    final double precioValue = rawPrecio is num
+        ? rawPrecio.toDouble()
+        : (double.tryParse(rawPrecio.toString()) ?? 0.0);
+
+    // Parsing seguro para stock (soporta 'stock', 'stockdisponible', 'stockfisico' con fallback 20)
+    final rawStock = json['stock'] ?? json['stockdisponible'] ?? json['stockfisico'] ?? 20;
+    final int stockValue = rawStock is num
+        ? rawStock.toInt()
+        : (int.tryParse(rawStock.toString()) ?? 20);
+
     return ProductModel(
-      id: json['id'],
-      nombre: json['nombre'],
-      descripcion: json['descripcion'],
-      precio: (json['precio'] as num).toDouble(),
-      stock: json['stock'],
-      categoriaId: json['categoria_id'],
-      imagenUrl: json['imagen_url'],
+      id: json['id'] is int ? json['id'] : (int.tryParse(json['id']?.toString() ?? '0') ?? 0),
+      nombre: json['nombre']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString(),
+      precio: precioValue,
+      stock: stockValue,
+      categoriaId: json['categoria_id'] is int ? json['categoria_id'] : json['categoriaid'],
+      imagenUrl: json['imagen_url']?.toString() ?? json['imagenprincipal']?.toString(),
       activo: json['activo'] ?? true,
     );
   }

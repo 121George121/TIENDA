@@ -29,6 +29,22 @@ class ProductoModel(Base):
     categoria = relationship("CategoriaModel", back_populates="productos")
     variantes = relationship("VarianteProductoModel", back_populates="producto")
 
+    @property
+    def precio(self):
+        return self.preciobase
+
+    @property
+    def imagen_url(self):
+        return self.imagenprincipal
+
+    @property
+    def categoria_id(self):
+        return self.categoriaid
+
+    @property
+    def stock(self):
+        return 20
+
 class ColorModel(Base):
     __tablename__ = "color"
 
