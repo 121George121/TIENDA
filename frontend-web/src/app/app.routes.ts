@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 // CU1: Autenticación
 import { LoginComponent } from './views/cu1_gestionar_autenticacion/login/login.component';
+import { RegisterComponent } from './views/cu1_gestionar_autenticacion/register/register.component';
 import { RecoverPasswordComponent } from './views/cu1_gestionar_autenticacion/recover-password.component';
 import { ResetPasswordComponent } from './views/cu1_gestionar_autenticacion/reset-password.component';
 
@@ -56,6 +57,7 @@ import { adminGuard } from './core/guards/admin.guard';
 export const routes: Routes = [
   // CU1: Autenticación
   { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
   { path: 'recover-password', component: RecoverPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
 

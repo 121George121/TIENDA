@@ -33,4 +33,12 @@ export class AuthService {
       new_password: newPassword
     });
   }
+
+  registro(data: { nombre: string; apellido?: string; email: string; password: string; telefono?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/registro`, data);
+  }
+
+  verificarCodigo(email: string, codigo: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/verificar-codigo`, { email, codigo });
+  }
 }

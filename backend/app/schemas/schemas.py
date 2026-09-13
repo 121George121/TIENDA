@@ -102,6 +102,10 @@ class TokenResponse(BaseModel):
     usuario: UsuarioResponse
     rol: Optional[str] = None
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 class PasswordRecoveryRequest(BaseModel):
     email: EmailStr
 

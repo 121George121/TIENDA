@@ -112,15 +112,39 @@ def formatear_reserva(reserva: ReservaModel) -> ReservaResponse:
 class ReservaController:
 
     @staticmethod
-    def crear_reserva_desde_carrito(db: Session, usuario_id: int, datos: ReservaCreate) -> ReservaResponse:
+    def _obtener_o_crear_cliente(db: Session, usuario_id: int):
+        from app.models.models import ClienteModel, UsuarioModel
+        cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
+        if not cliente:
+            user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
+            cliente = ClienteModel(
+                nombre=user.nombre if user else "Cliente",
+                apellido=user.apellido or "" if user else "",
+                email=user.email if user else f"user_{usuario_id}@tienda.com",
+                telefono=user.telefono or "" if user else "",
+                usuarioid=usuario_id,
+                activo=True
+            )
+            db.add(cliente)
+            db.commit()
+            db.refresh(cliente)
+        return cliente
+
+    @classmethod
+    def crear_reserva_desde_carrito(cls, db: Session, usuario_id: int, datos: ReservaCreate) -> ReservaResponse:
         """
         CU10: Convierte el carrito activo del cliente en una Reserva física con código único.
         Reserva el stock físico incrementando 'stockreservado' en inventario_sucursal.
         """
-        # 1. Obtener carrito activo del usuario
+        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
+
+        # 1. Obtener carrito activo del usuario (compatible con cliente.id o usuario_id)
         carrito = (
             db.query(CarritoModel)
-            .filter(CarritoModel.clienteid == usuario_id, CarritoModel.estado == "ACTIVO")
+            .filter(
+                (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
+                CarritoModel.estado == "ACTIVO"
+            )
             .first()
         )
 
@@ -186,7 +210,7 @@ class ReservaController:
             estado="PENDIENTE",
             observaciones=datos.observaciones,
             sucursalid=sucursal_id,
-            clienteid=usuario_id,
+            clienteid=cliente.id,
         )
         db.add(nueva_reserva)
         db.flush()  # Para obtener nueva_reserva.id
@@ -211,19 +235,20 @@ class ReservaController:
 
         return formatear_reserva(nueva_reserva)
 
-    @staticmethod
-    def listar_reservas_usuario(db: Session, usuario_id: int) -> List[ReservaResponse]:
+    @classmethod
+    def listar_reservas_usuario(cls, db: Session, usuario_id: int) -> List[ReservaResponse]:
         """Obtiene todas las reservas del usuario ordenadas de más reciente a más antigua."""
+        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
         reservas = (
             db.query(ReservaModel)
-            .filter(ReservaModel.clienteid == usuario_id)
+            .filter((ReservaModel.clienteid == cliente.id) | (ReservaModel.clienteid == usuario_id))
             .order_by(ReservaModel.fechareserva.desc())
             .all()
         )
         return [formatear_reserva(r) for r in reservas]
 
-    @staticmethod
-    def obtener_reserva_por_id_o_codigo(db: Session, id_o_codigo: str, usuario_id: Optional[int] = None) -> ReservaResponse:
+    @classmethod
+    def obtener_reserva_por_id_o_codigo(cls, db: Session, id_o_codigo: str, usuario_id: Optional[int] = None) -> ReservaResponse:
         """Consulta el detalle de una reserva por su ID o por su código alfanumérico."""
         query = db.query(ReservaModel)
         if id_o_codigo.isdigit():
@@ -238,24 +263,29 @@ class ReservaController:
                 detail=f"No se encontró ninguna reserva con identificador '{id_o_codigo}'.",
             )
 
-        if usuario_id and reserva.clienteid != usuario_id:
-            # Si se valida por usuario y no le pertenece
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permiso para ver esta reserva.",
-            )
+        if usuario_id:
+            cliente = cls._obtener_o_crear_cliente(db, usuario_id)
+            if reserva.clienteid not in [cliente.id, usuario_id]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No tienes permiso para ver esta reserva.",
+                )
 
         return formatear_reserva(reserva)
 
-    @staticmethod
-    def cancelar_reserva_cliente(db: Session, reserva_id: int, usuario_id: int, motivo: Optional[str] = None) -> ReservaResponse:
+    @classmethod
+    def cancelar_reserva_cliente(cls, db: Session, reserva_id: int, usuario_id: int, motivo: Optional[str] = None) -> ReservaResponse:
         """
         Permite al cliente cancelar una reserva que aún esté en estado PENDIENTE.
         Libera el stockreservado en inventario_sucursal.
         """
+        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
         reserva = (
             db.query(ReservaModel)
-            .filter(ReservaModel.id == reserva_id, ReservaModel.clienteid == usuario_id)
+            .filter(
+                ReservaModel.id == reserva_id,
+                (ReservaModel.clienteid == cliente.id) | (ReservaModel.clienteid == usuario_id)
+            )
             .first()
         )
         if not reserva:

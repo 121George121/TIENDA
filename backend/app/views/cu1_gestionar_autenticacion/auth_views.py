@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.schemas.schemas import (
     UsuarioCreate, UsuarioResponse, TokenResponse,
+    LoginRequest,
     PasswordRecoveryRequest, PasswordRecoveryReset,
     VerifyOtpRequest, VerifyOtpResponse
 )
@@ -36,7 +37,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return AuthController.login_user(db=db, email=form_data.username, password=form_data.password)
 
 @router.post("/login/json", response_model=TokenResponse, summary="Iniciar sesion vía JSON")
-def login_json(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+def login_json(usuario: LoginRequest, db: Session = Depends(get_db)):
     """Endpoint alternativo de login recibiendo JSON"""
     return AuthController.login_user(db=db, email=usuario.email, password=usuario.password)
 

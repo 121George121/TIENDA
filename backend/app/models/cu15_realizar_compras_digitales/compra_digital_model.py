@@ -21,6 +21,7 @@ class CarritoModel(Base):
 
     items = relationship("CarritoItemModel", back_populates="carrito", cascade="all, delete-orphan")
     cliente = relationship("app.models.cu3_gestionar_clientes.cliente_model.ClienteModel")
+    sucursal = relationship("app.models.cu4_gestionar_sucursales.sucursal_model.SucursalModel")
 
 
 class CarritoItemModel(Base):

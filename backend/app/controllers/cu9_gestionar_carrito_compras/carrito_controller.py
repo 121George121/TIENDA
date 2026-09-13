@@ -21,16 +21,37 @@ from app.schemas.carrito_schema import (
 class CarritoController:
 
     @staticmethod
-    def _obtener_carrito_activo(db: Session, usuario_id: int) -> CarritoModel:
+    def _obtener_o_crear_cliente(db: Session, usuario_id: int):
+        from app.models.models import ClienteModel, UsuarioModel
+        cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
+        if not cliente:
+            user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
+            cliente = ClienteModel(
+                nombre=user.nombre if user else "Cliente",
+                apellido=user.apellido or "" if user else "",
+                email=user.email if user else f"user_{usuario_id}@tienda.com",
+                telefono=user.telefono or "" if user else "",
+                usuarioid=usuario_id,
+                activo=True
+            )
+            db.add(cliente)
+            db.commit()
+            db.refresh(cliente)
+        return cliente
+
+    @classmethod
+    def _obtener_carrito_activo(cls, db: Session, usuario_id: int) -> CarritoModel:
         """Busca el carrito activo del usuario o crea uno nuevo en PostgreSQL"""
+        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
+
         carrito = db.query(CarritoModel).filter(
-            CarritoModel.clienteid == usuario_id,
+            CarritoModel.clienteid == cliente.id,
             CarritoModel.estado == "ACTIVO"
         ).first()
 
         if not carrito:
             carrito = CarritoModel(
-                clienteid=usuario_id,
+                clienteid=cliente.id,
                 estado="ACTIVO",
                 fechacreacion=datetime.utcnow(),
                 fechaactualizacion=datetime.utcnow()
