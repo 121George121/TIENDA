@@ -4,6 +4,18 @@
 // Ubicación: mobile-app/lib/models/inventory_model.dart
 // ==============================================================================
 
+double _parseDouble(dynamic value, [double defaultValue = 0.0]) {
+  if (value == null) return defaultValue;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? defaultValue;
+}
+
+int _parseInt(dynamic value, [int defaultValue = 0]) {
+  if (value == null) return defaultValue;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? defaultValue;
+}
+
 class BranchModel {
   final int id;
   final String nombre;
@@ -21,11 +33,11 @@ class BranchModel {
 
   factory BranchModel.fromJson(Map<String, dynamic> json) {
     return BranchModel(
-      id: json['id'],
-      nombre: json['nombre'],
-      ciudad: json['ciudad'],
-      direccion: json['direccion'],
-      telefono: json['telefono'],
+      id: _parseInt(json['id']),
+      nombre: json['nombre']?.toString() ?? '',
+      ciudad: json['ciudad']?.toString(),
+      direccion: json['direccion']?.toString(),
+      telefono: json['telefono']?.toString(),
     );
   }
 }
@@ -53,13 +65,13 @@ class ProductVariantModel {
 
   factory ProductVariantModel.fromJson(Map<String, dynamic> json) {
     return ProductVariantModel(
-      varianteId: json['variante_id'],
-      sku: json['sku'],
-      talla: json['talla'],
-      color: json['color'],
-      codigohex: json['codigohex'],
-      precio: (json['precio'] as num).toDouble(),
-      stock: json['stock'] ?? 0,
+      varianteId: _parseInt(json['variante_id']),
+      sku: json['sku']?.toString(),
+      talla: json['talla']?.toString(),
+      color: json['color']?.toString(),
+      codigohex: json['codigohex']?.toString(),
+      precio: _parseDouble(json['precio'] ?? json['precioventa']),
+      stock: _parseInt(json['stock']),
       disponible: json['disponible'] ?? false,
     );
   }
@@ -87,12 +99,12 @@ class BranchAvailabilityDetailModel {
   factory BranchAvailabilityDetailModel.fromJson(Map<String, dynamic> json) {
     var rawVars = json['variantes'] as List? ?? [];
     return BranchAvailabilityDetailModel(
-      sucursalId: json['sucursal_id'],
-      sucursalNombre: json['sucursal_nombre'],
-      ciudad: json['ciudad'],
-      direccion: json['direccion'],
-      telefono: json['telefono'],
-      stockTotal: json['stock_total'] ?? 0,
+      sucursalId: _parseInt(json['sucursal_id']),
+      sucursalNombre: json['sucursal_nombre']?.toString() ?? '',
+      ciudad: json['ciudad']?.toString(),
+      direccion: json['direccion']?.toString(),
+      telefono: json['telefono']?.toString(),
+      stockTotal: _parseInt(json['stock_total']),
       variantes: rawVars.map((v) => ProductVariantModel.fromJson(v)).toList(),
     );
   }
@@ -118,11 +130,11 @@ class ProductAvailabilityModel {
   factory ProductAvailabilityModel.fromJson(Map<String, dynamic> json) {
     var rawSucs = json['sucursales'] as List? ?? [];
     return ProductAvailabilityModel(
-      productoId: json['producto_id'],
-      productoNombre: json['producto_nombre'],
-      marca: json['marca'],
-      preciobase: (json['preciobase'] as num).toDouble(),
-      imagenprincipal: json['imagenprincipal'],
+      productoId: _parseInt(json['producto_id']),
+      productoNombre: json['producto_nombre']?.toString() ?? '',
+      marca: json['marca']?.toString(),
+      preciobase: _parseDouble(json['preciobase'] ?? json['precio']),
+      imagenprincipal: json['imagenprincipal']?.toString(),
       sucursales: rawSucs.map((s) => BranchAvailabilityDetailModel.fromJson(s)).toList(),
     );
   }
@@ -163,16 +175,16 @@ class CatalogProductModel {
         rawVariantes.map((v) => ProductVariantModel.fromJson(v)).toList();
 
     return CatalogProductModel(
-      id: json['id'],
-      nombre: json['nombre'],
-      descripcion: json['descripcion'],
-      marca: json['marca'],
-      genero: json['genero'],
-      preciobase: (json['preciobase'] as num).toDouble(),
-      imagenprincipal: json['imagenprincipal'],
-      categoriaNombre: json['categoria_nombre'],
-      stockSucursal: json['stock_sucursal'] ?? 0,
-      stockTotal: json['stock_total'] ?? 0,
+      id: _parseInt(json['id']),
+      nombre: json['nombre']?.toString() ?? '',
+      descripcion: json['descripcion']?.toString(),
+      marca: json['marca']?.toString(),
+      genero: json['genero']?.toString(),
+      preciobase: _parseDouble(json['preciobase'] ?? json['precio']),
+      imagenprincipal: json['imagenprincipal']?.toString(),
+      categoriaNombre: json['categoria_nombre']?.toString(),
+      stockSucursal: _parseInt(json['stock_sucursal']),
+      stockTotal: _parseInt(json['stock_total']),
       disponible: json['disponible'] ?? false,
       variantes: listVariantes,
     );

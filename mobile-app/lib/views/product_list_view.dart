@@ -10,10 +10,12 @@ import 'package:provider/provider.dart';
 import '../controllers/product_controller.dart';
 import '../controllers/cart_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/notification_controller.dart';
 import '../models/product_model.dart';
 import '../models/inventory_model.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
+import 'virtual_fitting_room_view.dart';
 
 class ProductListView extends StatefulWidget {
   const ProductListView({super.key});
@@ -32,6 +34,8 @@ class _ProductListViewState extends State<ProductListView> {
     Future.microtask(() {
       if (mounted) {
         context.read<ProductController>().fetchProductos();
+        final auth = context.read<AuthController>();
+        context.read<NotificationController>().fetchNotificaciones(auth.currentUser?.token);
       }
     });
   }
@@ -66,6 +70,35 @@ class _ProductListViewState extends State<ProductListView> {
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
+          // Botón Notificaciones con Contador (CU19)
+          Consumer<NotificationController>(
+            builder: (ctx, notifCtrl, _) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none),
+                    tooltip: 'Notificaciones (CU19)',
+                    onPressed: () => _mostrarNotificacionesSheet(context),
+                  ),
+                  if (notifCtrl.noLeidasCount > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: CircleAvatar(
+                        radius: 8,
+                        backgroundColor: Colors.redAccent,
+                        child: Text(
+                          '${notifCtrl.noLeidasCount}',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+
           // Botón Carrito con Contador
           Stack(
             alignment: Alignment.center,
@@ -342,38 +375,72 @@ class _ProductListViewState extends State<ProductListView> {
                                             ),
                                             const SizedBox(height: 10),
 
-                                            // Botones de Acción (CU08: Ver otras tiendas + Agregar al Carrito)
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
+                                            // Botones de Acción: CU12 (Vestidor Virtual), CU08 (Otras tiendas) y Agregar
+                                            Wrap(
+                                              alignment: WrapAlignment.end,
+                                              crossAxisAlignment: WrapCrossAlignment.center,
+                                              spacing: 6,
+                                              runSpacing: 6,
                                               children: [
-                                                // Botón Consultar Otras Tiendas
+                                                // Botón CU12: Vestidor Virtual
                                                 SizedBox(
-                                                  height: 34,
+                                                  height: 32,
                                                   child: OutlinedButton.icon(
                                                     style: OutlinedButton.styleFrom(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                                                      side: const BorderSide(color: Color(0xFF6366F1), width: 1.2),
+                                                      foregroundColor: const Color(0xFF4F46E5),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                    ),
+                                                    icon: const Icon(Icons.checkroom, size: 13, color: Color(0xFF4F46E5)),
+                                                    label: const Text('Vestidor', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+                                                    onPressed: () {
+                                                      final pmodel = ProductModel(
+                                                        id: prod.id,
+                                                        nombre: prod.nombre,
+                                                        descripcion: prod.descripcion,
+                                                        precio: prod.preciobase,
+                                                        stock: prod.stockSucursal,
+                                                        imagenUrl: prod.imagenprincipal,
+                                                        activo: prod.disponible,
+                                                      );
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (_) => VirtualFittingRoomView(producto: pmodel),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+
+                                                // Botón Consultar Otras Tiendas
+                                                SizedBox(
+                                                  height: 32,
+                                                  child: OutlinedButton.icon(
+                                                    style: OutlinedButton.styleFrom(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 7),
                                                       side: const BorderSide(color: Color(0xFFCBD5E1)),
                                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                                     ),
-                                                    icon: const Icon(Icons.storefront, size: 14, color: Color(0xFF0F172A)),
-                                                    label: const Text('Otras tiendas', style: TextStyle(fontSize: 11, color: Color(0xFF0F172A))),
+                                                    icon: const Icon(Icons.storefront, size: 13, color: Color(0xFF0F172A)),
+                                                    label: const Text('Tiendas', style: TextStyle(fontSize: 10.5, color: Color(0xFF0F172A))),
                                                     onPressed: () => _mostrarDisponibilidadModal(context, prod),
                                                   ),
                                                 ),
-                                                const SizedBox(width: 8),
 
                                                 // Botón Agregar
                                                 SizedBox(
-                                                  height: 34,
+                                                  height: 32,
                                                   child: ElevatedButton.icon(
                                                     style: ElevatedButton.styleFrom(
                                                       backgroundColor: const Color(0xFF0F172A),
                                                       foregroundColor: Colors.white,
                                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8),
                                                     ),
-                                                    icon: const Icon(Icons.add_shopping_cart, size: 14),
-                                                    label: Text(enStock ? 'Agregar' : 'Sin stock', style: const TextStyle(fontSize: 11)),
+                                                    icon: const Icon(Icons.add_shopping_cart, size: 13),
+                                                    label: Text(enStock ? 'Agregar' : 'Agotado', style: const TextStyle(fontSize: 10.5)),
                                                     onPressed: enStock
                                                         ? () {
                                                             final pmodel = ProductModel(
@@ -579,6 +646,100 @@ class _ProductListViewState extends State<ProductListView> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _mostrarNotificacionesSheet(BuildContext context) {
+    final notifCtrl = Provider.of<NotificationController>(context, listen: false);
+    final auth = Provider.of<AuthController>(context, listen: false);
+    notifCtrl.fetchNotificaciones(auth.currentUser?.token);
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Consumer<NotificationController>(
+          builder: (_, ctrl, __) {
+            return Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.notifications, color: Color(0xFF0F172A)),
+                          SizedBox(width: 8),
+                          Text('Notificaciones (CU19)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      if (ctrl.notificaciones.isNotEmpty)
+                        TextButton(
+                          onPressed: () => ctrl.marcarTodasLeidas(auth.currentUser?.token),
+                          child: const Text('Marcar leídas', style: TextStyle(fontSize: 12)),
+                        ),
+                    ],
+                  ),
+                  const Divider(),
+                  if (ctrl.cargando)
+                    const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                  else if (ctrl.notificaciones.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(30),
+                      child: Center(
+                        child: Text('No tienes notificaciones pendientes', style: TextStyle(color: Colors.grey)),
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: ctrl.notificaciones.length,
+                        itemBuilder: (_, i) {
+                          final n = ctrl.notificaciones[i];
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                            leading: CircleAvatar(
+                              backgroundColor: n.tipo == 'RESERVA_EXPIRANDO'
+                                  ? Colors.orange.shade100
+                                  : (n.tipo == 'STOCK_CRITICO' ? Colors.red.shade100 : Colors.blue.shade100),
+                              child: Icon(
+                                n.tipo == 'RESERVA_EXPIRANDO'
+                                    ? Icons.timer
+                                    : (n.tipo == 'STOCK_CRITICO' ? Icons.warning : Icons.info_outline),
+                                color: n.tipo == 'RESERVA_EXPIRANDO'
+                                    ? Colors.orange.shade900
+                                    : (n.tipo == 'STOCK_CRITICO' ? Colors.red.shade900 : Colors.blue.shade900),
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(n.titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            subtitle: Text(n.mensaje, style: const TextStyle(fontSize: 12)),
+                            trailing: Text(n.fecha, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            onTap: () {
+                              ctrl.marcarLeida(n.id, auth.currentUser?.token);
+                              Navigator.pop(ctx);
+                              if (n.enlace == '/mis-reservas') {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReservationsView()));
+                              } else if (n.enlace == '/mis-pedidos') {
+                                Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersHistoryView()));
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

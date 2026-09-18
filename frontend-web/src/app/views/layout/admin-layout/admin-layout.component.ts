@@ -8,6 +8,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatBadgeModule } from '@angular/material/badge';
+
+import { NotificacionService, NotificacionDTO } from '../../../services/cu19_gestionar_notificaciones/notificacion.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -21,7 +24,8 @@ import { MatDividerModule } from '@angular/material/divider';
     MatIconModule,
     MatButtonModule,
     MatMenuModule,
-    MatDividerModule
+    MatDividerModule,
+    MatBadgeModule
   ],
   templateUrl: './admin-layout.component.html',
   styleUrls: ['./admin-layout.component.css']
@@ -30,9 +34,13 @@ export class AdminLayoutComponent implements OnInit {
   userEmail: string = 'admin@tienda.com';
   userName: string = 'Administrador';
 
-  constructor(private router: Router) {}
+  constructor(
+    public notifService: NotificacionService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.notifService.cargarNotificaciones();
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -43,6 +51,17 @@ export class AdminLayoutComponent implements OnInit {
         console.error('Error al cargar datos del usuario', e);
       }
     }
+  }
+
+  navegarNotificacion(notif: NotificacionDTO): void {
+    this.notifService.marcarLeida(notif.id).subscribe();
+    if (notif.enlace) {
+      this.router.navigate([notif.enlace]);
+    }
+  }
+
+  marcarTodasLeidas(): void {
+    this.notifService.marcarTodasLeidas().subscribe();
   }
 
   logout(): void {

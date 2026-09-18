@@ -133,11 +133,56 @@
 
       <span class="spacer"></span>
 
-      <!-- Notificaciones -->
-      <button mat-icon-button class="notification-btn" id="btn-notifications" title="Notificaciones">
-        <mat-icon>notifications_none</mat-icon>
-        <span class="notification-badge">3</span>
+      <!-- Notificaciones (CU19) -->
+      <button
+        mat-icon-button
+        class="notification-btn"
+        id="btn-notifications"
+        [matMenuTriggerFor]="notifMenu"
+        title="Centro de Notificaciones (CU19)"
+      >
+        <mat-icon [matBadge]="(notifService.noLeidas$ | async) || null" matBadgeColor="warn">
+          notifications
+        </mat-icon>
       </button>
+
+      <!-- Menú Desplegable de Notificaciones (CU19) -->
+      <mat-menu #notifMenu="matMenu" xPosition="before" class="notification-popover">
+        <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; min-width: 300px;">
+          <div>
+            <strong style="font-size: 14px; color: #0f172a;">🔔 Notificaciones</strong>
+            <span style="font-size: 11px; background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 10px; margin-left: 6px; font-weight: bold;">
+              {{ (notifService.noLeidas$ | async) || 0 }} nuevas
+            </span>
+          </div>
+          <button mat-button color="primary" style="font-size: 11px; height: 28px; line-height: 28px; padding: 0 8px;" (click)="marcarTodasLeidas()">
+            Marcar leídas
+          </button>
+        </div>
+
+        <div style="max-height: 350px; overflow-y: auto;">
+          <ng-container *ngIf="(notifService.notificaciones$ | async) as notifs">
+            <div
+              *ngFor="let n of notifs"
+              (click)="navegarNotificacion(n)"
+              style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.2s;"
+              [style.background]="n.leido ? '#ffffff' : '#f8fafc'"
+            >
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <strong style="font-size: 13px;" [style.color]="n.tipo === 'RESERVA_EXPIRANDO' ? '#c2410c' : (n.tipo === 'STOCK_CRITICO' ? '#b91c1c' : '#1e40af')">
+                  {{ n.titulo }}
+                </strong>
+                <small style="font-size: 10px; color: #94a3b8;">{{ n.fecha }}</small>
+              </div>
+              <p style="margin: 0; font-size: 12px; color: #475569; line-height: 1.4;">{{ n.mensaje }}</p>
+            </div>
+
+            <div *ngIf="notifs.length === 0" style="padding: 24px; text-align: center; color: #94a3b8; font-size: 13px;">
+              No tienes notificaciones pendientes.
+            </div>
+          </ng-container>
+        </div>
+      </mat-menu>
 
       <!-- Perfil de Usuario -->
       <div class="user-profile-header" [matMenuTriggerFor]="userMenu" id="btn-user-menu">

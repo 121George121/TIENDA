@@ -18,6 +18,7 @@ class OrdenItemCreate(BaseModel):
 class OrdenCreate(BaseModel):
     direccion_envio: Optional[str] = "Dirección de entrega"
     sucursal_id: Optional[int] = None
+    metodo_id: Optional[int] = None
     items: List[OrdenItemCreate]
 
 

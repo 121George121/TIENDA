@@ -6,9 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatChipsModule } from '@angular/material/chips';
 
-import { CompraDigitalController } from '../../../controllers/cu15_realizar_compras_digitales/compra-digital.controller';
-import { OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digitales/compra-digital.service';
+import { HistorialService, CompraHistorialDTO, ResumenClienteDTO } from '../../../services/cu17_consultar_historial_compras_reservas/historial.service';
 
 @Component({
   selector: 'app-mis-pedidos-web',
@@ -20,35 +20,52 @@ import { OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digita
     MatButtonModule,
     MatIconModule,
     MatProgressBarModule,
-    MatDividerModule
+    MatDividerModule,
+    MatChipsModule
   ],
   templateUrl: './mis-pedidos-web.component.html',
   styleUrls: ['./mis-pedidos-web.component.css']
 })
 export class MisPedidosWebComponent implements OnInit {
-  ordenes: OrdenResponseDTO[] = [];
+  compras: CompraHistorialDTO[] = [];
+  resumen: ResumenClienteDTO | null = null;
   loading = true;
 
   constructor(
-    public compraCtrl: CompraDigitalController,
+    private historialService: HistorialService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.compraCtrl.misOrdenes$.subscribe(ord => {
-      this.ordenes = ord;
-    });
-    this.cargar();
+    this.cargarDatos();
   }
 
-  cargar(): void {
+  cargarDatos(): void {
     this.loading = true;
-    this.compraCtrl.loadMisOrdenes();
-    setTimeout(() => this.loading = false, 600);
+    this.historialService.obtenerResumen().subscribe({
+      next: (res) => this.resumen = res,
+      error: (e) => console.warn('No se pudo cargar resumen:', e)
+    });
+
+    this.historialService.obtenerCompras().subscribe({
+      next: (data) => {
+        this.compras = data;
+        this.loading = false;
+      },
+      error: (e) => {
+        console.error('Error al cargar historial de compras:', e);
+        this.loading = false;
+      }
+    });
   }
 
   volverATienda(): void {
     this.router.navigate(['/catalogo']);
+  }
+
+  verComprobante(ventaId: number): void {
+    const url = `http://localhost:8000/api/v1/pagos/${ventaId}/comprobante-html`;
+    window.open(url, '_blank');
   }
 
   getOrderStep(estado: string): number {

@@ -40,3 +40,4 @@ from app.models.cu10_gestionar_reservas_prendas.reserva_model import (
     ReservaModel,
     ReservaDetalleModel,
 )
+from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel

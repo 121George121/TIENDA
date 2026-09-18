@@ -214,7 +214,11 @@ class CompraDigitalController:
             )
 
         # 6. Registrar pago
-        metodo_digital = db.query(MetodoPagoModel).filter(MetodoPagoModel.nombre.ilike("%Digital%")).first()
+        metodo_digital = None
+        if data.metodo_id:
+            metodo_digital = db.query(MetodoPagoModel).filter(MetodoPagoModel.id == data.metodo_id).first()
+        if not metodo_digital:
+            metodo_digital = db.query(MetodoPagoModel).filter(MetodoPagoModel.nombre.ilike("%Digital%")).first()
         if not metodo_digital:
             metodo_digital = db.query(MetodoPagoModel).first()
 

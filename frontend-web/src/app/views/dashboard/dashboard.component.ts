@@ -1,141 +1,135 @@
+// ==============================================================================
+// CU20 - GENERAR REPORTES Y DASHBOARDS -> VISTA EJECUTIVA (ANGULAR 18)
+// Ubicación: frontend-web/src/app/views/dashboard/dashboard.component.ts
+// ==============================================================================
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+import {
+  ReporteService,
+  DashboardKPIs,
+  VentasPorSucursal,
+  VentasPorCanal,
+  VentasPorMetodoPago,
+  TopPrenda
+} from '../../services/cu20_generar_reportes_dashboards/reporte.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="dashboard-container">
-      <div class="welcome-card">
-        <div class="user-badge">
-          <span class="icon">👤</span>
-        </div>
-        <h1>¡Bienvenido, {{ nombre }}!</h1>
-        <p class="role-text">Tu rol en el sistema es: <strong>{{ rol }}</strong></p>
-
-        <div class="action-buttons" *ngIf="isAdmin">
-          <button (click)="goToAdmin()" class="btn-admin">
-            ⚙️ Gestionar Usuarios y Roles
-          </button>
-        </div>
-
-        <button (click)="logout()" class="btn-logout">Cerrar Sesión</button>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .dashboard-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      font-family: 'Inter', system-ui, sans-serif;
-    }
-    .welcome-card {
-      background: white;
-      padding: 3.5rem 3rem;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      text-align: center;
-      max-width: 480px;
-      width: 90%;
-    }
-    .user-badge {
-      width: 70px;
-      height: 70px;
-      background: #eef2ff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.5rem auto;
-      font-size: 2.2rem;
-    }
-    h1 { 
-      color: #0f172a; 
-      margin-bottom: 0.5rem; 
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-    .role-text { 
-      margin-bottom: 2rem; 
-      color: #64748b; 
-      font-size: 1.05rem;
-    }
-    .role-text strong {
-      color: #4f46e5;
-    }
-    .action-buttons {
-      margin-bottom: 1.2rem;
-    }
-    .btn-admin {
-      width: 100%;
-      padding: 0.9rem 1.5rem;
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 1rem;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .btn-admin:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45);
-    }
-    .btn-logout {
-      width: 100%;
-      padding: 0.8rem 1.5rem;
-      background-color: #fee2e2;
-      color: #dc2626;
-      border: none;
-      border-radius: 12px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    .btn-logout:hover {
-      background-color: #fca5a5;
-    }
-  `]
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressBarModule,
+    MatDividerModule,
+    MatTooltipModule
+  ],
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  nombre = '';
-  rol = '';
-  isAdmin = false;
+  nombreUsuario = '';
+  rolUsuario = '';
+  loading = true;
+  filtroDias: number | undefined = undefined;
 
-  constructor(private router: Router) {}
+  kpis: DashboardKPIs | null = null;
+  ventasSucursal: VentasPorSucursal[] = [];
+  ventasCanal: VentasPorCanal[] = [];
+  ventasMetodo: VentasPorMetodoPago[] = [];
+  topPrendas: TopPrenda[] = [];
 
-  ngOnInit() {
+  constructor(
+    private reporteService: ReporteService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
     const userStr = localStorage.getItem('usuario');
     const rolStr = localStorage.getItem('rol');
     if (userStr) {
-      const user = JSON.parse(userStr);
-      this.nombre = user.nombre;
-      this.rol = rolStr || 'Usuario';
-      this.isAdmin = this.rol.toUpperCase() === 'ADMIN' || this.rol.toUpperCase() === 'ADMINISTRADOR';
-
-      // Redirigir automáticamente si es admin
-      if (this.isAdmin) {
-        this.router.navigate(['/admin/users']);
+      try {
+        const u = JSON.parse(userStr);
+        this.nombreUsuario = u.nombre || 'Administrador';
+      } catch (e) {
+        this.nombreUsuario = 'Administrador';
       }
-    } else {
-      this.router.navigate(['/login']);
     }
+    this.rolUsuario = rolStr || 'ADMIN';
+    this.cargarReportes();
   }
 
-  goToAdmin() {
-    this.router.navigate(['/admin/users']);
+  cargarReportes(): void {
+    this.loading = true;
+
+    this.reporteService.getKPIs(this.filtroDias).subscribe({
+      next: (k) => this.kpis = k,
+      error: (err) => console.error('Error KPIs:', err)
+    });
+
+    this.reporteService.getVentasPorSucursal().subscribe({
+      next: (s) => this.ventasSucursal = s,
+      error: (err) => console.error('Error Sucursales:', err)
+    });
+
+    this.reporteService.getVentasPorCanal().subscribe({
+      next: (c) => this.ventasCanal = c,
+      error: (err) => console.error('Error Canales:', err)
+    });
+
+    this.reporteService.getVentasPorMetodoPago().subscribe({
+      next: (m) => this.ventasMetodo = m,
+      error: (err) => console.error('Error Metodos:', err)
+    });
+
+    this.reporteService.getTopPrendas(5).subscribe({
+      next: (p) => {
+        this.topPrendas = p;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error Top Prendas:', err);
+        this.loading = false;
+      }
+    });
   }
 
-  logout() {
+  cambiarFiltro(dias?: number): void {
+    this.filtroDias = dias;
+    this.cargarReportes();
+  }
+
+  exportarCSV(): void {
+    this.reporteService.descargarCSV();
+  }
+
+  imprimirReporte(): void {
+    window.print();
+  }
+
+  logout(): void {
     localStorage.clear();
     this.router.navigate(['/login']);
+  }
+
+  getPorcentajeSucursal(monto: number): number {
+    if (!this.kpis || this.kpis.total_ingresos_bs <= 0) return 0;
+    return Math.min(100, Math.round((monto / this.kpis.total_ingresos_bs) * 100));
+  }
+
+  getPorcentajeMetodo(monto: number): number {
+    if (!this.kpis || this.kpis.total_ingresos_bs <= 0) return 0;
+    return Math.min(100, Math.round((monto / this.kpis.total_ingresos_bs) * 100));
   }
 }

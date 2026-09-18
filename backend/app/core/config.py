@@ -31,4 +31,7 @@ class Settings(BaseSettings):
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", 465))
 
+    # Google Gemini AI Configuration (CU18)
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
 settings = Settings()

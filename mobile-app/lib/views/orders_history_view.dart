@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/order_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/payment_controller.dart';
 
 class OrdersHistoryView extends StatefulWidget {
   const OrdersHistoryView({super.key});
@@ -270,6 +271,24 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                         ),
                                       ),
                                     ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.indigo.shade800,
+                                        side: BorderSide(color: Colors.indigo.shade200),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                      icon: const Icon(Icons.receipt_long, size: 16),
+                                      label: const Text('Ver Recibo Oficial (PDF / QR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                      onPressed: () async {
+                                        final payCtrl = Provider.of<PaymentController>(context, listen: false);
+                                        final url = payCtrl.getComprobanteHtmlUrl(orden.id);
+                                        await payCtrl.abrirPayPal(url);
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),

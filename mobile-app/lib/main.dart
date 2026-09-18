@@ -10,6 +10,9 @@ import 'controllers/product_controller.dart';
 import 'controllers/cart_controller.dart';
 import 'controllers/order_controller.dart';
 import 'controllers/reservation_controller.dart';
+import 'controllers/payment_controller.dart';
+import 'controllers/notification_controller.dart';
+import 'controllers/recommendation_controller.dart';
 import 'views/login_view.dart';
 import 'views/register_view.dart';
 import 'views/recover_password_view.dart';
@@ -28,6 +31,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => CartController()),
         ChangeNotifierProvider(create: (_) => OrderController()),
         ChangeNotifierProvider(create: (_) => ReservationController()),
+        ChangeNotifierProvider(create: (_) => PaymentController()),
+        ChangeNotifierProvider(create: (_) => NotificationController()),
+        ChangeNotifierProvider(create: (_) => RecommendationController()),
       ],
       child: const ECommerceMobileApp(),
     ),

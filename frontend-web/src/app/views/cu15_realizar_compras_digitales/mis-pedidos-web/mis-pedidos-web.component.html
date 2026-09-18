@@ -6,96 +6,157 @@
       <span>Volver al Catálogo</span>
     </button>
     <div class="header-text">
-      <h1 class="page-title">Historial de Mis Compras Online</h1>
-      <p class="page-sub">CU15 - Comprobantes digitales, estado de despacho y seguimiento en tiempo real</p>
+      <h1 class="page-title">Historial de Mis Compras</h1>
+      <p class="page-sub">CU17 - Seguimiento en tiempo real, comprobantes oficiales y registro de pagos</p>
     </div>
     <div class="header-right-actions" style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
       <button mat-stroked-button routerLink="/mis-reservas">
         <mat-icon>receipt_long</mat-icon>
-        <span>Mis Reservas (CU10)</span>
+        <span>Mis Reservas (CU10/17)</span>
       </button>
       <button mat-raised-button color="primary" routerLink="/carrito">
         <mat-icon>shopping_bag</mat-icon>
-        <span>Mi Carrito (CU09)</span>
+        <span>Mi Carrito</span>
       </button>
     </div>
   </header>
 
+  <!-- Métricas Resumen CU17 -->
+  <div class="metrics-grid" *ngIf="resumen" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 14px;">
+      <div style="background: #eff6ff; color: #1d4ed8; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+        <mat-icon>shopping_bag</mat-icon>
+      </div>
+      <div>
+        <div style="font-size: 20px; font-weight: 800; color: #0f172a;">{{ resumen.total_pedidos }}</div>
+        <div style="font-size: 12px; color: #64748b; font-weight: 600;">Pedidos Realizados</div>
+      </div>
+    </div>
+
+    <div style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 14px;">
+      <div style="background: #f0fdf4; color: #15803d; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div>
+        <div style="font-size: 20px; font-weight: 800; color: #0f172a;">Bs. {{ resumen.total_invertido_bs | number:'1.2-2' }}</div>
+        <div style="font-size: 12px; color: #64748b; font-weight: 600;">Total Invertido</div>
+      </div>
+    </div>
+
+    <div style="background: white; padding: 18px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 14px;">
+      <div style="background: #faf5ff; color: #7e22ce; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+        <mat-icon>bookmark_border</mat-icon>
+      </div>
+      <div>
+        <div style="font-size: 20px; font-weight: 800; color: #0f172a;">{{ resumen.reservas_activas }} Activas</div>
+        <div style="font-size: 12px; color: #64748b; font-weight: 600;">Reservas en Tienda</div>
+      </div>
+    </div>
+  </div>
+
   <mat-progress-bar *ngIf="loading" mode="indeterminate" class="loader"></mat-progress-bar>
 
   <main class="orders-content">
-    <div *ngIf="!loading && ordenes.length === 0" class="empty-orders">
+    <div *ngIf="!loading && compras.length === 0" class="empty-orders">
       <mat-icon>receipt_long</mat-icon>
-      <h2>No tienes compras digitales registradas</h2>
-      <p>Cuando realices un pedido en nuestra tienda web o app móvil, aparecerá aquí.</p>
+      <h2>No tienes compras registradas</h2>
+      <p>Cuando realices un pedido en nuestra tienda web o app móvil, aparecerá aquí con su seguimiento en vivo.</p>
       <button mat-raised-button color="primary" (click)="volverATienda()">
-        Explorar Colección de Poleras
+        Explorar Catálogo de Poleras
       </button>
     </div>
 
-    <div class="orders-list" *ngIf="!loading && ordenes.length > 0">
-      <mat-card *ngFor="let orden of ordenes" class="order-card">
+    <div class="orders-list" *ngIf="!loading && compras.length > 0">
+      <mat-card *ngFor="let orden of compras" class="order-card" style="margin-bottom: 20px; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
         
-        <div class="order-top">
+        <div class="order-top" style="padding: 16px 20px; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
           <div class="order-code-box">
-            <span class="code-label">Código de Pedido:</span>
-            <span class="code-val">{{ orden.codigoventa }}</span>
+            <span class="code-label" style="font-size: 12px; color: #64748b;">Código de Venta: </span>
+            <strong class="code-val" style="font-family: monospace; font-size: 15px; color: #0f172a;">{{ orden.codigo_venta }}</strong>
           </div>
-          <span class="badge-status">{{ orden.estado }}</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span style="background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">
+              💳 {{ orden.metodo_pago }}
+            </span>
+            <span class="badge-status" style="background: #dcfce7; color: #166534; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 700;">
+              {{ orden.estado }}
+            </span>
+          </div>
         </div>
 
         <mat-divider></mat-divider>
 
-        <div class="order-meta-grid">
-          <div class="meta-item">
-            <span class="meta-lbl">Fecha de Compra</span>
-            <span class="meta-val">{{ orden.fecha | date:'dd/MM/yyyy HH:mm' }}</span>
+        <div style="padding: 20px;">
+          <div class="order-meta-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div class="meta-item">
+              <span class="meta-lbl" style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Fecha</span>
+              <div class="meta-val" style="font-weight: 700; color: #0f172a; margin-top: 2px;">{{ orden.fecha }}</div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl" style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Sucursal</span>
+              <div class="meta-val" style="font-weight: 700; color: #0f172a; margin-top: 2px;">{{ orden.sucursal }}</div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl" style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Canal</span>
+              <div class="meta-val" style="font-weight: 700; color: #0f172a; margin-top: 2px;">{{ orden.tipo_venta }}</div>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl" style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Total Pagado</span>
+              <div class="meta-val total-highlight" style="font-size: 18px; font-weight: 800; color: #e11d48; margin-top: 2px;">
+                Bs. {{ orden.total | number:'1.2-2' }}
+              </div>
+            </div>
           </div>
-          <div class="meta-item">
-            <span class="meta-lbl">Canal</span>
-            <span class="meta-val">{{ orden.tipoventa }}</span>
+
+          <!-- Items de la Compra -->
+          <div *ngIf="orden.items && orden.items.length > 0" style="background: #f8fafc; border-radius: 10px; padding: 12px; margin-bottom: 20px; border: 1px solid #edf2f7;">
+            <div style="font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px;">PRENDAS INCLUIDAS ({{ orden.items.length }}):</div>
+            <div *ngFor="let item of orden.items" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <mat-icon style="font-size: 18px; width: 18px; height: 18px; color: #64748b;">checkroom</mat-icon>
+                <span style="font-size: 13px; font-weight: 600; color: #1e293b;">{{ item.producto }}</span>
+                <span style="font-size: 12px; color: #64748b;">x{{ item.cantidad }}</span>
+              </div>
+              <span style="font-size: 13px; font-weight: 700; color: #0f172a;">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+            </div>
           </div>
-          <div class="meta-item">
-            <span class="meta-lbl">Subtotal</span>
-            <span class="meta-val">Bs. {{ orden.subtotal | number:'1.2-2' }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-lbl">Total Pagado</span>
-            <span class="meta-val total-highlight">Bs. {{ orden.total | number:'1.2-2' }}</span>
+
+          <!-- Timeline de Estado del Pedido -->
+          <div class="order-timeline">
+            <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 0" [class.active]="getOrderStep(orden.estado) === 0">
+              <div class="step-circle"><mat-icon>receipt</mat-icon></div>
+              <span class="step-title">Registrado</span>
+            </div>
+            <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 1"></div>
+
+            <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 1" [class.active]="getOrderStep(orden.estado) === 1">
+              <div class="step-circle"><mat-icon>inventory_2</mat-icon></div>
+              <span class="step-title">Preparación</span>
+            </div>
+            <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 2"></div>
+
+            <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 2" [class.active]="getOrderStep(orden.estado) === 2">
+              <div class="step-circle"><mat-icon>local_shipping</mat-icon></div>
+              <span class="step-title">En Camino</span>
+            </div>
+            <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 3"></div>
+
+            <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 3" [class.active]="getOrderStep(orden.estado) === 3">
+              <div class="step-circle"><mat-icon>done_all</mat-icon></div>
+              <span class="step-title">Entregado</span>
+            </div>
           </div>
         </div>
 
-        <!-- Timeline de Estado del Pedido -->
-        <div class="order-timeline">
-          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 0" [class.active]="getOrderStep(orden.estado) === 0">
-            <div class="step-circle"><mat-icon>receipt</mat-icon></div>
-            <span class="step-title">Registrado</span>
-          </div>
-          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 1"></div>
-
-          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 1" [class.active]="getOrderStep(orden.estado) === 1">
-            <div class="step-circle"><mat-icon>inventory_2</mat-icon></div>
-            <span class="step-title">Preparación</span>
-          </div>
-          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 2"></div>
-
-          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 2" [class.active]="getOrderStep(orden.estado) === 2">
-            <div class="step-circle"><mat-icon>local_shipping</mat-icon></div>
-            <span class="step-title">En Camino</span>
-          </div>
-          <div class="timeline-line" [class.completed]="getOrderStep(orden.estado) >= 3"></div>
-
-          <div class="timeline-step" [class.completed]="getOrderStep(orden.estado) >= 3" [class.active]="getOrderStep(orden.estado) === 3">
-            <div class="step-circle"><mat-icon>done_all</mat-icon></div>
-            <span class="step-title">Entregado</span>
-          </div>
-        </div>
-
-        <div class="order-footer">
-          <span class="order-msg">
-            <mat-icon>verified</mat-icon>
-            {{ orden.mensaje || 'Pago confirmado y stock descontado exitosamente en PostgreSQL' }}
+        <div class="order-footer" style="padding: 12px 20px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <span class="order-msg" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #166534; font-weight: 600;">
+            <mat-icon style="font-size: 18px; width: 18px; height: 18px;">verified</mat-icon>
+            Pago verificado y stock conciliado en inventario
           </span>
+          <button mat-flat-button color="primary" (click)="verComprobante(orden.id)" style="font-weight: 700; border-radius: 8px;">
+            <mat-icon>receipt</mat-icon>
+            <span>Ver Comprobante Oficial (PDF/QR)</span>
+          </button>
         </div>
       </mat-card>
     </div>

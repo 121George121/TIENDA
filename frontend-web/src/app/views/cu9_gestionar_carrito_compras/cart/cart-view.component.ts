@@ -7,7 +7,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -16,6 +16,8 @@ import { CartService } from '../../../services/cu9_gestionar_carrito_compras/car
 import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 import { ReservationService } from '../../../services/cu10_gestionar_reservas_prendas/reservation.service';
 import { CompraDigitalService, OrdenResponseDTO } from '../../../services/cu15_realizar_compras_digitales/compra-digital.service';
+import { PagoService, MetodoPagoDTO, IniciarPagoResponseDTO } from '../../../services/cu16_gestionar_pagos_comprobantes/pago.service';
+import { RecomendacionService, RecomendacionOutfitDTO } from '../../../services/cu18_gestionar_recomendaciones_ia/recomendacion.service';
 import { Carrito, CarritoItem } from '../../../models/cu9_gestionar_carrito_compras/cart.model';
 import { SucursalItem } from '../../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
 import { Reserva } from '../../../models/cu10_gestionar_reservas_prendas/reservation.model';
@@ -46,19 +48,33 @@ export class CartViewComponent implements OnInit {
   procesandoReserva = false;
   reservaExitosa: Reserva | null = null;
 
-  // Estado del Modal de Compra Digital con Envío a Domicilio (CU15)
+  // Estado del Modal de Compra Digital con Envío a Domicilio (CU15 y CU16)
   mostrarModalCompra = false;
   direccionEnvio = 'Av. San Martín #450, Equipetrol, Santa Cruz';
   metodoPagoDigital = 'TARJETA_DEBITO';
   procesandoCompra = false;
   compraExitosa: OrdenResponseDTO | null = null;
 
+  // CU16: Gestión de Pagos (PayPal, QR, Efectivo) y Comprobantes
+  metodosPago: MetodoPagoDTO[] = [];
+  metodoSeleccionadoId = 6; // PayPal por defecto o primer activo
+  qrData: IniciarPagoResponseDTO | null = null;
+  mostrarModalQR = false;
+  urlComprobante = '';
+  redireccionandoPayPal = false;
+  // CU18: Recomendaciones Stylist IA
+  recomendaciones: RecomendacionOutfitDTO[] = [];
+  cargandoRecomendaciones = false;
+
   constructor(
     private cartService: CartService,
     private inventoryService: InventoryService,
     private reservationService: ReservationService,
     private compraDigitalService: CompraDigitalService,
-    private router: Router
+    private pagoService: PagoService,
+    private recomendacionService: RecomendacionService,
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
@@ -68,11 +84,56 @@ export class CartViewComponent implements OnInit {
       error: (e) => console.error('Error al cargar sucursales:', e)
     });
 
-    // 2. Suscribirse reactivamente al carrito
+    // 2. Cargar métodos de pago activos (CU16)
+    this.pagoService.getMetodosPago().subscribe({
+      next: (m) => {
+        this.metodosPago = m;
+        const paypal = m.find(x => x.nombre.toLowerCase().includes('paypal'));
+        if (paypal) {
+          this.metodoSeleccionadoId = paypal.id;
+        } else if (m.length > 0) {
+          this.metodoSeleccionadoId = m[0].id;
+        }
+      },
+      error: (e) => console.error('Error al cargar métodos de pago:', e)
+    });
+
+    // 3. Detectar si regresa de la pasarela oficial de PayPal
+    this.route.queryParams.subscribe(params => {
+      if (params['pago_status'] === 'exito' && params['orden_id']) {
+        const ordenId = Number(params['orden_id']);
+        this.pagoService.capturarPayPal(ordenId, params['token']).subscribe({
+          next: (res) => {
+            this.compraExitosa = {
+              id: ordenId,
+              codigoventa: res.codigo_venta,
+              total: res.monto,
+              estado: 'Completada',
+              tipoventa: 'Digital',
+              subtotal: res.monto,
+              descuento: 0,
+              mensaje: '¡Pago capturado y confirmado a través de PayPal!'
+            };
+            this.urlComprobante = this.pagoService.getComprobanteUrl(ordenId);
+            this.mostrarModalCompra = true;
+          },
+          error: (err) => {
+            console.error('Error capturando PayPal:', err);
+          }
+        });
+      }
+    });
+
+    // 4. Suscribirse reactivamente al carrito
     this.cartService.cart$.subscribe({
       next: (c) => {
         this.carrito = c;
         this.loading = false;
+        if (c && c.items && c.items.length > 0) {
+          this.cargarRecomendacionesIA();
+        } else {
+          this.recomendaciones = [];
+        }
       },
       error: (e) => {
         console.error('Error al cargar carrito:', e);
@@ -82,6 +143,26 @@ export class CartViewComponent implements OnInit {
 
     // Carga inicial
     this.cartService.cargarCarrito().subscribe();
+  }
+
+  cargarRecomendacionesIA(): void {
+    if (!this.carrito || this.carrito.items.length === 0) return;
+    const ids = this.carrito.items.map(i => i.producto_id);
+    this.cargandoRecomendaciones = true;
+    this.recomendacionService.obtenerRecomendacionOutfit(undefined, ids, 3).subscribe({
+      next: (data) => {
+        this.recomendaciones = data;
+        this.cargandoRecomendaciones = false;
+      },
+      error: (e) => {
+        console.warn('Error recomendaciones:', e);
+        this.cargandoRecomendaciones = false;
+      }
+    });
+  }
+
+  agregarRecomendado(rec: RecomendacionOutfitDTO): void {
+    this.router.navigate(['/catalogo'], { queryParams: { q: rec.nombre } });
   }
 
   incrementar(item: CarritoItem): void {
@@ -229,19 +310,56 @@ export class CartViewComponent implements OnInit {
 
     this.compraDigitalService.crearOrdenDigital(dto).subscribe({
       next: (orden) => {
-        this.procesandoCompra = false;
-        this.compraExitosa = orden;
-        this.cartService.vaciarCarrito().subscribe();
+        // CU16: Iniciar pago con el método seleccionado (PayPal, QR o Efectivo)
+        this.pagoService.iniciarPago(orden.id, this.metodoSeleccionadoId).subscribe({
+          next: (pagoRes) => {
+            this.procesandoCompra = false;
+            this.cartService.vaciarCarrito().subscribe();
+
+            if (pagoRes.requiere_redireccion && pagoRes.url_redireccion) {
+              // 1. Redirección OFICIAL a PayPal (Login o Pagar con Tarjeta)
+              this.redireccionandoPayPal = true;
+              window.location.href = pagoRes.url_redireccion;
+            } else if (pagoRes.metodo === 'QR') {
+              // 2. Mostrar código QR dinámico con cuenta BCP
+              this.compraExitosa = orden;
+              this.qrData = pagoRes;
+              this.mostrarModalQR = true;
+              this.urlComprobante = this.pagoService.getComprobanteUrl(orden.id);
+            } else {
+              // 3. Pago en Efectivo al retirar en sucursal
+              this.compraExitosa = orden;
+              this.urlComprobante = this.pagoService.getComprobanteUrl(orden.id);
+            }
+          },
+          error: (err) => {
+            this.procesandoCompra = false;
+            alert(err.error?.detail || 'Error al iniciar el pago.');
+          }
+        });
       },
       error: (err) => {
         this.procesandoCompra = false;
-        alert(err.error?.detail || 'Error al procesar la compra digital.');
+        alert(err.error?.detail || 'Error al procesar la orden digital.');
       }
     });
   }
 
+  cerrarModalQR(): void {
+    this.mostrarModalQR = false;
+    this.mostrarModalCompra = true;
+  }
+
+  abrirComprobante(ordenId?: number): void {
+    const id = ordenId || this.compraExitosa?.id;
+    if (id) {
+      window.open(this.pagoService.getComprobanteUrl(id), '_blank');
+    }
+  }
+
   irAMisPedidos(): void {
     this.mostrarModalCompra = false;
+    this.mostrarModalQR = false;
     this.router.navigate(['/mis-pedidos']);
   }
 }

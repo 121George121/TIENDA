@@ -141,6 +141,33 @@
             </div>
           </div>
         </div>
+
+        <!-- CU18: Recomendaciones Stylist IA (Completa tu Outfit) -->
+        <div *ngIf="recomendaciones && recomendaciones.length > 0" class="ia-stylist-box" style="margin-top: 24px; background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%); border: 1px solid #f0abfc; border-radius: 14px; padding: 18px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">✨</span>
+              <strong style="color: #701a75; font-size: 15px;">Stylist IA: Completa tu Outfit</strong>
+            </div>
+            <span style="font-size: 11px; background: #c026d3; color: white; padding: 3px 8px; border-radius: 20px; font-weight: 700;">CU18 IA Powered</span>
+          </div>
+          <p style="font-size: 12px; color: #86198f; margin: 0 0 14px 0;">Prendas seleccionadas por inteligencia artificial para combinar armoniosamente con tu pedido:</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+            <div *ngFor="let rec of recomendaciones" style="background: white; border-radius: 10px; padding: 12px; border: 1px solid #f5d0fe; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="font-weight: 700; font-size: 13px; color: #0f172a; margin-bottom: 4px;">{{ rec.nombre }}</div>
+                <div style="font-size: 11px; color: #6b21a8; line-height: 1.4; margin-bottom: 8px;">💡 {{ rec.razon_estilo }}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; border-top: 1px dashed #f0abfc; padding-top: 8px;">
+                <span style="font-weight: 800; font-size: 14px; color: #701a75;">Bs. {{ rec.precio | number:'1.2-2' }}</span>
+                <button type="button" (click)="agregarRecomendado(rec)" style="background: #a21caf; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">
+                  + Ver en Catálogo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Columna Derecha: Resumen del Pedido -->
@@ -328,18 +355,23 @@
           </div>
 
           <div class="form-group">
-            <label for="metodo-pago">Método de Pago Digital:</label>
-            <select
-              id="metodo-pago"
-              class="notes-textarea"
-              style="min-height: 44px; padding: 10px 14px;"
-              [(ngModel)]="metodoPagoDigital"
-              [disabled]="procesandoCompra"
-            >
-              <option value="TARJETA_DEBITO">💳 Tarjeta de Débito / Crédito (Pago Seguro)</option>
-              <option value="QR_SIMPLE">📲 QR Simple Bolivia (Transferencia Inmediata)</option>
-              <option value="PAGO_CONTRA_ENTREGA">💵 Pago contra entrega en efectivo</option>
-            </select>
+            <label style="font-weight: 700; margin-bottom: 8px; display: block;">Selecciona tu Método de Pago (CU16):</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div
+                *ngFor="let m of metodosPago"
+                (click)="metodoSeleccionadoId = m.id"
+                [style.border-color]="metodoSeleccionadoId === m.id ? '#10b981' : '#334155'"
+                [style.background]="metodoSeleccionadoId === m.id ? 'rgba(16, 185, 129, 0.12)' : 'rgba(30, 41, 59, 0.6)'"
+                style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 2px solid #334155; border-radius: 10px; cursor: pointer; transition: all 0.2s;"
+              >
+                <mat-icon [style.color]="metodoSeleccionadoId === m.id ? '#10b981' : '#94a3b8'">{{ m.icono }}</mat-icon>
+                <div style="flex: 1;">
+                  <strong style="display: block; font-size: 14px; color: #f8fafc;">{{ m.nombre }}</strong>
+                  <span style="font-size: 12px; color: #94a3b8;">{{ m.descripcion }}</span>
+                </div>
+                <input type="radio" [name]="'metodo_pago'" [checked]="metodoSeleccionadoId === m.id" style="accent-color: #10b981; width: 18px; height: 18px;">
+              </div>
+            </div>
           </div>
 
           <div class="modal-summary-box">
@@ -358,24 +390,34 @@
           </div>
 
           <div class="info-alert" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
-            <mat-icon style="color: #10b981;">local_shipping</mat-icon>
-            <span>Al confirmar, la orden de venta se procesará de forma inmediata, descontando el stock físico de la tienda y preparando la guía de envío a tu dirección.</span>
+            <mat-icon style="color: #10b981;">verified_user</mat-icon>
+            <span *ngIf="metodoSeleccionadoId === 6">
+              🔒 <strong>Pago con PayPal:</strong> Al confirmar, serás redirigido a la pasarela oficial de PayPal para iniciar sesión o pagar con tarjeta. Al finalizar, volverás automáticamente con tu recibo emitido.
+            </span>
+            <span *ngIf="metodoSeleccionadoId === 4">
+              📲 <strong>Pago con QR:</strong> Se generará un código QR bancario dinámico de cobro para escanear con tu app del banco.
+            </span>
+            <span *ngIf="metodoSeleccionadoId === 2">
+              💵 <strong>Pago en Efectivo:</strong> Tu orden quedará registrada y podrás abonarla al retirar tus prendas en mostrador.
+            </span>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn-secondary" (click)="cerrarModalCompra()" [disabled]="procesandoCompra">
+          <button type="button" class="btn-secondary" (click)="cerrarModalCompra()" [disabled]="procesandoCompra || redireccionandoPayPal">
             Cancelar
           </button>
-          <button type="button" class="btn-confirm-buy" (click)="confirmarCompra()" [disabled]="procesandoCompra">
-            <mat-icon *ngIf="!procesandoCompra">verified</mat-icon>
-            <span *ngIf="!procesandoCompra">Confirmar Compra (Bs. {{ carrito?.total_precio | number:'1.2-2' }})</span>
-            <span *ngIf="procesandoCompra">Procesando Pago y Stock...</span>
+          <button type="button" class="btn-confirm-buy" (click)="confirmarCompra()" [disabled]="procesandoCompra || redireccionandoPayPal">
+            <mat-icon *ngIf="!procesandoCompra && !redireccionandoPayPal">payment</mat-icon>
+            <span *ngIf="!procesandoCompra && !redireccionandoPayPal && metodoSeleccionadoId === 6">Pagar con PayPal (Oficial)</span>
+            <span *ngIf="!procesandoCompra && !redireccionandoPayPal && metodoSeleccionadoId !== 6">Confirmar Pago (Bs. {{ carrito?.total_precio | number:'1.2-2' }})</span>
+            <span *ngIf="redireccionandoPayPal">Redirigiendo a PayPal...</span>
+            <span *ngIf="procesandoCompra && !redireccionandoPayPal">Procesando Transacción...</span>
           </button>
         </div>
       </div>
 
-      <!-- PASO 2: Éxito con Orden Digital Confirmada -->
+      <!-- PASO 2: Éxito con Orden Digital Confirmada y Comprobante Oficial -->
       <div *ngIf="compraExitosa" class="modal-content success-modal">
         <div class="success-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981;">
           <mat-icon class="success-icon" style="color: #10b981;">task_alt</mat-icon>
@@ -389,14 +431,68 @@
           <span class="code-branch" style="color: #d1fae5;">Total Pagado: Bs. {{ compraExitosa.total | number:'1.2-2' }}</span>
         </div>
 
-        <div class="success-actions">
-          <button type="button" class="btn-goto-reservations" style="background: #10b981;" (click)="irAMisPedidos()">
+        <div class="success-actions" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+          <!-- Botón CU16: Ver/Imprimir Comprobante Oficial con QR -->
+          <button type="button" class="btn-confirm-buy" style="background: #2563eb; width: 100%;" (click)="abrirComprobante()">
+            <mat-icon>receipt_long</mat-icon>
+            <span>📄 Ver / Imprimir Comprobante Oficial (PDF/QR)</span>
+          </button>
+
+          <button type="button" class="btn-goto-reservations" style="background: #10b981; width: 100%;" (click)="irAMisPedidos()">
             <mat-icon>local_shipping</mat-icon>
-            <span>Ver Seguimiento en Mis Pedidos (CU15)</span>
+            <span>Ver Seguimiento en Mis Pedidos (CU15/17)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal CU16: Mostrar Código QR de Pago Dinámico -->
+  <div *ngIf="mostrarModalQR && qrData" class="modal-backdrop" (click)="cerrarModalQR()">
+    <div class="modal-dialog" style="max-width: 480px;" (click)="$event.stopPropagation()">
+      <div class="modal-content" style="text-align: center; padding: 25px;">
+        <div class="modal-header" style="justify-content: center; position: relative;">
+          <h3 style="margin: 0; font-size: 20px;">📲 Pago con QR Bancario</h3>
+          <button type="button" class="btn-close-modal" (click)="cerrarModalQR()" style="position: absolute; right: 0;">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 15px 0;">
+          <p style="color: #94a3b8; font-size: 13px; margin: 0 0 15px 0;">
+            Escanea este código desde la app de tu banco (BCP, BNB, Banco Unión, etc.) para procesar el pago.
+          </p>
+
+          <div style="background: #ffffff; padding: 15px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <img [src]="qrData.qr_image" alt="QR de Pago" style="width: 220px; height: 220px; display: block;">
+          </div>
+
+          <div style="margin-top: 15px; font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+            <div>Titular: <strong>{{ qrData.titular }}</strong></div>
+            <div>Cuenta: <strong>{{ qrData.cuenta_bancaria }}</strong></div>
+            <div style="font-size: 18px; font-weight: 800; color: #10b981; margin-top: 6px;">
+              Monto a Pagar: Bs. {{ qrData.monto_total | number:'1.2-2' }}
+            </div>
+          </div>
+
+          <div style="margin-top: 15px; padding: 8px 12px; background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 8px; color: #fde047; font-size: 12px;">
+            ⏳ Tiempo restante para escanear: <strong>14:58 min</strong>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+          <button type="button" class="btn-confirm-buy" style="background: #10b981; width: 100%;" (click)="cerrarModalQR()">
+            <mat-icon>check_circle</mat-icon>
+            <span>¡Ya realicé el pago por QR!</span>
+          </button>
+          <button type="button" class="btn-secondary" style="width: 100%;" (click)="abrirComprobante()">
+            <mat-icon>print</mat-icon>
+            <span>Ver Comprobante de la Orden</span>
           </button>
         </div>
       </div>
     </div>
   </div>
 </div>
+
 

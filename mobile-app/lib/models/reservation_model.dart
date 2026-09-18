@@ -4,6 +4,18 @@
 // Ubicación: mobile-app/lib/models/reservation_model.dart
 // ==============================================================================
 
+double _parseDouble(dynamic value, [double defaultValue = 0.0]) {
+  if (value == null) return defaultValue;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? defaultValue;
+}
+
+int _parseInt(dynamic value, [int defaultValue = 0]) {
+  if (value == null) return defaultValue;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString()) ?? defaultValue;
+}
+
 class ReservaDetalleItem {
   final int varianteId;
   final String productoNombre;
@@ -27,14 +39,14 @@ class ReservaDetalleItem {
 
   factory ReservaDetalleItem.fromJson(Map<String, dynamic> json) {
     return ReservaDetalleItem(
-      varianteId: json['variante_id'] ?? 0,
-      productoNombre: json['producto_nombre'] ?? 'Prenda',
-      talla: json['talla'],
-      color: json['color'],
-      imagenUrl: json['imagen_url'],
-      precioUnitario: (json['precio_unitario'] ?? 0.0).toDouble(),
-      cantidad: json['cantidad'] ?? 1,
-      subtotal: (json['subtotal'] ?? 0.0).toDouble(),
+      varianteId: _parseInt(json['variante_id'] ?? json['id']),
+      productoNombre: json['producto_nombre']?.toString() ?? json['producto']?.toString() ?? 'Prenda',
+      talla: json['talla']?.toString(),
+      color: json['color']?.toString(),
+      imagenUrl: json['imagen_url']?.toString(),
+      precioUnitario: _parseDouble(json['precio_unitario']),
+      cantidad: _parseInt(json['cantidad'], 1),
+      subtotal: _parseDouble(json['subtotal']),
     );
   }
 }
@@ -66,21 +78,21 @@ class ReservaModel {
 
   factory ReservaModel.fromJson(Map<String, dynamic> json) {
     var sucursal = json['sucursal'];
-    var rawDetalles = json['detalles'] as List? ?? [];
+    var rawDetalles = json['detalles'] as List? ?? json['items'] as List? ?? [];
     List<ReservaDetalleItem> detallesList =
         rawDetalles.map((d) => ReservaDetalleItem.fromJson(d)).toList();
 
     return ReservaModel(
-      id: json['id'] ?? 0,
-      codigoReserva: json['codigo_reserva'] ?? '',
-      fechaReserva: json['fecha_reserva'] ?? '',
-      estado: json['estado'] ?? 'PENDIENTE',
-      observaciones: json['observaciones'],
-      sucursalNombre: sucursal != null ? sucursal['nombre'] : null,
-      sucursalDireccion: sucursal != null ? sucursal['direccion'] : null,
+      id: _parseInt(json['id']),
+      codigoReserva: json['codigo_reserva']?.toString() ?? '',
+      fechaReserva: json['fecha_reserva']?.toString() ?? '',
+      estado: json['estado']?.toString() ?? 'PENDIENTE',
+      observaciones: json['observaciones']?.toString(),
+      sucursalNombre: sucursal != null ? sucursal['nombre']?.toString() : json['sucursal_nombre']?.toString(),
+      sucursalDireccion: sucursal != null ? sucursal['direccion']?.toString() : json['sucursal_direccion']?.toString(),
       detalles: detallesList,
-      totalItems: json['total_items'] ?? 0,
-      totalEstimado: (json['total_estimado'] ?? 0.0).toDouble(),
+      totalItems: _parseInt(json['total_items'] ?? detallesList.length),
+      totalEstimado: _parseDouble(json['total_estimado']),
     );
   }
 }

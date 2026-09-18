@@ -23,6 +23,11 @@ from app.views.cu11_atender_reservas_sucursal import atender_reserva_views
 from app.views.cu13_gestionar_inventario_movimientos import inventario_views
 from app.views.cu14_registrar_ventas_presenciales import venta_presencial_views
 from app.views.cu15_realizar_compras_digitales import compra_digital_views
+from app.views.cu16_gestionar_pagos_comprobantes import pago_views
+from app.views.cu17_consultar_historial_compras_reservas import historial_views
+from app.views.cu18_gestionar_recomendaciones_ia import recomendacion_views
+from app.views.cu19_gestionar_notificaciones import notificacion_views
+from app.views.cu20_generar_reportes_dashboards import reporte_views
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -64,6 +69,11 @@ app.include_router(reserva_views.router, prefix=settings.API_V1_STR)
 app.include_router(inventario_views.router, prefix=settings.API_V1_STR)
 app.include_router(venta_presencial_views.router, prefix=settings.API_V1_STR)
 app.include_router(compra_digital_views.router, prefix=settings.API_V1_STR)
+app.include_router(pago_views.router, prefix=settings.API_V1_STR)
+app.include_router(historial_views.router, prefix=settings.API_V1_STR)
+app.include_router(recomendacion_views.router, prefix=settings.API_V1_STR)
+app.include_router(notificacion_views.router, prefix=settings.API_V1_STR)
+app.include_router(reporte_views.router, prefix=settings.API_V1_STR)
 
 
 

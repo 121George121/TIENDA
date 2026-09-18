@@ -111,11 +111,13 @@ class CartController extends ChangeNotifier {
   }
 
   /// Procesa la compra enviando el payload JSON a FastAPI
-  Future<bool> procesarCompra(String direccion, {String? authToken}) async {
-    if (_items.isEmpty) return false;
+  Future<Map<String, dynamic>?> procesarCompra(String direccion, {String? authToken, int? metodoId}) async {
+    if (_items.isEmpty) return null;
 
     final body = {
       "direccion_envio": direccion,
+      "sucursal_id": _sucursalId,
+      "metodo_id": metodoId,
       "items": _items.values.map((item) => {
         "producto_id": item.product.id,
         "cantidad": item.cantidad,
@@ -137,12 +139,13 @@ class CartController extends ChangeNotifier {
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = json.decode(utf8.decode(response.bodyBytes));
         limpiarCarrito();
-        return true;
+        return data;
       }
-      return false;
+      return null;
     } catch (e) {
-      return false;
+      return null;
     }
   }
 }

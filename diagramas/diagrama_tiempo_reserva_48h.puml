@@ -1,0 +1,44 @@
+@startuml
+title Diagrama de Tiempo - Control de Vigencia de Reserva 48 Horas (CU10 - CU11)
+scale 1
+
+robust "CronJob Temporizador" as Cron
+robust "Backend (ReservaController)" as Backend
+robust "Inventario Sucursal (Stock)" as Stock
+concise "Cliente (Comprador)" as Cliente
+
+@0
+Cliente is CarritoActivo
+Stock is StockDisponible
+Backend is Idle
+Cron is Idle
+
+@1
+Cliente is SolicitandoReserva
+Cliente -> Backend : 1. POST /reservas/desde-carrito
+Backend is GenerandoCodigo
+Backend -> Stock : 2. inc stockreservado
+Stock is StockReservado
+Backend -> Cron : 3. iniciarContador48h()
+Cron is Monitoreando
+
+@2
+Cliente is EsperandoRetiro
+Backend is Idle
+
+@48
+Cliente is RetirandoEnSucursal
+Cliente -> Backend : 4. CU11: presentarCodigo(RES-XXXX)
+Backend is AtendiendoEnSucursal
+Backend -> Stock : 5. rebajar stockfisico y reservado
+Stock is DescontadoFisico
+Backend -> Cron : 6. cancelarAlerta()
+Cron is Idle
+
+@50
+Backend is Idle
+Cliente is RetiroCompletado
+
+@1 <-> @48 : {0..48 horas}
+
+@enduml

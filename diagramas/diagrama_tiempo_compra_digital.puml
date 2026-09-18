@@ -1,0 +1,50 @@
+@startuml
+title Diagrama de Tiempo - Compra Digital y Pasarela de Pagos (CU15)
+scale 1
+
+robust "Backend (CompraDigitalController)" as Backend
+robust "Inventario y Kardex (InventarioModel)" as Inventario
+robust "Frontend (UI_Checkout Angular)" as Frontend
+concise "Cliente (Web User)" as Cliente
+
+@0
+Cliente is Idle
+Frontend is Idle
+Backend is Idle
+Inventario is StockDisponible
+
+@1
+Cliente is EnCheckout
+Cliente -> Frontend : 1. clicIniciarCheckout()
+Frontend is EnviandoOrden
+
+@2
+Frontend -> Backend : 2. POST /api/v1/compras/procesar
+Backend is ValidandoStock
+Backend -> Inventario : 3. retenerStockTemporal()
+Inventario is RetenidoTemporal
+
+@4
+Backend is EsperandoWebhook
+Backend -> Frontend : 4. sesionPagoCreada(QR)
+Frontend is MostrandoPagoQR
+Cliente is PagandoBancoQR
+
+@15
+Backend is ConfirmandoVenta
+Backend -> Inventario : 5. webhookExito() / rebajarKardex()
+Inventario is DescontadoKardex
+Backend -> Frontend : 6. ventaConfirmada(VentaModel)
+Frontend is MostrandoRecibo
+Cliente is ViendoRecibo
+
+@18
+Frontend is Idle
+Backend is Idle
+Cliente is Idle
+
+@1 <-> @2 : {50..200 ms}
+@2 <-> @4 : {100..400 ms}
+@4 <-> @15 : {0..15 min}
+
+@enduml

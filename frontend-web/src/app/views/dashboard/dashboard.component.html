@@ -1,0 +1,246 @@
+<div class="dash-wrapper">
+  <!-- Barra Superior -->
+  <header class="dash-header">
+    <div class="header-left">
+      <div class="logo-box">
+        <mat-icon>dashboard_customize</mat-icon>
+      </div>
+      <div>
+        <div class="header-title-row">
+          <h1 class="dash-title">Panel Ejecutivo & Analítica</h1>
+          <span class="badge-cu">CU20 - Dashboards & Reportes</span>
+        </div>
+        <p class="dash-subtitle">Métricas en tiempo real sincronizadas con PostgreSQL para toma de decisiones</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Filtros Temporales -->
+      <div class="filter-group">
+        <button
+          type="button"
+          class="btn-filter"
+          [class.active]="filtroDias === undefined"
+          (click)="cambiarFiltro(undefined)"
+        >
+          Histórico
+        </button>
+        <button
+          type="button"
+          class="btn-filter"
+          [class.active]="filtroDias === 30"
+          (click)="cambiarFiltro(30)"
+        >
+          30 Días
+        </button>
+        <button
+          type="button"
+          class="btn-filter"
+          [class.active]="filtroDias === 7"
+          (click)="cambiarFiltro(7)"
+        >
+          7 Días
+        </button>
+      </div>
+
+      <button mat-stroked-button (click)="exportarCSV()" class="btn-action">
+        <mat-icon>file_download</mat-icon>
+        <span>Exportar CSV</span>
+      </button>
+
+      <button mat-raised-button color="primary" (click)="imprimirReporte()" class="btn-action">
+        <mat-icon>print</mat-icon>
+        <span>Imprimir Reporte</span>
+      </button>
+
+      <button mat-icon-button routerLink="/admin/users" matTooltip="Ir a Administración" class="btn-gear">
+        <mat-icon>settings</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate" class="loader"></mat-progress-bar>
+
+  <main class="dash-content" *ngIf="kpis">
+    <!-- 4 Tarjetas KPI Principales -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-income">
+        <div class="kpi-header">
+          <span class="kpi-label">INGRESOS TOTALES</span>
+          <div class="kpi-icon"><mat-icon>payments</mat-icon></div>
+        </div>
+        <div class="kpi-value">Bs. {{ kpis.total_ingresos_bs | number:'1.2-2' }}</div>
+        <div class="kpi-footer">
+          <span class="trend-text">Facturación acumulada neta</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-orders">
+        <div class="kpi-header">
+          <span class="kpi-label">TRANSACCIONES</span>
+          <div class="kpi-icon"><mat-icon>receipt_long</mat-icon></div>
+        </div>
+        <div class="kpi-value">{{ kpis.total_transacciones }}</div>
+        <div class="kpi-footer">
+          <span class="trend-text">Ticket Promedio: <strong>Bs. {{ kpis.ticket_promedio_bs | number:'1.2-2' }}</strong></span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-items">
+        <div class="kpi-header">
+          <span class="kpi-label">PRENDAS VENDIDAS</span>
+          <div class="kpi-icon"><mat-icon>checkroom</mat-icon></div>
+        </div>
+        <div class="kpi-value">{{ kpis.prendas_vendidas }} uds.</div>
+        <div class="kpi-footer">
+          <span class="trend-text">Despachadas por sucursales y web</span>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-inventory">
+        <div class="kpi-header">
+          <span class="kpi-label">INVENTARIO FÍSICO</span>
+          <div class="kpi-icon"><mat-icon>inventory_2</mat-icon></div>
+        </div>
+        <div class="kpi-value">{{ kpis.stock_total_fisico }} uds.</div>
+        <div class="kpi-footer">
+          <span class="critical-text" *ngIf="kpis.articulos_stock_critico > 0">
+            ⚠️ {{ kpis.articulos_stock_critico }} artículos en stock crítico
+          </span>
+          <span class="ok-text" *ngIf="kpis.articulos_stock_critico === 0">
+            ✓ Niveles de stock óptimos
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grillas y Desgloses Analíticos -->
+    <div class="analytics-grid">
+      <!-- Tarjeta 1: Ventas por Sucursal -->
+      <mat-card class="chart-card">
+        <div class="card-header-row">
+          <div class="card-title-box">
+            <mat-icon>storefront</mat-icon>
+            <h3>Rendimiento por Sucursal</h3>
+          </div>
+          <span class="card-sub">{{ ventasSucursal.length }} Sucursales Activas</span>
+        </div>
+        <mat-divider></mat-divider>
+        <div class="card-body">
+          <div *ngFor="let suc of ventasSucursal" class="bar-row">
+            <div class="bar-info">
+              <span class="item-name">{{ suc.sucursal_nombre }} ({{ suc.ciudad }})</span>
+              <span class="item-val">Bs. {{ suc.total_bs | number:'1.2-2' }} ({{ suc.transacciones }} ventas)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill fill-blue" [style.width.%]="getPorcentajeSucursal(suc.total_bs)"></div>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+
+      <!-- Tarjeta 2: Desglose por Método de Pago (CU16) -->
+      <mat-card class="chart-card">
+        <div class="card-header-row">
+          <div class="card-title-box">
+            <mat-icon>account_balance_wallet</mat-icon>
+            <h3>Métodos de Pago (PayPal / QR / Efectivo)</h3>
+          </div>
+          <span class="card-sub">CU16 Pasarelas</span>
+        </div>
+        <mat-divider></mat-divider>
+        <div class="card-body">
+          <div *ngFor="let met of ventasMetodo" class="bar-row">
+            <div class="bar-info">
+              <span class="item-name">
+                <span *ngIf="met.metodo_nombre.includes('PayPal')">💳 </span>
+                <span *ngIf="met.metodo_nombre.includes('QR')">📱 </span>
+                <span *ngIf="met.metodo_nombre.includes('Efectivo')">💵 </span>
+                {{ met.metodo_nombre }}
+              </span>
+              <span class="item-val">Bs. {{ met.total_bs | number:'1.2-2' }} ({{ met.cantidad_pagos }} trans.)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill fill-purple" [style.width.%]="getPorcentajeMetodo(met.total_bs)"></div>
+            </div>
+          </div>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Sección Inferior: Top 5 Prendas y Canales -->
+    <div class="analytics-grid" style="margin-top: 24px;">
+      <!-- Top 5 Poleras -->
+      <mat-card class="chart-card" style="grid-column: span 2;">
+        <div class="card-header-row">
+          <div class="card-title-box">
+            <mat-icon>military_tech</mat-icon>
+            <h3>Top 5 Poleras Más Vendidas</h3>
+          </div>
+          <span class="card-sub">Prendas con mayor demanda en boutique</span>
+        </div>
+        <mat-divider></mat-divider>
+        <div class="card-body table-responsive">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>SKU</th>
+                <th>Nombre de Prenda</th>
+                <th style="text-align: right;">Precio Base</th>
+                <th style="text-align: center;">Unidades Vendidas</th>
+                <th style="text-align: right;">Total Recaudado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of topPrendas; let i = index">
+                <td><span class="rank-badge">{{ i + 1 }}</span></td>
+                <td><code class="sku-code">{{ p.sku }}</code></td>
+                <td><strong>{{ p.nombre_producto }}</strong></td>
+                <td style="text-align: right;">Bs. {{ p.precio_unitario | number:'1.2-2' }}</td>
+                <td style="text-align: center;">
+                  <span class="pill-units">{{ p.unidades_vendidas }} uds.</span>
+                </td>
+                <td style="text-align: right; font-weight: 700; color: #0f172a;">
+                  Bs. {{ p.recaudacion_bs | number:'1.2-2' }}
+                </td>
+              </tr>
+              <tr *ngIf="topPrendas.length === 0">
+                <td colspan="6" style="text-align: center; padding: 24px; color: #94a3b8;">
+                  No se registran ventas para el período seleccionado.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-card>
+    </div>
+
+    <!-- Enlaces Rápidos a Módulos del Sistema -->
+    <div class="quick-links-bar" style="margin-top: 24px;">
+      <span class="quick-title">ACCESOS RÁPIDOS OPERATIVOS:</span>
+      <div class="quick-buttons">
+        <button mat-stroked-button routerLink="/admin/pos">
+          <mat-icon>point_of_sale</mat-icon>
+          <span>Punto de Venta (POS)</span>
+        </button>
+        <button mat-stroked-button routerLink="/admin/reservas">
+          <mat-icon>event_available</mat-icon>
+          <span>Atención de Reservas</span>
+        </button>
+        <button mat-stroked-button routerLink="/admin/inventario">
+          <mat-icon>inventory_2</mat-icon>
+          <span>Kardex de Inventario</span>
+        </button>
+        <button mat-stroked-button routerLink="/admin/users">
+          <mat-icon>people</mat-icon>
+          <span>Usuarios y Roles</span>
+        </button>
+        <button mat-stroked-button routerLink="/catalogo">
+          <mat-icon>storefront</mat-icon>
+          <span>Vitrina Online</span>
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
