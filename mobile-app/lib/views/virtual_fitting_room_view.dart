@@ -1,12 +1,11 @@
 // ==============================================================================
-// CU12 - UTILIZAR VESTIDOR VIRTUAL -> VISTA MÓVIL PROFESIONAL CON IA
+// CU12 - VESTIDOR VIRTUAL PROFESIONAL CON IA (NIVEL SENIOR)
 // Ubicación: mobile-app/lib/views/virtual_fitting_room_view.dart
-// Características:
-// 1. Auto-Tracking & Snap Anatómico con Google ML Kit (detecta hombros y encaja solo).
-// 2. Asesor Fisonómico con Google Gemini AI (contextura, recomendación de talla y estilo).
-// 3. Cámara Frontal en Tiempo Real a 30/60 FPS con modo espejo probador.
-// 4. Prenda 3D con iluminación volumétrica HSL que nunca tapa la textura ni el estampado.
-// 5. Gestos multitáctiles (zoom, rotación, arrastre) y D-Pad para micro-ajustes.
+// 1. Sin siluetas molestas: Pantalla limpia, despejada e inmersiva.
+// 2. Auto-Tracking & Snap a hombros con Google ML Kit (cero arrastre manual).
+// 3. Virtual Try-On Fotorrealista (IDM-VTON / Difusión textil en backend).
+// 4. Asesor Fisonómico y recomendación de tallas con Google Gemini AI.
+// 5. Cámara frontal en vivo a 60 FPS con modo espejo de alta definición.
 // ==============================================================================
 
 import 'dart:convert';
@@ -22,7 +21,6 @@ import '../models/product_model.dart';
 import '../controllers/cart_controller.dart';
 import '../services/pose_detector_service.dart';
 import '../widgets/realistic_garment_widget.dart';
-import '../widgets/ar_body_guide_overlay.dart';
 import 'cart_view.dart';
 
 enum FittingMode { camaraVivo, fotoPersonal, maniqui }
@@ -71,7 +69,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   Color _colorSeleccionado = const Color(0xFF1E293B); // Charcoal / Grafito elegante
   GarmentType _tipoPrenda = GarmentType.poleraCuelloRedondo;
   bool _usarRecorteFotoCatalogo = false;
-  bool _mostrarGuiaCalibracion = true;
   final bool _mostrarControlesFlotantes = true;
 
   // Lista de Tallas con medidas sugeridas
@@ -121,7 +118,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     }
   }
 
-  /// Inicializa la cámara física del teléfono dando prioridad a la cámara frontal (Modo Espejo)
   Future<void> _inicializarCamara() async {
     setState(() {
       _camaraIniciando = true;
@@ -195,7 +191,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     await _configurarControladorCamara(_camarasDisponibles[nextIndex]);
   }
 
-  /// AUTO-TRACKING / AUTO-SNAP: Detecta hombros con Google ML Kit y ajusta automáticamente la prenda
+  /// AUTO-TRACKING / AUTO-SNAP: Detecta hombros con Google ML Kit y auto-ajusta la prenda
   Future<void> _analizarPoseDeArchivo(File file, {bool mostrarFeedback = true}) async {
     setState(() => _detectandoPose = true);
 
@@ -207,7 +203,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         final imgWidth = poseData.imageSize.width > 0 ? poseData.imageSize.width : 1080.0;
         final scaleFactor = screenSize.width / imgWidth;
 
-        // Calcular posición de hombros en pantalla
         final screenX = poseData.shoulderCenter.dx * scaleFactor;
         final screenY = poseData.shoulderCenter.dy * scaleFactor;
         final targetGarmentWidth = poseData.shoulderWidth * scaleFactor * 1.35;
@@ -232,7 +227,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '¡Cuerpo detectado con IA! Prenda ajustada a tus hombros (Precisión: ${(poseData.confidence * 100).toInt()}%)',
+                      '¡Hombros detectados! Prenda ajustada automáticamente (${(poseData.confidence * 100).toInt()}% precisión)',
                     ),
                   ),
                 ],
@@ -247,7 +242,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         if (mostrarFeedback && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('No se detectaron hombros claramente. Enfócate de frente o ajusta manualmente.'),
+              content: Text('Enfócate de frente para detectar hombros, o ajusta con los controles.'),
               backgroundColor: Colors.orange,
             ),
           );
@@ -259,7 +254,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     }
   }
 
-  /// AUTO-ALINEAR EN TIEMPO REAL: Toma un fotograma instantáneo de la cámara y auto-centra la prenda
   Future<void> _capturarYAutoAlinear() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
 
@@ -267,11 +261,10 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       final xFile = await _cameraController!.takePicture();
       await _analizarPoseDeArchivo(File(xFile.path));
     } catch (e) {
-      debugPrint('Error en auto-alinear en vivo: $e');
+      debugPrint('Error en auto-alinear: $e');
     }
   }
 
-  /// Captura de foto desde cámara o galería y auto-calce inmediato
   Future<void> _seleccionarFotoPersonal(ImageSource source) async {
     try {
       final XFile? imagen = await _picker.pickImage(
@@ -286,7 +279,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
           _fotoUsuario = f;
           _modoActual = FittingMode.fotoPersonal;
         });
-        // Auto-Snap automático inmediato al cargar la foto
         await _analizarPoseDeArchivo(f);
       }
     } catch (e) {
@@ -298,7 +290,184 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     }
   }
 
-  /// Consulta al servicio backend de Google Gemini AI para recomendación de talla y fisonomía
+  /// VIRTUAL TRY-ON FOTORREALISTA: Genera con IDM-VTON / Difusión la foto real de la persona vistiendo la prenda
+  Future<void> _generarPruebaVirtualFotorrealista() async {
+    File? imagenAProcesar = _fotoUsuario;
+
+    // Si está en cámara en vivo y no ha subido foto, toma un fotograma de alta calidad
+    if (imagenAProcesar == null && _modoActual == FittingMode.camaraVivo && _cameraController != null && _cameraController!.value.isInitialized) {
+      try {
+        final xFile = await _cameraController!.takePicture();
+        imagenAProcesar = File(xFile.path);
+      } catch (e) {
+        debugPrint('Error al capturar fotograma para VTON: $e');
+      }
+    }
+
+    if (!mounted) return;
+
+    if (imagenAProcesar == null) {
+      _mostrarBottomSheetFoto();
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          color: Color(0xFF1E293B),
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFFE11D48)),
+                SizedBox(height: 16),
+                Text(
+                  'Generando Prueba Fotorrealista con IA...',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Aplicando IDM-VTON, remoción de fondo y caída 3D...',
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/vestidor/try-on-fotorrealista');
+      final request = http.MultipartRequest('POST', uri);
+      request.fields['prenda_url'] = widget.producto.imagenUrl ?? '';
+      request.fields['talla'] = _tallaSeleccionada;
+      final nombreColor = _coloresDisponibles.firstWhere(
+        (c) => c['color'] == _colorSeleccionado,
+        orElse: () => {'nombre': 'Grafito'},
+      )['nombre'];
+      request.fields['color'] = nombreColor;
+      request.files.add(await http.MultipartFile.fromPath('imagen_usuario', imagenAProcesar.path));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      if (mounted) Navigator.pop(context); // Cerrar loader
+
+      if (streamedResponse.statusCode == 200) {
+        final respStr = await streamedResponse.stream.bytesToString();
+        final Map<String, dynamic> data = json.decode(respStr);
+        if (data['status'] == 'success' && data['imagen_base64'] != null) {
+          _mostrarModalResultadoVton(data['imagen_base64'], data['motor'] ?? 'IDM-VTON');
+        } else {
+          _mostrarErrorTryOn(data['mensaje'] ?? 'No se pudo generar la prueba');
+        }
+      } else {
+        _mostrarErrorTryOn('Error en el servidor al generar la prueba fotorrealista.');
+      }
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      _mostrarErrorTryOn('Error de comunicación con el motor de IA: $e');
+    }
+  }
+
+  void _mostrarModalResultadoVton(String base64Data, String motor) {
+    final pureBase64 = base64Data.contains(',') ? base64Data.split(',').last : base64Data;
+    final bytes = base64.decode(pureBase64);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF111827),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Prueba Fotorrealista Generada',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.52),
+                child: Image.memory(bytes, fit: BoxFit.contain),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Text(
+                    '⚡ $motor • Talla $_tallaSeleccionada',
+                    style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white70,
+                            side: const BorderSide(color: Colors.white24),
+                          ),
+                          child: const Text('Cerrar'),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+                          icon: const Icon(Icons.shopping_bag, size: 16, color: Colors.white),
+                          label: const Text('Comprar Talla', style: TextStyle(color: Colors.white)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            Provider.of<CartController>(context, listen: false).agregarProducto(widget.producto);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('¡${widget.producto.nombre} agregada al carrito!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _mostrarErrorTryOn(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    );
+  }
+
+  /// ASESOR FISONÓMICO GEMINI AI
   Future<void> _consultarAsesorGeminiIA() async {
     showDialog(
       context: context,
@@ -345,14 +514,14 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       }
 
       final streamedResponse = await request.send().timeout(const Duration(seconds: 20));
-      if (mounted) Navigator.pop(context); // Cerrar diálogo de carga
+      if (mounted) Navigator.pop(context);
 
       if (streamedResponse.statusCode == 200) {
         final respStr = await streamedResponse.stream.bytesToString();
         final Map<String, dynamic> data = json.decode(respStr);
-        _mostrarModalResultadoIA(data);
+        _mostrarModalResultadoGemini(data);
       } else {
-        _mostrarModalResultadoIA({
+        _mostrarModalResultadoGemini({
           'contextura_detectada': 'Complexión Regular Atlética',
           'talla_recomendada': _tallaSeleccionada,
           'porcentaje_calce': 95,
@@ -363,7 +532,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _mostrarModalResultadoIA({
+      _mostrarModalResultadoGemini({
         'contextura_detectada': 'Complexión Regular Atlética',
         'talla_recomendada': _tallaSeleccionada,
         'porcentaje_calce': 95,
@@ -374,7 +543,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     }
   }
 
-  void _mostrarModalResultadoIA(Map<String, dynamic> data) {
+  void _mostrarModalResultadoGemini(Map<String, dynamic> data) {
     final tallaRec = data['talla_recomendada']?.toString() ?? _tallaSeleccionada;
     final contextura = data['contextura_detectada']?.toString() ?? 'Regular';
     final calce = data['porcentaje_calce'] ?? 95;
@@ -531,28 +700,40 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
             // Selector de Modos
             _buildModeSelector(),
 
-            // Área Principal de Visualización AR
+            // Área Principal de Visualización AR (Totalmente Limpia sin siluetas)
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // 1. Capa de Fondo (Cámara en tiempo real, Foto personal o Maniquí)
+                  // 1. Capa de Fondo limpia (Cámara o Foto)
                   _buildFondoAR(),
 
-                  // 2. Efecto de escaneo láser cuando la IA está analizando
+                  // 2. Indicador sutil de detección activa
                   if (_detectandoPose)
-                    Positioned.fill(
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.4),
-                        child: const Center(
-                          child: Column(
+                    Positioned(
+                      top: 16,
+                      left: 20,
+                      right: 20,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.75),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFF38BDF8)),
+                          ),
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              CircularProgressIndicator(color: Color(0xFF38BDF8)),
-                              SizedBox(height: 12),
+                              SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+                              ),
+                              SizedBox(width: 8),
                               Text(
-                                '🤖 Detectando anatomía y hombros con IA...',
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                'Alineando prenda a tus hombros...',
+                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -560,23 +741,20 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                       ),
                     ),
 
-                  // 3. Guía de Posicionamiento Corporal
-                  ArBodyGuideOverlay(visible: _mostrarGuiaCalibracion && !_detectandoPose),
-
-                  // 4. Prenda AR Interactiva con Gestos Multitáctiles
+                  // 3. Prenda AR Interactiva
                   _buildPrendaInteractiva(),
 
-                  // 5. Botón Flotante: AUTO-ALIGN A HOMBROS CON IA (Snap automático)
+                  // 4. Botón Flotante Izquierdo: AUTO-CALCE A HOMBROS
                   Positioned(
                     left: 14,
-                    bottom: 40,
+                    bottom: 24,
                     child: FloatingActionButton.extended(
                       heroTag: 'btn_auto_snap',
                       backgroundColor: const Color(0xFF065F46),
                       foregroundColor: Colors.white,
                       elevation: 4,
                       icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.amber),
-                      label: const Text('Auto-Calce IA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      label: const Text('Auto-Calce', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       onPressed: () {
                         if (_modoActual == FittingMode.camaraVivo) {
                           _capturarYAutoAlinear();
@@ -589,18 +767,33 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                     ),
                   ),
 
-                  // 6. Botón Flotante: ASESOR FISONÓMICO GEMINI AI
+                  // 5. Botón Flotante Central/Derecho: PRUEBA FOTORREALISTA VTON
                   Positioned(
                     right: 14,
-                    bottom: 40,
+                    bottom: 24,
                     child: FloatingActionButton.extended(
+                      heroTag: 'btn_vton_tryon',
+                      backgroundColor: const Color(0xFFE11D48),
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      icon: const Icon(Icons.camera_enhance, size: 18),
+                      label: const Text('Prueba VTON IA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      onPressed: _generarPruebaVirtualFotorrealista,
+                    ),
+                  ),
+
+                  // 6. Botón Flotante: ASESOR GEMINI
+                  Positioned(
+                    right: 14,
+                    bottom: 78,
+                    child: FloatingActionButton.small(
                       heroTag: 'btn_gemini_advisor',
                       backgroundColor: const Color(0xFF4338CA),
                       foregroundColor: Colors.white,
                       elevation: 4,
-                      icon: const Icon(Icons.psychology, size: 20, color: Color(0xFF38BDF8)),
-                      label: const Text('Asesor Gemini', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      tooltip: 'Asesor Fisonómico Gemini',
                       onPressed: _consultarAsesorGeminiIA,
+                      child: const Icon(Icons.psychology, size: 20, color: Color(0xFF38BDF8)),
                     ),
                   ),
 
@@ -612,7 +805,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                       child: _buildPanelControlesRapidos(),
                     ),
 
-                  // 8. Botón de alternar cámara
+                  // 8. Botón de alternar cámara (Frontal / Trasera)
                   if (_modoActual == FittingMode.camaraVivo && _camaraLista)
                     Positioned(
                       left: 14,
@@ -626,32 +819,11 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                         child: const Icon(Icons.flip_camera_ios, size: 20),
                       ),
                     ),
-
-                  // 9. Indicador informativo inferior
-                  Positioned(
-                    bottom: 8,
-                    left: 20,
-                    right: 20,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white24),
-                        ),
-                        child: const Text(
-                          'Pulsa "Auto-Calce IA" para que la prenda se enganche sola a tus hombros',
-                          style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
 
-            // Panel Inferior de Ajustes (Tallas, Colores, Tipos y Carrito)
+            // Panel Inferior de Ajustes
             _buildPanelAjustesInferior(cartCtrl),
           ],
         ),
@@ -660,7 +832,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   }
 
   // ============================================================================
-  // TOP BAR
+  // TOP BAR (LIMPIA SIN BOTÓN DE SILUETA)
   // ============================================================================
   Widget _buildTopBar() {
     return Container(
@@ -699,17 +871,8 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
             ),
           ),
           IconButton(
-            icon: Icon(
-              _mostrarGuiaCalibracion ? Icons.accessibility : Icons.accessibility_new_outlined,
-              color: _mostrarGuiaCalibracion ? const Color(0xFF38BDF8) : Colors.white60,
-              size: 22,
-            ),
-            tooltip: 'Guía de Hombros',
-            onPressed: () => setState(() => _mostrarGuiaCalibracion = !_mostrarGuiaCalibracion),
-          ),
-          IconButton(
             icon: const Icon(Icons.restart_alt, color: Colors.white, size: 22),
-            tooltip: 'Resetear Prenda',
+            tooltip: 'Centrar Prenda',
             onPressed: _resetearPosicionPrenda,
           ),
         ],
@@ -800,7 +963,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   }
 
   // ============================================================================
-  // CAPA DE FONDO SEGÚN EL MODO
+  // CAPA DE FONDO LIMPIA (SIN SILUETAS ENCIMA)
   // ============================================================================
   Widget _buildFondoAR() {
     if (_modoActual == FittingMode.camaraVivo) {
@@ -878,7 +1041,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       );
     }
 
-    // Modo Maniquí 3D
+    // Modo Maniquí 3D Minimalista y Limpio
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -892,15 +1055,15 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.04),
                 border: Border.all(color: Colors.white10),
               ),
-              child: Icon(Icons.person, size: 220, color: Colors.white.withValues(alpha: 0.22)),
+              child: Icon(Icons.person, size: 200, color: Colors.white.withValues(alpha: 0.18)),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               decoration: BoxDecoration(
@@ -908,7 +1071,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Text(
-                'Maniquí Unisex: Complexión Regular',
+                'Maniquí 3D: Complexión Regular',
                 style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
@@ -1239,7 +1402,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Cargar Foto para el Vestidor',
+              'Cargar Foto para el Probador',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 16),
@@ -1255,7 +1418,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
             ListTile(
               leading: const Icon(Icons.photo_library, color: Color(0xFF6366F1)),
               title: const Text('Elegir de Galería', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Detecta hombros y encaja la polera sola', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              subtitle: const Text('Detecta hombros y calza la prenda sola', style: TextStyle(color: Colors.white54, fontSize: 11)),
               onTap: () {
                 Navigator.pop(ctx);
                 _seleccionarFotoPersonal(ImageSource.gallery);
