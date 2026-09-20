@@ -15,6 +15,7 @@ dependencies:
   url_launcher: ^6.2.5
   image_picker: ^1.0.7
   camera: ^0.12.1
+  google_mlkit_pose_detection: ^0.16.1
 
 dev_dependencies:
   flutter_test:

@@ -20,6 +20,7 @@ from app.views.cu8_consultar_catalogo_disponibilidad import catalogo_views
 from app.views.cu9_gestionar_carrito_compras import carrito_views
 from app.views.cu10_gestionar_reservas_prendas import reserva_views
 from app.views.cu11_atender_reservas_sucursal import atender_reserva_views
+from app.views.cu12_vestidor_virtual_ia import vestidor_ia_views
 from app.views.cu13_gestionar_inventario_movimientos import inventario_views
 from app.views.cu14_registrar_ventas_presenciales import venta_presencial_views
 from app.views.cu15_realizar_compras_digitales import compra_digital_views
@@ -64,6 +65,7 @@ app.include_router(producto_views.router, prefix=settings.API_V1_STR)
 app.include_router(proveedor_views.router, prefix=settings.API_V1_STR)
 app.include_router(catalogo_views.router, prefix=settings.API_V1_STR)
 app.include_router(carrito_views.router, prefix=settings.API_V1_STR)
+app.include_router(vestidor_ia_views.router, prefix=settings.API_V1_STR)
 app.include_router(atender_reserva_views.router, prefix=settings.API_V1_STR)
 app.include_router(reserva_views.router, prefix=settings.API_V1_STR)
 app.include_router(inventario_views.router, prefix=settings.API_V1_STR)
