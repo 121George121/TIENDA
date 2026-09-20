@@ -4,21 +4,15 @@
 // ==============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/product_model.dart';
 import '../models/inventory_model.dart';
+import '../config/api_config.dart';
 
 class ProductController extends ChangeNotifier {
-  static String get _host {
-    if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
-    return 'http://127.0.0.1:8000/api/v1';
-  }
-
-  static String get baseUrl => '$_host/productos';
-  static String get inventarioUrl => '$_host/inventario';
+  static String get baseUrl => '${ApiConfig.baseUrl}/productos';
+  static String get inventarioUrl => '${ApiConfig.baseUrl}/inventario';
 
   // Lista tradicional (compatibilidad)
   List<ProductModel> _productos = [];

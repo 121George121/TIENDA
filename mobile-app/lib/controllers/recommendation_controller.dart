@@ -5,9 +5,9 @@
 // ==============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 
 class RecommendationItem {
   final int productoId;
@@ -42,11 +42,7 @@ class RecommendationItem {
 }
 
 class RecommendationController extends ChangeNotifier {
-  static String get _host {
-    if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
-    return 'http://127.0.0.1:8000/api/v1';
-  }
+  static String get _host => ApiConfig.baseUrl;
 
   List<RecommendationItem> _recomendaciones = [];
   bool _cargando = false;

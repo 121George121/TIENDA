@@ -5,10 +5,10 @@
 // ==============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import '../config/api_config.dart';
 
 class PaymentMethod {
   final int id;
@@ -27,11 +27,7 @@ class PaymentMethod {
 }
 
 class PaymentController extends ChangeNotifier {
-  static String get _host {
-    if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
-    return 'http://127.0.0.1:8000/api/v1';
-  }
+  static String get _host => ApiConfig.baseUrl;
 
   List<PaymentMethod> _metodos = [];
   bool _cargando = false;

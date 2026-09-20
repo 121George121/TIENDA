@@ -4,18 +4,13 @@
 // ==============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/user_model.dart';
+import '../config/api_config.dart';
 
 class AuthController with ChangeNotifier {
-  // Soporte dinámico para Android Emulator (10.0.2.2) y Localhost (Desktop/iOS/Web)
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8000/api/v1/auth';
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1/auth';
-    return 'http://127.0.0.1:8000/api/v1/auth';
-  }
+  static String get baseUrl => '${ApiConfig.baseUrl}/auth';
 
   UserModel? _currentUser;
   bool _isLoading = false;

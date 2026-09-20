@@ -4,17 +4,13 @@
 // ==============================================================================
 
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
+import '../config/api_config.dart';
 
 class OrderController extends ChangeNotifier {
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:8000/api/v1/ordenes';
-    if (!kIsWeb && Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1/ordenes';
-    return 'http://127.0.0.1:8000/api/v1/ordenes';
-  }
+  static String get baseUrl => '${ApiConfig.baseUrl}/ordenes';
 
   List<OrderModel> _ordenes = [];
   bool _cargando = false;
