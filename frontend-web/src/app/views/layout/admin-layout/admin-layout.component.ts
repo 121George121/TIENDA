@@ -11,6 +11,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatBadgeModule } from '@angular/material/badge';
 
 import { NotificacionService, NotificacionDTO } from '../../../services/cu19_gestionar_notificaciones/notificacion.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -36,7 +37,8 @@ export class AdminLayoutComponent implements OnInit {
 
   constructor(
     public notifService: NotificacionService,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -65,9 +67,8 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('user_role');
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 }
+

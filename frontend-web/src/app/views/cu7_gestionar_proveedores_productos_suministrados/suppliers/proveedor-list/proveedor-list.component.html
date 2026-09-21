@@ -121,12 +121,16 @@
           <button mat-icon-button color="primary" (click)="openEditDialog(p)" matTooltip="Editar Proveedor" id="btn-edit-supp-{{ p.id }}">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="deleteProveedor(p)" matTooltip="Desactivar Proveedor" id="btn-del-supp-{{ p.id }}">
+          <button mat-icon-button [color]="p.activo ? 'accent' : 'primary'" (click)="toggleStatusProveedor(p)" [matTooltip]="p.activo ? 'Desactivar Proveedor' : 'Activar Proveedor'" id="btn-toggle-supp-{{ p.id }}">
+            <mat-icon>{{ p.activo ? 'block' : 'check_circle' }}</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteProveedor(p)" matTooltip="Eliminar definitivamente" id="btn-del-supp-{{ p.id }}">
             <mat-icon>delete_forever</mat-icon>
           </button>
         </div>
       </td>
     </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>

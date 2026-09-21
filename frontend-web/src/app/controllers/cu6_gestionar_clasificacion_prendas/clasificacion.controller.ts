@@ -50,11 +50,12 @@ export class ClasificacionController {
   deleteCategoria(id: number): Observable<any> {
     return this.service.deleteCategoria(id).pipe(
       tap(() => {
-        const list = this.categoriasSubject.value.map(c => c.id === id ? { ...c, activo: false } : c);
+        const list = this.categoriasSubject.value.filter(c => c.id !== id);
         this.categoriasSubject.next(list);
       })
     );
   }
+
 
   // TEMPORADAS
   loadTemporadas(search?: string, activo?: boolean): void {
@@ -85,7 +86,7 @@ export class ClasificacionController {
   deleteTemporada(id: number): Observable<any> {
     return this.service.deleteTemporada(id).pipe(
       tap(() => {
-        const list = this.temporadasSubject.value.map(t => t.id === id ? { ...t, activo: false } : t);
+        const list = this.temporadasSubject.value.filter(t => t.id !== id);
         this.temporadasSubject.next(list);
       })
     );
@@ -120,9 +121,10 @@ export class ClasificacionController {
   deleteColeccion(id: number): Observable<any> {
     return this.service.deleteColeccion(id).pipe(
       tap(() => {
-        const list = this.coleccionesSubject.value.map(c => c.id === id ? { ...c, activo: false } : c);
+        const list = this.coleccionesSubject.value.filter(c => c.id !== id);
         this.coleccionesSubject.next(list);
       })
     );
   }
+
 }

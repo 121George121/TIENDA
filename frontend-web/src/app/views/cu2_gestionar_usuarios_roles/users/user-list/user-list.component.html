@@ -193,12 +193,16 @@
           <button mat-icon-button color="primary" (click)="openEditDialog(user)" matTooltip="Editar Usuario" id="btn-edit-user-{{ user.id }}">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="onDeleteUser(user)" matTooltip="Eliminar Usuario" id="btn-delete-user-{{ user.id }}">
+          <button mat-icon-button [color]="user.activo ? 'accent' : 'primary'" (click)="onToggleStatus(user)" [matTooltip]="user.activo ? 'Desactivar Usuario' : 'Activar Usuario'" id="btn-toggle-user-{{ user.id }}">
+            <mat-icon>{{ user.activo ? 'block' : 'check_circle' }}</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteUser(user)" matTooltip="Eliminar definitivamente" id="btn-delete-user-{{ user.id }}">
             <mat-icon>delete_forever</mat-icon>
           </button>
         </div>
       </td>
     </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>

@@ -49,9 +49,15 @@ class CategoriaService:
         cat = db.query(CategoriaModel).filter(CategoriaModel.id == id).first()
         if not cat:
             raise HTTPException(status_code=404, detail="Categoría no encontrada")
-        cat.activo = False
-        db.commit()
-        return {"message": "Categoría dada de baja correctamente", "id": id}
+        try:
+            db.delete(cat)
+            db.commit()
+            return {"message": "Categoría eliminada correctamente", "id": id}
+        except Exception:
+            db.rollback()
+            cat.activo = False
+            db.commit()
+            return {"message": "Categoría desactivada porque tiene productos asociados", "id": id}
 
 class TemporadaService:
 
@@ -88,15 +94,21 @@ class TemporadaService:
         temp = db.query(TemporadaModel).filter(TemporadaModel.id == id).first()
         if not temp:
             raise HTTPException(status_code=404, detail="Temporada no encontrada")
-        temp.activo = False
-        db.commit()
-        return {"message": "Temporada dada de baja correctamente", "id": id}
+        try:
+            db.delete(temp)
+            db.commit()
+            return {"message": "Temporada eliminada correctamente", "id": id}
+        except Exception:
+            db.rollback()
+            temp.activo = False
+            db.commit()
+            return {"message": "Temporada desactivada porque tiene colecciones asociadas", "id": id}
 
 class ColeccionService:
 
     @staticmethod
     def get_all(db: Session, search: Optional[str] = None, activo: Optional[bool] = None) -> List[ColeccionModel]:
-        query = db.query(ColeccionModel)
+        query = db.query(ColeccionModel).options(joinedload(ColeccionModel.temporada))
         if search:
             query = query.filter(ColeccionModel.nombre.ilike(f"%{search}%"))
         if activo is not None:
@@ -127,6 +139,12 @@ class ColeccionService:
         col = db.query(ColeccionModel).filter(ColeccionModel.id == id).first()
         if not col:
             raise HTTPException(status_code=404, detail="Colección no encontrada")
-        col.activo = False
-        db.commit()
-        return {"message": "Colección dada de baja correctamente", "id": id}
+        try:
+            db.delete(col)
+            db.commit()
+            return {"message": "Colección eliminada correctamente", "id": id}
+        except Exception:
+            db.rollback()
+            col.activo = False
+            db.commit()
+            return {"message": "Colección desactivada correctamente", "id": id}

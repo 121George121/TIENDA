@@ -169,14 +169,37 @@ export class ClasificacionListComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleStatusItem(type: EntityType, item: any): void {
+    const nuevoEstado = !item.activo;
+    const accion = nuevoEstado ? 'activada' : 'desactivada';
+    if (type === 'categoria') {
+      this.controller.updateCategoria(item.id, { activo: nuevoEstado }).subscribe({
+        next: () => this.snackBar.open(`Categoría ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
+        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+      });
+    } else if (type === 'temporada') {
+      this.controller.updateTemporada(item.id, { activo: nuevoEstado }).subscribe({
+        next: () => this.snackBar.open(`Temporada ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
+        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+      });
+    } else if (type === 'coleccion') {
+      this.controller.updateColeccion(item.id, { activo: nuevoEstado }).subscribe({
+        next: () => this.snackBar.open(`Colección ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
+        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+      });
+    }
+  }
+
   deleteItem(type: EntityType, item: any): void {
+
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-      width: '400px',
+      width: '420px',
       data: {
-        title: `¿Dar de baja ${type}?`,
-        message: `¿Estás seguro de desactivar "${item.nombre}"?`,
-        confirmText: 'Desactivar',
+        title: `¿Eliminar ${type}?`,
+        message: `¿Estás seguro de eliminar "${item.nombre}"? Esta acción removerá el registro de la clasificación.`,
+        confirmText: 'Eliminar',
         cancelText: 'Cancelar',
+        icon: 'delete_forever',
         color: 'warn'
       }
     });
@@ -185,18 +208,22 @@ export class ClasificacionListComponent implements OnInit, OnDestroy {
       if (confirmed) {
         if (type === 'categoria') {
           this.controller.deleteCategoria(item.id).subscribe({
-            next: () => this.snackBar.open('Categoría dada de baja', 'Cerrar', { duration: 3000 })
+            next: (res: any) => this.snackBar.open(res?.message || 'Categoría eliminada exitosamente', 'Cerrar', { duration: 3000 }),
+            error: (err: any) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'temporada') {
           this.controller.deleteTemporada(item.id).subscribe({
-            next: () => this.snackBar.open('Temporada dada de baja', 'Cerrar', { duration: 3000 })
+            next: (res: any) => this.snackBar.open(res?.message || 'Temporada eliminada exitosamente', 'Cerrar', { duration: 3000 }),
+            error: (err: any) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'coleccion') {
           this.controller.deleteColeccion(item.id).subscribe({
-            next: () => this.snackBar.open('Colección dada de baja', 'Cerrar', { duration: 3000 })
+            next: (res: any) => this.snackBar.open(res?.message || 'Colección eliminada exitosamente', 'Cerrar', { duration: 3000 }),
+            error: (err: any) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
           });
         }
       }
     });
   }
+
 }

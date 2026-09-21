@@ -60,15 +60,11 @@ export class ProveedorController {
     this.loadingSubject.next(true);
     return this.service.deleteProveedor(id).pipe(
       tap(() => {
-        const current = this.proveedoresSubject.value;
-        const index = current.findIndex(p => p.id === id);
-        if (index !== -1) {
-          const list = [...current];
-          list[index] = { ...list[index], activo: false };
-          this.proveedoresSubject.next(list);
-        }
+        const list = this.proveedoresSubject.value.filter(p => p.id !== id);
+        this.proveedoresSubject.next(list);
       }),
       finalize(() => this.loadingSubject.next(false))
     );
   }
 }
+

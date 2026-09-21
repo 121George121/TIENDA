@@ -1,40 +1,22 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 export const adminGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
-  const userStr = localStorage.getItem('usuario') || localStorage.getItem('user');
-  const userRol = (localStorage.getItem('rol') || localStorage.getItem('user_role') || '').toUpperCase();
+  const authService = inject(AuthService);
 
-  if (!token) {
-    console.warn('adminGuard: No hay token en localStorage, redirigiendo a login');
+  if (!authService.isAuthenticated()) {
     router.navigate(['/login']);
     return false;
   }
 
-  const isRolAdmin = userRol === 'ADMIN' || userRol === 'ADMINISTRADOR' || userRol === 'SUPERVISOR';
-
-  if (isRolAdmin) {
+  if (authService.isAdmin()) {
     return true;
   }
 
-  if (userStr) {
-    try {
-      const user = JSON.parse(userStr);
-      if (user && (user.rol_id === 1 || user.rolid === 1 || user.rol_id === 2 || user.rolid === 2)) {
-        return true;
-      }
-    } catch (e) {
-      console.error('Error al parsear usuario de localStorage', e);
-    }
-  }
-
-  // Si hay token activo válido permitimos acceso al panel
-  if (token) {
-    return true;
-  }
-
-  router.navigate(['/login']);
+  // Si es un cliente u otro rol sin privilegios administrativos, lo redirigimos a la tienda
+  router.navigate(['/catalogo']);
   return false;
 };
+

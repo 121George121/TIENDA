@@ -164,12 +164,16 @@
           <button mat-icon-button color="primary" (click)="openEditDialog(p)" matTooltip="Editar Polera" id="btn-edit-prod-{{ p.id }}">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="onDeleteProducto(p)" matTooltip="Baja Lógica" id="btn-delete-prod-{{ p.id }}">
+          <button mat-icon-button [color]="p.activo ? 'accent' : 'primary'" (click)="onToggleStatus(p)" [matTooltip]="p.activo ? 'Desactivar Polera' : 'Activar Polera'" id="btn-toggle-prod-{{ p.id }}">
+            <mat-icon>{{ p.activo ? 'block' : 'check_circle' }}</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteProducto(p)" matTooltip="Eliminar definitivamente" id="btn-delete-prod-{{ p.id }}">
             <mat-icon>delete_forever</mat-icon>
           </button>
         </div>
       </td>
     </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>

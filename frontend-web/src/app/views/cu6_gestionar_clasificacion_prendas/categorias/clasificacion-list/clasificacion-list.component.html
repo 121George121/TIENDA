@@ -96,10 +96,13 @@
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef> Acciones </th>
           <td mat-cell *matCellDef="let c">
-            <button mat-icon-button color="primary" (click)="openEditDialog('categoria', c)" id="btn-edit-cat-{{ c.id }}"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="deleteItem('categoria', c)" id="btn-del-cat-{{ c.id }}"><mat-icon>delete_forever</mat-icon></button>
+            <button mat-icon-button color="primary" (click)="openEditDialog('categoria', c)" id="btn-edit-cat-{{ c.id }}" matTooltip="Editar categoría"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button [color]="c.activo ? 'accent' : 'primary'" (click)="toggleStatusItem('categoria', c)" id="btn-toggle-cat-{{ c.id }}" [matTooltip]="c.activo ? 'Desactivar categoría' : 'Activar categoría'"><mat-icon>{{ c.activo ? 'block' : 'check_circle' }}</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="deleteItem('categoria', c)" id="btn-del-cat-{{ c.id }}" matTooltip="Eliminar definitivamente"><mat-icon>delete_forever</mat-icon></button>
           </td>
         </ng-container>
+
+
 
         <tr mat-header-row *matHeaderRowDef="catColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: catColumns;"></tr>
@@ -157,10 +160,13 @@
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef> Acciones </th>
           <td mat-cell *matCellDef="let t">
-            <button mat-icon-button color="primary" (click)="openEditDialog('temporada', t)" id="btn-edit-temp-{{ t.id }}"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="deleteItem('temporada', t)" id="btn-del-temp-{{ t.id }}"><mat-icon>delete_forever</mat-icon></button>
+            <button mat-icon-button color="primary" (click)="openEditDialog('temporada', t)" id="btn-edit-temp-{{ t.id }}" matTooltip="Editar temporada"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button [color]="t.activo ? 'accent' : 'primary'" (click)="toggleStatusItem('temporada', t)" id="btn-toggle-temp-{{ t.id }}" [matTooltip]="t.activo ? 'Desactivar temporada' : 'Activar temporada'"><mat-icon>{{ t.activo ? 'block' : 'check_circle' }}</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="deleteItem('temporada', t)" id="btn-del-temp-{{ t.id }}" matTooltip="Eliminar definitivamente"><mat-icon>delete_forever</mat-icon></button>
           </td>
         </ng-container>
+
+
 
         <tr mat-header-row *matHeaderRowDef="tempColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: tempColumns;"></tr>
@@ -222,10 +228,13 @@
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef> Acciones </th>
           <td mat-cell *matCellDef="let col">
-            <button mat-icon-button color="primary" (click)="openEditDialog('coleccion', col)" id="btn-edit-col-{{ col.id }}"><mat-icon>edit</mat-icon></button>
-            <button mat-icon-button color="warn" (click)="deleteItem('coleccion', col)" id="btn-del-col-{{ col.id }}"><mat-icon>delete_forever</mat-icon></button>
+            <button mat-icon-button color="primary" (click)="openEditDialog('coleccion', col)" id="btn-edit-col-{{ col.id }}" matTooltip="Editar colección"><mat-icon>edit</mat-icon></button>
+            <button mat-icon-button [color]="col.activo ? 'accent' : 'primary'" (click)="toggleStatusItem('coleccion', col)" id="btn-toggle-col-{{ col.id }}" [matTooltip]="col.activo ? 'Desactivar colección' : 'Activar colección'"><mat-icon>{{ col.activo ? 'block' : 'check_circle' }}</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="deleteItem('coleccion', col)" id="btn-del-col-{{ col.id }}" matTooltip="Eliminar definitivamente"><mat-icon>delete_forever</mat-icon></button>
           </td>
         </ng-container>
+
+
 
         <tr mat-header-row *matHeaderRowDef="colColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: colColumns;"></tr>

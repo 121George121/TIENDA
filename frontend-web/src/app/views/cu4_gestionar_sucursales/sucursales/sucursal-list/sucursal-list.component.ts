@@ -173,12 +173,12 @@ export class SucursalListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
-        title: '¿Dar de Baja la Sucursal?',
-        message: `¿Estás seguro de desactivar la sucursal "${sucursal.nombre}" del sistema retail?`,
-        confirmText: 'Dar de Baja',
+        title: '¿Eliminar Sucursal?',
+        message: `¿Estás seguro de eliminar la sucursal "${sucursal.nombre}"? Esta acción removerá el punto de venta.`,
+        confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         color: 'warn',
-        icon: 'store_setting'
+        icon: 'delete_forever'
       }
     });
 
@@ -186,13 +186,14 @@ export class SucursalListComponent implements OnInit, OnDestroy {
       if (confirmed) {
         this.sucursalController.deleteSucursal(sucursal.id).subscribe({
           next: () => {
-            this.snackBar.open(`Sucursal ${sucursal.nombre} dada de baja correctamente`, 'Cerrar', { duration: 3000 });
+            this.snackBar.open(`Sucursal "${sucursal.nombre}" eliminada correctamente`, 'Cerrar', { duration: 3000 });
           },
           error: (err) => {
-            this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
+            this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
       }
     });
   }
+
 }

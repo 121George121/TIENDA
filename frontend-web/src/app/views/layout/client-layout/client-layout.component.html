@@ -1,0 +1,239 @@
+<div class="client-shell">
+  <!-- Navbar Principal para Clientes -->
+  <header class="client-navbar">
+    <div class="navbar-container">
+      
+      <!-- Brand / Logo -->
+      <a routerLink="/catalogo" class="brand-link" id="nav-brand-logo">
+        <div class="brand-icon">
+          <mat-icon>checkroom</mat-icon>
+        </div>
+        <div class="brand-info">
+          <span class="brand-name">T-Shirt Boutique</span>
+          <span class="brand-tag">EXCLUSIVE STREETWEAR</span>
+        </div>
+      </a>
+
+      <!-- Navegación Principal -->
+      <nav class="nav-links">
+        <a routerLink="/catalogo" routerLinkActive="active-link" class="nav-item" id="nav-catalogo">
+          <mat-icon>storefront</mat-icon>
+          <span>Catálogo</span>
+        </a>
+
+        <a routerLink="/carrito" routerLinkActive="active-link" class="nav-item" id="nav-carrito">
+          <mat-icon [matBadge]="cartService.cartCount$ | async" [matBadgeHidden]="(cartService.cartCount$ | async) === 0" matBadgeColor="warn" matBadgeSize="small">
+            shopping_bag
+          </mat-icon>
+          <span>Carrito</span>
+        </a>
+
+        <a routerLink="/mis-reservas" routerLinkActive="active-link" class="nav-item" id="nav-reservas">
+          <mat-icon>bookmark_border</mat-icon>
+          <span>Mis Reservas</span>
+        </a>
+
+        <a routerLink="/mis-pedidos" routerLinkActive="active-link" class="nav-item" id="nav-pedidos">
+          <mat-icon>local_shipping</mat-icon>
+          <span>Mis Pedidos</span>
+        </a>
+      </nav>
+
+      <!-- Acciones de Usuario & Acceso Admin -->
+      <div class="navbar-actions">
+        
+        <!-- Botón rápido si es Administrador visitando la tienda -->
+        <a *ngIf="isAdmin" routerLink="/admin/users" class="btn-admin-switch" matTooltip="Ir al Panel de Control ERP" id="btn-switch-admin">
+          <mat-icon>admin_panel_settings</mat-icon>
+          <span>Panel Admin</span>
+        </a>
+
+        <!-- Si está autenticado -->
+        <ng-container *ngIf="isLoggedIn; else loginBtnTpl">
+          <button mat-button [matMenuTriggerFor]="userMenu" class="user-pill" id="btn-user-menu">
+            <div class="avatar-circle">{{ userInitial }}</div>
+            <div class="user-meta">
+              <span class="user-name">{{ userName }}</span>
+              <span class="role-badge" [class.admin-role]="isAdmin">{{ userRole }}</span>
+            </div>
+            <mat-icon class="arrow-icon">arrow_drop_down</mat-icon>
+          </button>
+
+          <mat-menu #userMenu="matMenu" class="custom-user-menu" xPosition="before">
+            <div class="menu-user-header">
+              <p class="menu-name">{{ userName }}</p>
+              <p class="menu-email">{{ userEmail }}</p>
+            </div>
+            <mat-divider></mat-divider>
+            
+            <button mat-menu-item (click)="abrirModalPerfil()" id="btn-menu-perfil" class="menu-perfil-btn">
+              <mat-icon color="primary">account_circle</mat-icon>
+              <span><strong>Mi Perfil</strong></span>
+            </button>
+            <mat-divider></mat-divider>
+            
+            <a mat-menu-item routerLink="/catalogo">
+              <mat-icon>storefront</mat-icon>
+              <span>Explorar Poleras</span>
+            </a>
+            <a mat-menu-item routerLink="/carrito">
+              <mat-icon>shopping_bag</mat-icon>
+              <span>Ver mi Carrito</span>
+            </a>
+            <a mat-menu-item routerLink="/mis-reservas">
+              <mat-icon>bookmark_border</mat-icon>
+              <span>Historial de Reservas</span>
+            </a>
+            <a mat-menu-item routerLink="/mis-pedidos">
+              <mat-icon>local_shipping</mat-icon>
+              <span>Mis Pedidos con Envío</span>
+            </a>
+
+            <div *ngIf="isAdmin">
+              <mat-divider></mat-divider>
+              <a mat-menu-item routerLink="/admin/users" class="menu-admin-item">
+                <mat-icon color="accent">admin_panel_settings</mat-icon>
+                <span>Gestión de Usuarios (Admin)</span>
+              </a>
+              <a mat-menu-item routerLink="/dashboard" class="menu-admin-item">
+                <mat-icon color="accent">space_dashboard</mat-icon>
+                <span>Dashboard de Reportes</span>
+              </a>
+            </div>
+
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="logout()" class="logout-item" id="btn-logout">
+              <mat-icon color="warn">logout</mat-icon>
+              <span>Cerrar Sesión</span>
+            </button>
+          </mat-menu>
+        </ng-container>
+
+        <!-- Si no está autenticado -->
+        <ng-template #loginBtnTpl>
+          <a routerLink="/login" class="btn-login-cta" id="btn-login-cta">
+            <mat-icon>login</mat-icon>
+            <span>Iniciar Sesión</span>
+          </a>
+        </ng-template>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor dinámico de las vistas del cliente -->
+  <main class="client-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Modal de Perfil del Cliente -->
+  <div class="profile-modal-overlay" *ngIf="mostrarModalPerfil" (click)="cerrarModalPerfil()">
+    <div class="profile-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="modal-icon">badge</mat-icon>
+          <h2>Perfil del Usuario</h2>
+        </div>
+        <button mat-icon-button (click)="cerrarModalPerfil()" class="btn-close-modal">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Tarjeta de Identidad -->
+        <div class="profile-hero">
+          <div class="profile-avatar-large">
+            {{ userInitial }}
+          </div>
+          <div class="profile-hero-info">
+            <h3>{{ userName }}</h3>
+            <span class="profile-role-tag" [class.admin-tag]="isAdmin">
+              <mat-icon>{{ isAdmin ? 'verified_user' : 'verified' }}</mat-icon>
+              {{ userRole }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Lista de Detalles del Cliente -->
+        <div class="profile-details-grid">
+          <div class="detail-item">
+            <span class="detail-label">
+              <mat-icon>person</mat-icon> Nombre Completo
+            </span>
+            <span class="detail-value">{{ userName }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">
+              <mat-icon>email</mat-icon> Correo Electrónico
+            </span>
+            <span class="detail-value">{{ userEmail || 'No disponible' }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">
+              <mat-icon>phone</mat-icon> Teléfono / Contacto
+            </span>
+            <span class="detail-value">{{ currentUser?.telefono || 'No registrado' }}</span>
+          </div>
+
+          <div class="detail-item">
+            <span class="detail-label">
+              <mat-icon>check_circle</mat-icon> Estado de la Cuenta
+            </span>
+            <span class="detail-value status-active">
+              {{ currentUser?.activo !== false ? '🟢 Activo y Verificado' : '🔴 Inactivo' }}
+            </span>
+          </div>
+        </div>
+
+
+        <!-- Accesos rápidos -->
+        <div class="profile-quick-actions">
+          <a routerLink="/mis-pedidos" (click)="cerrarModalPerfil()" class="quick-btn">
+            <mat-icon>local_shipping</mat-icon>
+            <span>Mis Pedidos</span>
+          </a>
+          <a routerLink="/mis-reservas" (click)="cerrarModalPerfil()" class="quick-btn">
+            <mat-icon>bookmark_border</mat-icon>
+            <span>Mis Reservas</span>
+          </a>
+          <a routerLink="/carrito" (click)="cerrarModalPerfil()" class="quick-btn">
+            <mat-icon>shopping_bag</mat-icon>
+            <span>Mi Carrito</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="cerrarModalPerfil()" class="btn-modal-close">
+          Cerrar
+        </button>
+        <button mat-raised-button color="warn" (click)="logout(); cerrarModalPerfil()" class="btn-modal-logout">
+          <mat-icon>logout</mat-icon>
+          <span>Cerrar Sesión</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Boutique -->
+  <footer class="client-footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <h3>T-Shirt Boutique</h3>
+        <p>Prendas exclusivas, moda streetwear y reserva multitienda inmediata.</p>
+      </div>
+      <div class="footer-links">
+        <a routerLink="/catalogo">Catálogo</a>
+        <a routerLink="/carrito">Carrito de Compras</a>
+        <a routerLink="/mis-reservas">Mis Reservas</a>
+        <a routerLink="/mis-pedidos">Mis Pedidos</a>
+      </div>
+      <div class="footer-copy">
+        <p>© 2026 T-Shirt Boutique ERP & E-Commerce. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+

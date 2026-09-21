@@ -175,12 +175,12 @@ export class CustomerListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
-        title: '¿Dar de Baja al Cliente?',
-        message: `¿Estás seguro de desactivar al cliente "${cliente.nombre}" del sistema retail?`,
-        confirmText: 'Dar de Baja',
+        title: '¿Eliminar Cliente?',
+        message: `¿Estás seguro de eliminar al cliente "${cliente.nombre}"? Esta acción removerá su ficha del sistema.`,
+        confirmText: 'Eliminar',
         cancelText: 'Cancelar',
         color: 'warn',
-        icon: 'person_off'
+        icon: 'delete_forever'
       }
     });
 
@@ -188,10 +188,10 @@ export class CustomerListComponent implements OnInit, OnDestroy {
       if (confirmed) {
         this.customerController.deleteCliente(cliente.id).subscribe({
           next: () => {
-            this.snackBar.open(`Cliente ${cliente.nombre} fue dado de baja correctamente`, 'Cerrar', { duration: 3000 });
+            this.snackBar.open(`Cliente "${cliente.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 });
           },
           error: (err) => {
-            this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
+            this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
       }

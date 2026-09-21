@@ -9,6 +9,7 @@ import { ResetPasswordComponent } from './views/cu1_gestionar_autenticacion/rese
 // Dashboard & Layout
 import { DashboardComponent } from './views/dashboard/dashboard.component';
 import { AdminLayoutComponent } from './views/layout/admin-layout/admin-layout.component';
+import { ClientLayoutComponent } from './views/layout/client-layout/client-layout.component';
 
 // CU2: Usuarios y Roles
 import { UserListComponent } from './views/cu2_gestionar_usuarios_roles/users/user-list/user-list.component';
@@ -53,6 +54,7 @@ import { TiendaOnlineComponent } from './views/cu15_realizar_compras_digitales/t
 import { MisPedidosWebComponent } from './views/cu15_realizar_compras_digitales/mis-pedidos-web/mis-pedidos-web.component';
 
 import { adminGuard } from './core/guards/admin.guard';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // CU1: Autenticación
@@ -61,27 +63,26 @@ export const routes: Routes = [
   { path: 'recover-password', component: RecoverPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
 
-  // Dashboard
-  { path: 'dashboard', component: DashboardComponent },
+  // Dashboard de Reportes y KPIs (Exclusivo Administrador)
+  { path: 'dashboard', component: DashboardComponent, canActivate: [adminGuard] },
+  { path: 'atencion-reservas', redirectTo: 'admin/reservas', pathMatch: 'full' },
 
-  // CU08: Catálogo y Vitrina Omnicanal Unificada
-  { path: 'catalogo', component: ProductCatalogComponent },
-  { path: 'tienda', redirectTo: 'catalogo', pathMatch: 'full' },
+  // Tienda y Portal del Cliente (Layout Omnicanal Boutique)
+  {
+    path: '',
+    component: ClientLayoutComponent,
+    children: [
+      { path: 'catalogo', component: ProductCatalogComponent },
+      { path: 'tienda', redirectTo: 'catalogo', pathMatch: 'full' },
+      { path: 'carrito', component: CartViewComponent },
+      { path: 'mis-reservas', component: MyReservationsComponent, canActivate: [authGuard] },
+      { path: 'mis-pedidos', component: MisPedidosWebComponent, canActivate: [authGuard] },
+      { path: 'tienda/mis-pedidos', redirectTo: 'mis-pedidos', pathMatch: 'full' },
+      { path: '', redirectTo: 'catalogo', pathMatch: 'full' }
+    ]
+  },
 
-  // CU09: Carrito de Compras Omnicanal
-  { path: 'carrito', component: CartViewComponent },
-
-  // CU10: Gestión de Reservas de Prendas
-  { path: 'mis-reservas', component: MyReservationsComponent },
-
-  // CU11: Atender Reservas en Sucursal Física (Caja)
-  { path: 'atencion-reservas', component: AdminReservasComponent },
-
-  // CU15: Compras Digitales (Mis Pedidos Online)
-  { path: 'mis-pedidos', component: MisPedidosWebComponent },
-  { path: 'tienda/mis-pedidos', redirectTo: 'mis-pedidos', pathMatch: 'full' },
-
-  // Backoffice / Admin
+  // Backoffice / Admin ERP (Protegido por adminGuard)
   {
     path: 'admin',
     component: AdminLayoutComponent,
@@ -112,12 +113,12 @@ export const routes: Routes = [
       { path: 'inventario', component: InventarioListComponent },
       // CU14: POS y Ventas
       { path: 'pos', component: PosVentaComponent },
-      { path: 'ventas', component: VentasListComponent },
       // CU15: Vitrina & Tienda Unificada
       { path: 'tienda-digital', redirectTo: '/catalogo', pathMatch: 'full' },
+      { path: 'ventas', component: VentasListComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]
   },
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: '**', redirectTo: '/login' }
+
+  { path: '**', redirectTo: 'catalogo' }
 ];

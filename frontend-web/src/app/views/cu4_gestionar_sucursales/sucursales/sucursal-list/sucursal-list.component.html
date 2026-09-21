@@ -181,12 +181,16 @@
           <button mat-icon-button color="primary" (click)="openEditDialog(s)" matTooltip="Editar Sucursal" id="btn-edit-sucursal-{{ s.id }}">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="onDeleteSucursal(s)" matTooltip="Baja Lógica" id="btn-delete-sucursal-{{ s.id }}">
+          <button mat-icon-button [color]="s.activo ? 'accent' : 'primary'" (click)="onToggleStatus(s)" [matTooltip]="s.activo ? 'Desactivar Sucursal' : 'Activar Sucursal'" id="btn-toggle-sucursal-{{ s.id }}">
+            <mat-icon>{{ s.activo ? 'block' : 'check_circle' }}</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteSucursal(s)" matTooltip="Eliminar definitivamente" id="btn-delete-sucursal-{{ s.id }}">
             <mat-icon>delete_forever</mat-icon>
           </button>
         </div>
       </td>
     </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>

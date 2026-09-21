@@ -9,7 +9,7 @@
   <header class="catalog-header">
     <div class="header-content">
       <div class="brand-zone">
-        <button mat-icon-button routerLink="/admin/products" class="btn-back" matTooltip="Regresar al panel de gestión">
+        <button *ngIf="isAdmin" mat-icon-button routerLink="/admin/products" class="btn-back" matTooltip="Regresar al panel de gestión">
           <mat-icon>arrow_back</mat-icon>
         </button>
         <div class="brand-title">

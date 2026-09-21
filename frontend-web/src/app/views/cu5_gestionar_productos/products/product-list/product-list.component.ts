@@ -178,10 +178,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
-        title: '¿Dar de Baja el Producto?',
-        message: `¿Estás seguro de desactivar la prenda "${producto.nombre}" del catálogo retail?`,
-        confirmText: 'Dar de Baja',
+        title: '¿Eliminar Polera?',
+        message: `¿Estás seguro de eliminar la prenda "${producto.nombre}"? Esta acción removerá el producto del catálogo.`,
+        confirmText: 'Eliminar',
         cancelText: 'Cancelar',
+        icon: 'delete_forever',
         color: 'warn'
       }
     });
@@ -189,10 +190,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.productController.deleteProducto(producto.id).subscribe({
-          next: () => this.snackBar.open(`Producto ${producto.nombre} dado de baja correctamente`, 'Cerrar', { duration: 3000 }),
-          error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+          next: () => this.snackBar.open(`Producto "${producto.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 }),
+          error: (err) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
         });
       }
     });
   }
+
 }

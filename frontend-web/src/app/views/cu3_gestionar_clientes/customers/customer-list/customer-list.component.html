@@ -175,12 +175,16 @@
           <button mat-icon-button color="primary" (click)="openEditDialog(cliente)" matTooltip="Editar Cliente" id="btn-edit-customer-{{ cliente.id }}">
             <mat-icon>edit</mat-icon>
           </button>
-          <button mat-icon-button color="warn" (click)="onDeleteCliente(cliente)" matTooltip="Baja Lógica" id="btn-delete-customer-{{ cliente.id }}">
+          <button mat-icon-button [color]="cliente.activo ? 'accent' : 'primary'" (click)="onToggleStatus(cliente)" [matTooltip]="cliente.activo ? 'Desactivar Cliente' : 'Activar Cliente'" id="btn-toggle-customer-{{ cliente.id }}">
+            <mat-icon>{{ cliente.activo ? 'block' : 'check_circle' }}</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="onDeleteCliente(cliente)" matTooltip="Eliminar definitivamente" id="btn-delete-customer-{{ cliente.id }}">
             <mat-icon>delete_forever</mat-icon>
           </button>
         </div>
       </td>
     </ng-container>
+
 
     <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
     <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>

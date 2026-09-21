@@ -59,7 +59,7 @@ export class LoginComponent {
         if (rolUpper === 'ADMIN' || rolUpper === 'ADMINISTRADOR') {
           this.router.navigate(['/admin/users']);
         } else {
-          this.router.navigate(['/dashboard']);
+          this.router.navigate(['/catalogo']);
         }
       },
       error: (err) => {

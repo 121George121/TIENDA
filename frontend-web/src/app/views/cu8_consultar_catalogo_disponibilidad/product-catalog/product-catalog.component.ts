@@ -20,6 +20,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   ProductoCatalogoItem,
   SucursalItem,
@@ -69,13 +70,16 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
   // Carrito local rápido (contador para el header)
   itemsCarritoCount = 0;
+  isAdmin = false;
 
   constructor(
     private inventoryService: InventoryService,
-    private cartService: CartService
+    private cartService: CartService,
+    public authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
     this.cargarSucursales();
     this.cargarCatalogo();
 

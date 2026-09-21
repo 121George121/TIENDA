@@ -116,14 +116,24 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
     });
   }
 
+  toggleStatusProveedor(proveedor: Proveedor): void {
+    const nuevoEstado = !proveedor.activo;
+    const accion = nuevoEstado ? 'activado' : 'desactivado';
+    this.controller.updateProveedor(proveedor.id, { activo: nuevoEstado }).subscribe({
+      next: () => this.snackBar.open(`Proveedor ${proveedor.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
+      error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+    });
+  }
+
   deleteProveedor(proveedor: Proveedor): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '420px',
       data: {
-        title: '¿Desactivar Proveedor?',
-        message: `¿Estás seguro de desactivar al proveedor "${proveedor.nombre}"?`,
-        confirmText: 'Desactivar',
+        title: '¿Eliminar Proveedor?',
+        message: `¿Estás seguro de eliminar al proveedor "${proveedor.nombre}"? Esta acción removerá el registro definitivamente.`,
+        confirmText: 'Eliminar',
         cancelText: 'Cancelar',
+        icon: 'delete_forever',
         color: 'warn'
       }
     });
@@ -131,10 +141,11 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.controller.deleteProveedor(proveedor.id).subscribe({
-          next: () => this.snackBar.open(`Proveedor ${proveedor.nombre} desactivado correctamente`, 'Cerrar', { duration: 3000 }),
-          error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+          next: () => this.snackBar.open(`Proveedor "${proveedor.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 }),
+          error: (err) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
         });
       }
     });
   }
 }
+
