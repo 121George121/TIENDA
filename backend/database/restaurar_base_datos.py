@@ -149,6 +149,9 @@ def main():
         conn_target.autocommit = True
         cur_target = conn_target.cursor()
         
+        print("[*] Limpiando esquema public previo para evitar conflictos de dependencias...")
+        cur_target.execute("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;")
+        
         print("[*] Ejecutando script SQL (tablas, constraints, prendas con imágenes y stock)...")
         t0 = time.time()
         
