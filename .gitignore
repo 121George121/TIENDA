@@ -25,6 +25,7 @@ frontend-web/.angular/
 frontend-web/npm-debug.log*
 
 # Flutter Mobile App
+*.apk
 mobile-app/.dart_tool/
 mobile-app/.idea/
 mobile-app/build/

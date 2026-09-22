@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   /// Cambia a 'true' para conectar la app al backend en Railway en la nube (funciona con datos móviles o cualquier Wi-Fi)
-  static const bool useCloud = false;
+  static const bool useCloud = true;
 
   /// URL de producción en Railway
   static const String cloudBaseUrl = 'https://tienda-production-2a7a.up.railway.app/api/v1';
