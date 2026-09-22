@@ -117,3 +117,8 @@ def read_root():
         "documentacion": "/docs",
         "arquitectura": "MVC (Modelo-Vista-Controlador)"
     }
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {"status": "healthy", "service": "Shopyn Golden Store API"}
+

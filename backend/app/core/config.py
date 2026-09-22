@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
+    # URL directa de base de datos (Supabase / Railway)
+    DATABASE_URL_ENV: str = os.getenv("DATABASE_URL", "")
+
     # PostgreSQL Configuration
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
@@ -18,6 +21,13 @@ class Settings(BaseSettings):
     
     @property
     def DATABASE_URL(self) -> str:
+        # Priorizar DATABASE_URL inyectada por Supabase o Railway
+        direct_url = os.getenv("DATABASE_URL") or self.DATABASE_URL_ENV
+        if direct_url:
+            # Normalizar prefijo postgres:// a postgresql:// para compatibilidad con SQLAlchemy
+            if direct_url.startswith("postgres://"):
+                direct_url = direct_url.replace("postgres://", "postgresql://", 1)
+            return direct_url
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super_secret_key_change_me_in_production_12345")

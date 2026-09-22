@@ -8,14 +8,21 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  /// Dirección IP de tu PC en la red local Wi-Fi.
-  /// IMPORTANTE: Si pruebas en tu teléfono físico, tu celular y tu PC deben estar
-  /// conectados a la misma red Wi-Fi y el backend debe iniciarse con:
-  ///   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+  /// Cambia a 'true' para conectar la app al backend en Railway en la nube (funciona con datos móviles o cualquier Wi-Fi)
+  static const bool useCloud = false;
+
+  /// URL de producción en Railway (reemplazar con tu dominio de Railway)
+  static const String cloudBaseUrl = 'https://web-production-shopyn.up.railway.app/api/v1';
+
+  /// Dirección IP de tu PC en la red local Wi-Fi para desarrollo local
   static const String pcLocalIp = '192.168.0.106';
 
   /// Retorna la URL base correspondiente según el dispositivo de ejecución
   static String get baseUrl {
+    if (useCloud) {
+      return cloudBaseUrl;
+    }
+
     // Si corre en Web (Chrome / Edge)
     if (kIsWeb) {
       return 'http://localhost:8000/api/v1';

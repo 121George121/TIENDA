@@ -71,7 +71,21 @@ def main():
     port = cfg["POSTGRES_PORT"]
     db_name = cfg["POSTGRES_DB"]
 
-    print(f"\n🔌 Conectando a PostgreSQL ({user}@{host}:{port})...")
+    # Detectar si se pasó una URL directa por argumento (--url) o variable DATABASE_URL
+    db_url = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--url" and i + 1 < len(sys.argv):
+            db_url = sys.argv[i + 1]
+    if not db_url and os.environ.get("DATABASE_URL"):
+        db_url = os.environ.get("DATABASE_URL")
+
+    if db_url:
+        print(f"\n🌐 Modo Cloud Detectado: Conectando a base de datos remota...")
+        # Normalizar postgres:// a postgresql:// si es necesario
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+    else:
+        print(f"\n🔌 Conectando a PostgreSQL local ({user}@{host}:{port})...")
     
     try:
         import psycopg2
@@ -92,42 +106,46 @@ def main():
         print(f"Buscado en: {backup_sql_path}")
         sys.exit(1)
 
-    # 1. Crear base de datos si no existe conectándose a 'postgres'
-    try:
-        conn_root = psycopg2.connect(
-            dbname="postgres",
-            user=user,
-            password=password,
-            host=host,
-            port=port
-        )
-        conn_root.autocommit = True
-        cur_root = conn_root.cursor()
-        
-        cur_root.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (db_name,))
-        if not cur_root.fetchone():
-            print(f"📦 Creando base de datos '{db_name}'...")
-            cur_root.execute(f'CREATE DATABASE "{db_name}" ENCODING \'UTF8\';')
-            print(f"✅ Base de datos '{db_name}' creada exitosamente.")
-        else:
-            print(f"ℹ️  La base de datos '{db_name}' ya existe. Se sobreescribirá con los datos actuales.")
+    if not db_url:
+        # 1. Crear base de datos local si no existe conectándose a 'postgres'
+        try:
+            conn_root = psycopg2.connect(
+                dbname="postgres",
+                user=user,
+                password=password,
+                host=host,
+                port=port
+            )
+            conn_root.autocommit = True
+            cur_root = conn_root.cursor()
             
-        cur_root.close()
-        conn_root.close()
-    except Exception as e:
-        print(f"⚠️ Aviso al verificar base de datos 'postgres': {e}")
-        print(f"Intentando conectar directamente a '{db_name}'...")
+            cur_root.execute("SELECT 1 FROM pg_database WHERE datname = %s;", (db_name,))
+            if not cur_root.fetchone():
+                print(f"📦 Creando base de datos '{db_name}'...")
+                cur_root.execute(f'CREATE DATABASE "{db_name}" ENCODING \'UTF8\';')
+                print(f"✅ Base de datos '{db_name}' creada exitosamente.")
+            else:
+                print(f"ℹ️  La base de datos '{db_name}' ya existe. Se sobreescribirá con los datos actuales.")
+                
+            cur_root.close()
+            conn_root.close()
+        except Exception as e:
+            print(f"⚠️ Aviso al verificar base de datos 'postgres': {e}")
+            print(f"Intentando conectar directamente a '{db_name}'...")
 
     # 2. Conectar a la base de datos de destino y ejecutar backup_completo.sql
     try:
         print(f"\n🚀 Restaurando tablas y datos desde '{backup_sql_path.name}'...")
-        conn_target = psycopg2.connect(
-            dbname=db_name,
-            user=user,
-            password=password,
-            host=host,
-            port=port
-        )
+        if db_url:
+            conn_target = psycopg2.connect(db_url)
+        else:
+            conn_target = psycopg2.connect(
+                dbname=db_name,
+                user=user,
+                password=password,
+                host=host,
+                port=port
+            )
         conn_target.autocommit = True
         cur_target = conn_target.cursor()
         
