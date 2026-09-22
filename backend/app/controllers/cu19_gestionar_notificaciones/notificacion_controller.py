@@ -88,7 +88,7 @@ class NotificacionController:
 
         notificaciones = db.query(NotificacionModel).filter(
             (NotificacionModel.usuario_id == current_user.id) |
-            (NotificacionModel.usuario_id == None)
+            (NotificacionModel.usuario_id.is_(None))
         ).order_by(NotificacionModel.id.desc()).limit(20).all()
 
         return [
@@ -109,7 +109,7 @@ class NotificacionController:
         """CU19: Retorna la cantidad de notificaciones pendientes de lectura"""
         return db.query(NotificacionModel).filter(
             (NotificacionModel.usuario_id == current_user.id) |
-            (NotificacionModel.usuario_id == None),
+            (NotificacionModel.usuario_id.is_(None)),
             NotificacionModel.leido == False
         ).count()
 
@@ -118,7 +118,7 @@ class NotificacionController:
         """CU19: Marca una notificación específica como leída"""
         notif = db.query(NotificacionModel).filter(
             NotificacionModel.id == notificacion_id,
-            (NotificacionModel.usuario_id == current_user.id) | (NotificacionModel.usuario_id == None)
+            (NotificacionModel.usuario_id == current_user.id) | (NotificacionModel.usuario_id.is_(None))
         ).first()
 
         if notif:
@@ -131,7 +131,7 @@ class NotificacionController:
     def marcar_todas_leidas(db: Session, current_user: UsuarioModel) -> bool:
         """CU19: Marca todas las notificaciones pendientes como leídas"""
         db.query(NotificacionModel).filter(
-            (NotificacionModel.usuario_id == current_user.id) | (NotificacionModel.usuario_id == None),
+            (NotificacionModel.usuario_id == current_user.id) | (NotificacionModel.usuario_id.is_(None)),
             NotificacionModel.leido == False
         ).update({"leido": True}, synchronize_session=False)
 

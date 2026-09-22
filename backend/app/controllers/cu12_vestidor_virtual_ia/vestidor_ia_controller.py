@@ -10,10 +10,13 @@ import os
 import io
 import json
 import base64
+import asyncio
+import tempfile
 import urllib.request
 from typing import Dict, Any, Optional
 from fastapi import UploadFile
 from PIL import Image, ImageEnhance, ImageFilter
+import aiohttp
 
 # SDK oficial de Google GenAI
 genai = None
@@ -82,7 +85,7 @@ class VestidorIaController:
                     )
 
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-2.0-flash',
                     contents=contents,
                 )
 
@@ -92,7 +95,7 @@ class VestidorIaController:
                 if text.endswith("```"):
                     text = text[:-3]
                 parsed = json.loads(text.strip())
-                parsed["fuente"] = "Google Gemini 2.5 Flash Vision AI"
+                parsed["fuente"] = "Google Gemini 2.0 Flash Vision AI"
                 return parsed
 
             except Exception as e:
@@ -170,6 +173,105 @@ class VestidorIaController:
             return out_io.getvalue()
 
     @staticmethod
+    def _normalizar_imagen_bytes(img_bytes: bytes, max_dim: int = 1024, as_format: str = "JPEG") -> bytes:
+        """Normaliza y optimiza dimensiones de imagen para acelerar la inferencia neuronal"""
+        try:
+            with Image.open(io.BytesIO(img_bytes)) as img:
+                if max(img.width, img.height) > max_dim:
+                    img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                out = io.BytesIO()
+                if as_format.upper() == "PNG":
+                    img.save(out, format="PNG")
+                else:
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                    img.save(out, format="JPEG", quality=92)
+                return out.getvalue()
+        except Exception:
+            return img_bytes
+
+    @staticmethod
+    async def _ejecutar_decart_lucy_vton(
+        user_bytes: bytes,
+        garment_bytes: bytes,
+        color: str,
+        talla: str
+    ) -> Optional[bytes]:
+        """
+        Ejecuta la inferencia fotorrealista de Virtual Try-On usando Decart AI Lucy VTON (lucy-image-2).
+        Retorna los bytes brutos en formato PNG si la inferencia es exitosa, o None ante errores.
+        """
+        api_key = os.getenv("DECART_API_KEY")
+        if not api_key:
+            print("[Decart AI Lucy VTON] DECART_API_KEY no configurada en entorno.")
+            return None
+
+        prompt_text = (
+            f"A high quality, photorealistic photo of the person naturally wearing the {color} clothing garment, "
+            f"size {talla}, perfect fit, realistic fabric folds, premium studio lighting, seamless blending."
+        )
+
+        try:
+            # Normalizar imágenes para acelerar transferencia y garantizar máxima estabilidad
+            user_opt = VestidorIaController._normalizar_imagen_bytes(user_bytes, max_dim=1024, as_format="JPEG")
+            garment_opt = VestidorIaController._normalizar_imagen_bytes(garment_bytes, max_dim=1024, as_format="PNG")
+
+            headers = {"X-API-KEY": api_key.strip()}
+            form = aiohttp.FormData()
+            form.add_field("data", user_opt, filename="user.jpg", content_type="image/jpeg")
+            form.add_field("reference_image", garment_opt, filename="garment.png", content_type="image/png")
+            form.add_field("prompt", prompt_text)
+
+            timeout = aiohttp.ClientTimeout(total=60)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post(
+                    "https://api.decart.ai/v1/generate/lucy-image-2",
+                    headers=headers,
+                    data=form
+                ) as resp:
+                    if resp.status == 200:
+                        img_bytes = await resp.read()
+                        if len(img_bytes) > 1000:
+                            print(f"[Decart AI Lucy VTON] Inferencia completada con éxito ({len(img_bytes)} bytes)!")
+                            return img_bytes
+                    else:
+                        err_text = await resp.text()
+                        print(f"[Decart AI Lucy VTON] Respuesta HTTP {resp.status}: {err_text[:200]}")
+                        return None
+        except Exception as e:
+            print(f"[Decart AI Lucy VTON] Error en petición: {type(e).__name__} - {e}")
+            return None
+
+    @staticmethod
+    def _ejecutar_hf_idm_vton(user_path: str, garm_path: str, garment_des: str) -> Optional[str]:
+        """Ejecuta la inferencia fotorrealista con el modelo oficial IDM-VTON en Hugging Face"""
+        try:
+            from gradio_client import Client, handle_file
+            client = Client("yisol/IDM-VTON")
+            result = client.predict(
+                dict={
+                    "background": handle_file(user_path),
+                    "layers": [],
+                    "composite": None
+                },
+                garm_img=handle_file(garm_path),
+                garment_des=garment_des,
+                is_checked=True,
+                is_checked_crop=False,
+                denoise_steps=30,
+                seed=42,
+                api_name="/tryon"
+            )
+            if isinstance(result, (list, tuple)) and len(result) > 0:
+                return result[0]
+            elif isinstance(result, str):
+                return result
+            return None
+        except Exception as e:
+            print(f"[Hugging Face IDM-VTON] Nota: {e}")
+            return None
+
+    @staticmethod
     async def generar_virtual_tryon(
         imagen_usuario: UploadFile,
         prenda_url: str,
@@ -177,59 +279,107 @@ class VestidorIaController:
         color: str
     ) -> Dict[str, Any]:
         """
-        CU12: Motor de Virtual Try-On Fotorrealista (compatible con IDM-VTON / Fashn API
-        y sintetizador textil anatómico de alta definición).
+        CU12: Motor de Virtual Try-On Fotorrealista en Cascada Inteligente:
+        1. Prioridad 1: Decart AI Lucy VTON (Ultra-HD Fotorrealista de alta velocidad).
+        2. Prioridad 2: Hugging Face IDM-VTON (Red neuronal de difusión libre).
+        3. Prioridad 3: Sintetizador Anatómico Local de Alta Definición (Fallback garantizado 100%).
         """
         user_bytes = await imagen_usuario.read()
+        garment_bytes = VestidorIaController.aislar_prenda_transparente(prenda_url)
 
-        # Si existe API Key externa de Replicate (IDM-VTON) o Fashn.ai
-        replicate_token = os.getenv("REPLICATE_API_TOKEN")
-        fashn_key = os.getenv("FASHN_API_KEY")
-
-        if replicate_token:
-            try:
-                # Llamada a IDM-VTON en Replicate
-                # https://replicate.com/cuu/idm-vton
-                pass
-            except Exception as e:
-                print(f"[IDM-VTON Replicate] {e}")
-
-        # Sintetizador Textil Anatómico de Alta Definición (Local High-End Compositor)
+        # 1. Prioridad 1: Decart AI Lucy VTON
         try:
-            # Cargar imagen de usuario y prenda
+            decart_bytes = await VestidorIaController._ejecutar_decart_lucy_vton(
+                user_bytes=user_bytes,
+                garment_bytes=garment_bytes,
+                color=color,
+                talla=talla
+            )
+            if decart_bytes:
+                b64_str = base64.b64encode(decart_bytes).decode("utf-8")
+                return {
+                    "status": "success",
+                    "imagen_base64": f"data:image/png;base64,{b64_str}",
+                    "motor": "Decart AI (Lucy VTON)",
+                    "talla_aplicada": talla,
+                    "color_aplicado": color,
+                    "calidad": "Ultra-HD Fotorrealista",
+                    "mensaje": "Prueba virtual fotorrealista completada con éxito mediante Decart Lucy VTON."
+                }
+        except Exception as decart_err:
+            print(f"[Virtual Try-On] Decart AI no disponible: {decart_err}. Intentando siguiente motor...")
+
+        # 2. Prioridad 2: Intentar Virtual Try-On con Hugging Face IDM-VTON
+        user_temp_path = None
+        garm_temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as uf:
+                uf.write(user_bytes)
+                user_temp_path = uf.name
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as gf:
+                gf.write(garment_bytes)
+                garm_temp_path = gf.name
+
+            garment_des = f"A stylish short-sleeve {color} cotton t-shirt with graphics, boutique cut, size {talla}"
+
+            # Timeout de 35 segundos para no dejar esperando indefinidamente al usuario si la cola de HF está llena
+            output_file = await asyncio.wait_for(
+                asyncio.to_thread(VestidorIaController._ejecutar_hf_idm_vton, user_temp_path, garm_temp_path, garment_des),
+                timeout=35.0
+            )
+
+            if output_file and os.path.exists(output_file):
+                with open(output_file, "rb") as out_f:
+                    vton_bytes = out_f.read()
+                b64_str = base64.b64encode(vton_bytes).decode("utf-8")
+                return {
+                    "status": "success",
+                    "imagen_base64": f"data:image/jpeg;base64,{b64_str}",
+                    "motor": "Hugging Face IDM-VTON (Difusión Textil Fotorrealista)",
+                    "talla_aplicada": talla,
+                    "color_aplicado": color,
+                    "calidad": "Ultra-HD Fotorrealista",
+                    "mensaje": "Prueba virtual fotorrealista completada con éxito mediante IDM-VTON."
+                }
+        except Exception as hf_err:
+            print(f"[Virtual Try-On] Pasando a fallback local de alta definición: {hf_err}")
+        finally:
+            # Limpiar archivos temporales
+            for p in [user_temp_path, garm_temp_path]:
+                if p and os.path.exists(p):
+                    try:
+                        os.unlink(p)
+                    except Exception:
+                        pass
+
+        # 2. Fallback: Sintetizador Textil Anatómico Local de Alta Definición
+        try:
             user_img = Image.open(io.BytesIO(user_bytes)).convert("RGBA")
-            garment_bytes = VestidorIaController.aislar_prenda_transparente(prenda_url)
             garment_img = Image.open(io.BytesIO(garment_bytes)).convert("RGBA")
 
-            # Redimensionar la prenda al torso del usuario de forma proporcional
             uw, uh = user_img.size
-            # Proporción anatómica: una polera cubre aprox el 55% del ancho de la foto y 45% del alto
             target_w = int(uw * 0.58)
             aspect_ratio = garment_img.height / max(garment_img.width, 1)
             target_h = int(target_w * aspect_ratio)
 
-            # Escalar según la talla seleccionada
             factor_talla = {"S": 0.90, "M": 1.0, "L": 1.10, "XL": 1.20, "XXL": 1.30}.get(talla, 1.0)
             target_w = int(target_w * factor_talla)
             target_h = int(target_h * factor_talla)
 
             garment_resized = garment_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
-            # Posicionar sobre el pecho y hombros
             pos_x = (uw - target_w) // 2
             pos_y = int(uh * 0.28)
 
-            # Crear capa de sombra suave proyectada
             shadow = Image.new("RGBA", user_img.size, (0, 0, 0, 0))
             shadow_mask = garment_resized.split()[3].filter(ImageFilter.GaussianBlur(15))
             shadow_img = Image.new("RGBA", (target_w, target_h), (0, 0, 0, 70))
             shadow.paste(shadow_img, (pos_x, pos_y + 8), shadow_mask)
 
-            # Componer: Usuario -> Sombra -> Prenda
             composite = Image.alpha_composite(user_img, shadow)
             composite.paste(garment_resized, (pos_x, pos_y), garment_resized)
 
-            # Convertir a JPEG de alta resolución
             final_rgb = composite.convert("RGB")
             out_buf = io.BytesIO()
             final_rgb.save(out_buf, format="JPEG", quality=92)
@@ -238,11 +388,11 @@ class VestidorIaController:
             return {
                 "status": "success",
                 "imagen_base64": f"data:image/jpeg;base64,{b64_str}",
-                "motor": "IDM-VTON Neural Cloth Warping & Rembg Pipeline",
+                "motor": "Motor Anatómico Local (Composite HD Fallback)",
                 "talla_aplicada": talla,
                 "color_aplicado": color,
                 "calidad": "HD 1080p Fotorrealista",
-                "mensaje": "Prueba virtual fotorrealista completada con éxito."
+                "mensaje": "Prueba virtual completada con éxito."
             }
 
         except Exception as e:

@@ -12,6 +12,8 @@ backend/*/*/*/__pycache__/
 *.pyd
 .pytest_cache/
 backend/.env
+backend/google-credentials.json
+*credentials*.json
 backend/venv/
 venv/
 .claude/

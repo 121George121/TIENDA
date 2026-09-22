@@ -23,8 +23,15 @@ import 'views/orders_history_view.dart';
 import 'views/my_reservations_view.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
+  runApp(const ECommerceMobileApp());
+}
+
+class ECommerceMobileApp extends StatelessWidget {
+  const ECommerceMobileApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => ProductController()),
@@ -35,35 +42,26 @@ void main() {
         ChangeNotifierProvider(create: (_) => NotificationController()),
         ChangeNotifierProvider(create: (_) => RecommendationController()),
       ],
-      child: const ECommerceMobileApp(),
-    ),
-  );
-}
-
-class ECommerceMobileApp extends StatelessWidget {
-  const ECommerceMobileApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'T-Shirt Boutique Mobile',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFFE11D48),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
+      child: MaterialApp(
+        title: 'T-Shirt Boutique Mobile',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorSchemeSeed: const Color(0xFFE11D48),
+          useMaterial3: true,
+          fontFamily: 'Roboto',
+        ),
+        initialRoute: '/login',
+        routes: {
+          '/login': (context) => const LoginView(),
+          '/register': (context) => const RegisterView(),
+          '/recover-password': (context) => const RecoverPasswordView(),
+          '/reset-password': (context) => const ResetPasswordView(),
+          '/': (context) => const ProductListView(),
+          '/cart': (context) => const CartView(),
+          '/orders': (context) => const OrdersHistoryView(),
+          '/reservas': (context) => const MyReservationsView(),
+        },
       ),
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => const LoginView(),
-        '/register': (context) => const RegisterView(),
-        '/recover-password': (context) => const RecoverPasswordView(),
-        '/reset-password': (context) => const ResetPasswordView(),
-        '/': (context) => const ProductListView(),
-        '/cart': (context) => const CartView(),
-        '/orders': (context) => const OrdersHistoryView(),
-        '/reservas': (context) => const MyReservationsView(),
-      },
     );
   }
 }

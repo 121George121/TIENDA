@@ -7,10 +7,13 @@
 
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 class BodyPoseData {
+  final Offset leftShoulder;
+  final Offset rightShoulder;
   final Offset shoulderCenter;
   final double shoulderWidth;
   final double rotationAngle;
@@ -19,6 +22,8 @@ class BodyPoseData {
   final Size imageSize;
 
   BodyPoseData({
+    required this.leftShoulder,
+    required this.rightShoulder,
     required this.shoulderCenter,
     required this.shoulderWidth,
     required this.rotationAngle,
@@ -45,6 +50,17 @@ class PoseDetectorService {
     _initDetector();
 
     try {
+      // 1. Obtener dimensiones REALES de la imagen en píxeles (sin adivinanzas)
+      Size imgSize = const Size(1080, 1920);
+      try {
+        final bytes = await file.readAsBytes();
+        final codec = await ui.instantiateImageCodec(bytes);
+        final frame = await codec.getNextFrame();
+        imgSize = Size(frame.image.width.toDouble(), frame.image.height.toDouble());
+      } catch (e) {
+        debugPrint('Nota obteniendo tamaño de imagen con ui: $e');
+      }
+
       final inputImage = InputImage.fromFile(file);
       final List<Pose> poses = await _poseDetector!.processImage(inputImage);
 
@@ -77,13 +93,12 @@ class PoseDetectorService {
         torsoLength = (hipCenterY - centerY).abs();
       }
 
-      // Tamaño de imagen original
-      final imgSize = inputImage.metadata?.size ?? const Size(1080, 1920);
-
       // Promedio de confianza de detección
       final conf = ((leftShoulder.likelihood + rightShoulder.likelihood) / 2);
 
       return BodyPoseData(
+        leftShoulder: Offset(leftShoulder.x, leftShoulder.y),
+        rightShoulder: Offset(rightShoulder.x, rightShoulder.y),
         shoulderCenter: Offset(centerX, centerY),
         shoulderWidth: shoulderWidth,
         rotationAngle: rotation,

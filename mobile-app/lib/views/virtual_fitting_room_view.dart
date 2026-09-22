@@ -10,6 +10,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,7 +24,7 @@ import '../services/pose_detector_service.dart';
 import '../widgets/realistic_garment_widget.dart';
 import 'cart_view.dart';
 
-enum FittingMode { camaraVivo, fotoPersonal, maniqui }
+enum FittingMode { camaraVivo, fotoPersonal }
 
 class VirtualFittingRoomView extends StatefulWidget {
   final ProductModel producto;
@@ -52,16 +53,17 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   String? _errorCamara;
   int _camaraSeleccionadaIndex = 0;
 
-  // Parámetros de Transformación AR de la Prenda
-  Offset _prendaOffset = const Offset(0, 30);
-  double _prendaEscala = 1.0;
+  // Parámetros de Transformación AR de la Prenda (Coordenadas exactas en viewport)
+  Offset? _prendaCenter;
+  double? _prendaAncho;
   double _prendaRotacion = 0.0;
   double _prendaOpacidad = 0.95;
+  Size _viewportSize = Size.zero;
 
   // Variables para gestos multitáctiles
   Offset _baseFocalPoint = Offset.zero;
-  Offset _baseOffset = Offset.zero;
-  double _baseScale = 1.0;
+  Offset _baseCenter = Offset.zero;
+  double _baseAncho = 0.0;
   double _baseRotation = 0.0;
 
   // Personalización de la Prenda
@@ -96,6 +98,17 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Auto-detección inteligente del tipo de corte de la prenda
+    final nombreLower = widget.producto.nombre.toLowerCase();
+    if (nombreLower.contains('polo')) {
+      _tipoPrenda = GarmentType.poleraPolo;
+    } else if (nombreLower.contains('hoodie') || nombreLower.contains('canguro') || nombreLower.contains('sudadera')) {
+      _tipoPrenda = GarmentType.hoodie;
+    } else if (nombreLower.contains('cuello v') || nombreLower.contains('cuello en v')) {
+      _tipoPrenda = GarmentType.poleraCuelloV;
+    } else {
+      _tipoPrenda = GarmentType.poleraCuelloRedondo;
+    }
     _inicializarCamara();
   }
 
@@ -131,7 +144,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         setState(() {
           _errorCamara = 'No se detectaron cámaras en este dispositivo.';
           _camaraIniciando = false;
-          _modoActual = FittingMode.maniqui;
+          _modoActual = FittingMode.fotoPersonal;
         });
         return;
       }
@@ -148,7 +161,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       setState(() {
         _errorCamara = 'Permiso de cámara denegado o no disponible: $e';
         _camaraIniciando = false;
-        _modoActual = FittingMode.maniqui;
+        _modoActual = FittingMode.fotoPersonal;
       });
     }
   }
@@ -179,7 +192,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       setState(() {
         _errorCamara = 'Error al iniciar la cámara: $e';
         _camaraIniciando = false;
-        _modoActual = FittingMode.maniqui;
+        _modoActual = FittingMode.fotoPersonal;
       });
     }
   }
@@ -191,6 +204,23 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     await _configurarControladorCamara(_camarasDisponibles[nextIndex]);
   }
 
+  double _obtenerFactorTalla(String talla) {
+    switch (talla) {
+      case 'S':
+        return 1.25;
+      case 'M':
+        return 1.35;
+      case 'L':
+        return 1.45;
+      case 'XL':
+        return 1.55;
+      case 'XXL':
+        return 1.65;
+      default:
+        return 1.35;
+    }
+  }
+
   /// AUTO-TRACKING / AUTO-SNAP: Detecta hombros con Google ML Kit y auto-ajusta la prenda
   Future<void> _analizarPoseDeArchivo(File file, {bool mostrarFeedback = true}) async {
     setState(() => _detectandoPose = true);
@@ -199,22 +229,49 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       final poseData = await _poseDetectorService.detectPoseFromFile(file);
 
       if (poseData != null && mounted) {
-        final screenSize = MediaQuery.of(context).size;
-        final imgWidth = poseData.imageSize.width > 0 ? poseData.imageSize.width : 1080.0;
-        final scaleFactor = screenSize.width / imgWidth;
+        final viewW = _viewportSize.width > 0 ? _viewportSize.width : MediaQuery.of(context).size.width;
+        final viewH = _viewportSize.height > 0 ? _viewportSize.height : (MediaQuery.of(context).size.height * 0.55);
 
-        final screenX = poseData.shoulderCenter.dx * scaleFactor;
-        final screenY = poseData.shoulderCenter.dy * scaleFactor;
-        final targetGarmentWidth = poseData.shoulderWidth * scaleFactor * 1.35;
-        final garmentBaseWidth = screenSize.width * 0.72;
+        final imgW = poseData.imageSize.width > 0 ? poseData.imageSize.width : 1080.0;
+        final imgH = poseData.imageSize.height > 0 ? poseData.imageSize.height : 1920.0;
+
+        // Proyección matemática rigurosa para BoxFit.cover
+        final scaleX = viewW / imgW;
+        final scaleY = viewH / imgH;
+        final scale = max(scaleX, scaleY);
+
+        final renderedW = imgW * scale;
+        final renderedH = imgH * scale;
+
+        final originX = (viewW - renderedW) / 2.0;
+        final originY = (viewH - renderedH) / 2.0;
+
+        // Mapear hombros a píxeles exactos de pantalla
+        final leftX = poseData.leftShoulder.dx * scale + originX;
+        final leftY = poseData.leftShoulder.dy * scale + originY;
+        final rightX = poseData.rightShoulder.dx * scale + originX;
+        final rightY = poseData.rightShoulder.dy * scale + originY;
+
+        final shoulderCenterX = (leftX + rightX) / 2.0;
+        final shoulderCenterY = (leftY + rightY) / 2.0;
+
+        final dx = rightX - leftX;
+        final dy = rightY - leftY;
+        final shoulderWidth = sqrt(dx * dx + dy * dy);
+        final rotationAngle = atan2(dy, dx);
+
+        final factorTalla = _obtenerFactorTalla(_tallaSeleccionada);
+        final targetGarmentWidth = (shoulderWidth * factorTalla).clamp(viewW * 0.45, viewW * 1.35);
+        final targetGarmentHeight = targetGarmentWidth * 1.14;
+
+        // El cuello de la prenda se ubica justo en la base del cuello
+        final collarY = shoulderCenterY - (shoulderWidth * 0.12);
+        final targetCenterY = collarY + (targetGarmentHeight * 0.44);
 
         setState(() {
-          _prendaEscala = (targetGarmentWidth / garmentBaseWidth).clamp(0.65, 2.2);
-          _prendaOffset = Offset(
-            screenX - (screenSize.width / 2),
-            screenY - (screenSize.height * 0.22) - (targetGarmentWidth * 0.08),
-          );
-          _prendaRotacion = poseData.rotationAngle;
+          _prendaCenter = Offset(shoulderCenterX, targetCenterY);
+          _prendaAncho = targetGarmentWidth;
+          _prendaRotacion = rotationAngle;
           _detectandoPose = false;
         });
 
@@ -352,7 +409,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       request.fields['color'] = nombreColor;
       request.files.add(await http.MultipartFile.fromPath('imagen_usuario', imagenAProcesar.path));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 90));
       if (mounted) Navigator.pop(context); // Cerrar loader
 
       if (streamedResponse.statusCode == 200) {
@@ -670,19 +727,22 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
 
   void _resetearPosicionPrenda() {
     setState(() {
-      _prendaOffset = const Offset(0, 30);
+      final viewW = _viewportSize.width > 0 ? _viewportSize.width : 380.0;
+      final viewH = _viewportSize.height > 0 ? _viewportSize.height : 500.0;
+      _prendaCenter = Offset(viewW / 2.0, viewH * 0.42);
+      _prendaAncho = viewW * 0.72;
       _prendaRotacion = 0.0;
-      _aplicarEscalaPorTalla(_tallaSeleccionada);
     });
   }
 
   void _aplicarEscalaPorTalla(String talla) {
-    _tallaSeleccionada = talla;
-    if (talla == 'S') _prendaEscala = 0.88;
-    if (talla == 'M') _prendaEscala = 1.00;
-    if (talla == 'L') _prendaEscala = 1.12;
-    if (talla == 'XL') _prendaEscala = 1.24;
-    if (talla == 'XXL') _prendaEscala = 1.36;
+    setState(() {
+      _tallaSeleccionada = talla;
+      final viewW = _viewportSize.width > 0 ? _viewportSize.width : 380.0;
+      final baseWidth = viewW * 0.72;
+      final factor = _obtenerFactorTalla(talla) / 1.35;
+      _prendaAncho = (_prendaAncho ?? baseWidth) * factor;
+    });
   }
 
   @override
@@ -702,47 +762,50 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
 
             // Área Principal de Visualización AR (Totalmente Limpia sin siluetas)
             Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // 1. Capa de Fondo limpia (Cámara o Foto)
-                  _buildFondoAR(),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  _viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // 1. Capa de Fondo limpia (Cámara o Foto)
+                      _buildFondoAR(),
 
-                  // 2. Indicador sutil de detección activa
-                  if (_detectandoPose)
-                    Positioned(
-                      top: 16,
-                      left: 20,
-                      right: 20,
-                      child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.75),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: const Color(0xFF38BDF8)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+                      // 2. Indicador sutil de detección activa
+                      if (_detectandoPose)
+                        Positioned(
+                          top: 16,
+                          left: 20,
+                          right: 20,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.75),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: const Color(0xFF38BDF8)),
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Alineando prenda a tus hombros...',
-                                style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Alineando prenda a tus hombros...',
+                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
 
-                  // 3. Prenda AR Interactiva
-                  _buildPrendaInteractiva(),
+                      // 3. Prenda AR Interactiva
+                      _buildPrendaInteractiva(_viewportSize),
 
                   // 4. Botón Flotante Izquierdo: AUTO-CALCE A HOMBROS
                   Positioned(
@@ -820,6 +883,8 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                       ),
                     ),
                 ],
+                  );
+                },
               ),
             ),
 
@@ -885,7 +950,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   // ============================================================================
   Widget _buildModeSelector() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       color: const Color(0xFF0F172A),
       child: Row(
         children: [
@@ -898,7 +963,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
               if (!_camaraLista && !_camaraIniciando) _inicializarCamara();
             },
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           _buildModeTab(
             FittingMode.fotoPersonal,
             Icons.photo_camera_back,
@@ -910,13 +975,6 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                 setState(() => _modoActual = FittingMode.fotoPersonal);
               }
             },
-          ),
-          const SizedBox(width: 6),
-          _buildModeTab(
-            FittingMode.maniqui,
-            Icons.boy_outlined,
-            'Maniquí 3D',
-            onTap: () => setState(() => _modoActual = FittingMode.maniqui),
           ),
         ],
       ),
@@ -1041,7 +1099,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       );
     }
 
-    // Modo Maniquí 3D Minimalista y Limpio
+    // Estado vacío para Foto Personal (cuando aún no se ha seleccionado ninguna foto)
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -1051,31 +1109,50 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         ),
       ),
       child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.04),
-                border: Border.all(color: Colors.white10),
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                  border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.3)),
+                ),
+                child: const Icon(Icons.add_a_photo_outlined, size: 68, color: Color(0xFF818CF8)),
               ),
-              child: Icon(Icons.person, size: 200, color: Colors.white.withValues(alpha: 0.18)),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(16),
+              const SizedBox(height: 20),
+              const Text(
+                'Carga tu Foto Personal',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: const Text(
-                'Maniquí 3D: Complexión Regular',
-                style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+              const SizedBox(height: 8),
+              const Text(
+                'Sube una foto o tómate una selfie de cuerpo entero para que la IA adapte la prenda y detecte tus hombros con precisión.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
               ),
-            ),
-          ],
+              const SizedBox(height: 22),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 4,
+                ),
+                icon: const Icon(Icons.upload_file, size: 18),
+                label: const Text('Elegir o Tomar Foto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                onPressed: _mostrarBottomSheetFoto,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1084,39 +1161,42 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   // ============================================================================
   // PRENDA AR INTERACTIVA
   // ============================================================================
-  Widget _buildPrendaInteractiva() {
-    final screenSize = MediaQuery.of(context).size;
-    final garmentBaseWidth = screenSize.width * 0.72;
+  Widget _buildPrendaInteractiva(Size viewportSize) {
+    final defaultWidth = viewportSize.width * 0.72;
+    final defaultCenter = Offset(viewportSize.width / 2.0, viewportSize.height * 0.42);
+
+    final garmentCenter = _prendaCenter ?? defaultCenter;
+    final garmentWidth = _prendaAncho ?? defaultWidth;
+    final garmentHeight = garmentWidth * 1.14;
 
     return Positioned(
-      left: (screenSize.width / 2) - (garmentBaseWidth / 2) + _prendaOffset.dx,
-      top: (screenSize.height * 0.22) + _prendaOffset.dy,
-      width: garmentBaseWidth,
+      left: garmentCenter.dx - (garmentWidth / 2.0),
+      top: garmentCenter.dy - (garmentHeight / 2.0),
+      width: garmentWidth,
+      height: garmentHeight,
       child: GestureDetector(
         onScaleStart: (details) {
           _baseFocalPoint = details.focalPoint;
-          _baseOffset = _prendaOffset;
-          _baseScale = _prendaEscala;
+          _baseCenter = garmentCenter;
+          _baseAncho = garmentWidth;
           _baseRotation = _prendaRotacion;
         },
         onScaleUpdate: (details) {
           setState(() {
-            _prendaOffset = _baseOffset + (details.focalPoint - _baseFocalPoint);
-            _prendaEscala = (_baseScale * details.scale).clamp(0.6, 2.4);
+            _prendaCenter = _baseCenter + (details.focalPoint - _baseFocalPoint);
+            _prendaAncho = (_baseAncho * details.scale).clamp(viewportSize.width * 0.35, viewportSize.width * 1.5);
             _prendaRotacion = _baseRotation + details.rotation;
           });
         },
-        child: Transform(
-          alignment: Alignment.center,
-          transform: Matrix4.diagonal3Values(_prendaEscala, _prendaEscala, 1.0)
-            ..rotateZ(_prendaRotacion),
+        child: Transform.rotate(
+          angle: _prendaRotacion,
           child: RealisticGarmentWidget(
             color: _colorSeleccionado,
             nombreProducto: widget.producto.nombre,
             imagenUrl: widget.producto.imagenUrl,
             tipoPrenda: _tipoPrenda,
             opacidad: _prendaOpacidad,
-            mostrarEstampado: true,
+            mostrarEstampado: false,
             usarModoRecorteCompleto: _usarRecorteFotoCatalogo,
           ),
         ),
@@ -1128,6 +1208,12 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   // PANEL D-PAD RÁPIDO
   // ============================================================================
   Widget _buildPanelControlesRapidos() {
+    final defaultCenter = Offset(
+      (_viewportSize.width > 0 ? _viewportSize.width : 380.0) / 2.0,
+      (_viewportSize.height > 0 ? _viewportSize.height : 500.0) * 0.42,
+    );
+    final defaultWidth = (_viewportSize.width > 0 ? _viewportSize.width : 380.0) * 0.72;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
@@ -1139,19 +1225,21 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildQuickActionBtn(Icons.arrow_upward, 'Subir', () {
-            setState(() => _prendaOffset += const Offset(0, -12));
+            setState(() => _prendaCenter = (_prendaCenter ?? defaultCenter) + const Offset(0, -14));
           }),
           const SizedBox(height: 6),
           _buildQuickActionBtn(Icons.arrow_downward, 'Bajar', () {
-            setState(() => _prendaOffset += const Offset(0, 12));
+            setState(() => _prendaCenter = (_prendaCenter ?? defaultCenter) + const Offset(0, 14));
           }),
           const Divider(color: Colors.white24, height: 12),
           _buildQuickActionBtn(Icons.zoom_in, 'Agrandar', () {
-            setState(() => _prendaEscala = (_prendaEscala + 0.06).clamp(0.6, 2.4));
+            final viewW = _viewportSize.width > 0 ? _viewportSize.width : 380.0;
+            setState(() => _prendaAncho = ((_prendaAncho ?? defaultWidth) * 1.06).clamp(viewW * 0.35, viewW * 1.5));
           }),
           const SizedBox(height: 6),
           _buildQuickActionBtn(Icons.zoom_out, 'Achicar', () {
-            setState(() => _prendaEscala = (_prendaEscala - 0.06).clamp(0.6, 2.4));
+            final viewW = _viewportSize.width > 0 ? _viewportSize.width : 380.0;
+            setState(() => _prendaAncho = ((_prendaAncho ?? defaultWidth) * 0.94).clamp(viewW * 0.35, viewW * 1.5));
           }),
           const Divider(color: Colors.white24, height: 12),
           _buildQuickActionBtn(Icons.center_focus_strong, 'Centrar', _resetearPosicionPrenda),

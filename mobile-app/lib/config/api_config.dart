@@ -12,7 +12,7 @@ class ApiConfig {
   /// IMPORTANTE: Si pruebas en tu teléfono físico, tu celular y tu PC deben estar
   /// conectados a la misma red Wi-Fi y el backend debe iniciarse con:
   ///   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-  static const String pcLocalIp = '192.168.0.102';
+  static const String pcLocalIp = '192.168.0.104';
 
   /// Retorna la URL base correspondiente según el dispositivo de ejecución
   static String get baseUrl {

@@ -10,4 +10,9 @@ passlib[bcrypt]>=1.7.4
 bcrypt<4.1
 python-jose[cryptography]>=3.3.0
 python-multipart>=0.0.9
-pillow>=10.0.0
+Pillow>=10.0.0
+qrcode[pil]>=7.4.2
+google-genai>=1.0.0
+gradio_client>=2.0.0
+decart>=0.2.0
+aiohttp>=3.9.0

@@ -41,9 +41,9 @@ def on_startup():
     try:
         # Crear automáticamente las tablas en PostgreSQL si aún no existen
         Base.metadata.create_all(bind=engine)
-        print("✓ Tablas de la base de datos sincronizadas correctamente.")
+        print("[DB] Tablas de la base de datos sincronizadas correctamente.")
     except Exception as e:
-        print(f"⚠️ Advertencia al conectar con la base de datos: {e}")
+        print(f"[DB WARN] Advertencia al conectar con la base de datos: {e}")
 
 # Configuración de CORS para permitir conexiones desde Angular y Flutter
 app.add_middleware(

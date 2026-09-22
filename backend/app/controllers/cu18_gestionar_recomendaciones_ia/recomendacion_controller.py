@@ -105,7 +105,7 @@ class RecomendacionController:
                 """
 
                 response = client.models.generate_content(
-                    model='gemini-2.5-flash',
+                    model='gemini-2.0-flash',
                     contents=prompt,
                 )
 
@@ -130,7 +130,7 @@ class RecomendacionController:
                             "imagen_url": img_url,
                             "razon_estilo": sug.get("razon_estilo", "Excelente combinación para tu estilo"),
                             "afinidad_porcentaje": sug.get("afinidad", 95),
-                            "fuente": "Google Gemini 2.5 Flash AI"
+                            "fuente": "Google Gemini 2.0 Flash AI"
                         })
 
                 if resultado:
