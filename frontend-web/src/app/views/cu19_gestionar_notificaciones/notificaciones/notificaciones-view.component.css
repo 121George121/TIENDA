@@ -1,0 +1,141 @@
+.notificaciones-container {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.badge-cu {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.header-titles h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+}
+
+.header-titles p {
+  color: #64748b;
+  margin: 0;
+  font-size: 14px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-chips {
+  margin-bottom: 20px;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-notif {
+  text-align: center;
+  padding: 60px 16px;
+  color: #94a3b8;
+}
+
+.empty-notif mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #cbd5e1;
+}
+
+.notif-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notif-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.notif-card.unread {
+  background: #f8fafc;
+  border-left: 4px solid #3b82f6;
+}
+
+.notif-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-icon-box.pedido { background: #eff6ff; color: #3b82f6; }
+.notif-icon-box.reserva { background: #fdf4ff; color: #a855f7; }
+.notif-icon-box.stock { background: #fef2f2; color: #ef4444; }
+.notif-icon-box.sistema { background: #f1f5f9; color: #64748b; }
+
+.notif-content {
+  flex: 1;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.notif-header h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.notif-header .date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.notif-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.notif-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b82f6;
+  flex-shrink: 0;
+}

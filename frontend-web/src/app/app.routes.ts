@@ -53,6 +53,18 @@ import { VentasListComponent } from './views/cu14_registrar_ventas_presenciales/
 import { TiendaOnlineComponent } from './views/cu15_realizar_compras_digitales/tienda-online/tienda-online.component';
 import { MisPedidosWebComponent } from './views/cu15_realizar_compras_digitales/mis-pedidos-web/mis-pedidos-web.component';
 
+// CU16: Gestionar Pagos y Comprobantes
+import { PagosListComponent } from './views/cu16_gestionar_pagos_comprobantes/pagos/pagos-list.component';
+
+// CU17: Consultar Historial de Compras y Reservas
+import { HistorialViewComponent } from './views/cu17_consultar_historial_compras_reservas/historial/historial-view.component';
+
+// CU18: Gestionar Recomendaciones mediante IA
+import { RecomendacionesViewComponent } from './views/cu18_gestionar_recomendaciones_ia/recomendaciones/recomendaciones-view.component';
+
+// CU19: Gestionar Notificaciones
+import { NotificacionesViewComponent } from './views/cu19_gestionar_notificaciones/notificaciones/notificaciones-view.component';
+
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -77,6 +89,9 @@ export const routes: Routes = [
       { path: 'carrito', component: CartViewComponent },
       { path: 'mis-reservas', component: MyReservationsComponent, canActivate: [authGuard] },
       { path: 'mis-pedidos', component: MisPedidosWebComponent, canActivate: [authGuard] },
+      { path: 'historial', component: HistorialViewComponent, canActivate: [authGuard] },
+      { path: 'recomendaciones', component: RecomendacionesViewComponent },
+      { path: 'notificaciones', component: NotificacionesViewComponent, canActivate: [authGuard] },
       { path: 'tienda/mis-pedidos', redirectTo: 'mis-pedidos', pathMatch: 'full' },
       { path: '', redirectTo: 'catalogo', pathMatch: 'full' }
     ]
@@ -116,6 +131,14 @@ export const routes: Routes = [
       // CU15: Vitrina & Tienda Unificada
       { path: 'tienda-digital', redirectTo: '/catalogo', pathMatch: 'full' },
       { path: 'ventas', component: VentasListComponent },
+      // CU16: Gestión de Pagos y Comprobantes
+      { path: 'pagos', component: PagosListComponent },
+      // CU17: Historial de Compras y Reservas
+      { path: 'historial', component: HistorialViewComponent },
+      // CU18: Recomendaciones mediante IA
+      { path: 'recomendaciones', component: RecomendacionesViewComponent },
+      // CU19: Gestión de Notificaciones
+      { path: 'notificaciones', component: NotificacionesViewComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]
   },

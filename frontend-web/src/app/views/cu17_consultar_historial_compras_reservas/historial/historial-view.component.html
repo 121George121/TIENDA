@@ -1,0 +1,148 @@
+<div class="historial-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <div class="badge-cu">CU17 • HISTORIAL DE COMPRAS Y RESERVAS</div>
+      <h1>Historial Omnicanal de Compras & Reservas</h1>
+      <p>Trazabilidad completa de pedidos digitales, tracking de envío en tiempo real y reservas en sucursal.</p>
+    </div>
+    <div class="header-actions">
+      <button mat-flat-button color="primary" (click)="controller.cargarHistorial()">
+        <mat-icon>refresh</mat-icon> Actualizar Historial
+      </button>
+    </div>
+  </div>
+
+  <mat-progress-bar *ngIf="controller.loading$ | async" mode="indeterminate" class="mb-4"></mat-progress-bar>
+
+  <!-- Métricas del Cliente / Resumen -->
+  <div class="metrics-grid" *ngIf="controller.resumen$ | async as resumen">
+    <div class="metric-card">
+      <span class="label">Total Compras</span>
+      <h2>{{ resumen.total_pedidos }}</h2>
+      <span class="sub">Pedidos confirmados</span>
+    </div>
+    <div class="metric-card">
+      <span class="label">Total Invertido</span>
+      <h2>Bs. {{ resumen.total_invertido_bs | number:'1.2-2' }}</h2>
+      <span class="sub">En poleras boutique</span>
+    </div>
+    <div class="metric-card">
+      <span class="label">Reservas Activas</span>
+      <h2>{{ resumen.reservas_activas }}</h2>
+      <span class="sub">Listas para retiro</span>
+    </div>
+  </div>
+
+  <!-- Pestañas Compras / Reservas -->
+  <mat-tab-group animationDuration="200ms" class="content-tabs">
+    <!-- Pestaña 1: Compras Digitales -->
+    <mat-tab label="Compras Digitales & Tracking">
+      <div class="tab-body">
+        <div *ngIf="(controller.compras$ | async)?.length === 0" class="empty-state">
+          <mat-icon>shopping_bag</mat-icon>
+          <h3>Aún no tienes compras registradas</h3>
+          <p>Explora nuestro catálogo exclusivo de poleras streetwear.</p>
+          <a mat-flat-button color="primary" routerLink="/catalogo">Ir al Catálogo</a>
+        </div>
+
+        <div class="cards-list">
+          <mat-card class="order-card" *ngFor="let compra of controller.compras$ | async">
+            <div class="order-header">
+              <div class="order-meta">
+                <span class="code">#{{ compra.codigo_venta }}</span>
+                <span class="date">{{ compra.fecha }}</span>
+                <span class="branch">• {{ compra.sucursal }}</span>
+              </div>
+              <div class="order-status">
+                <mat-chip highlighted class="status-chip">{{ compra.estado }}</mat-chip>
+              </div>
+            </div>
+
+            <!-- Tracking horizontal -->
+            <div class="tracking-bar" *ngIf="compra.tracking && compra.tracking.length > 0">
+              <div class="tracking-step" *ngFor="let step of compra.tracking" [class.completed]="step.completado">
+                <div class="step-dot">
+                  <mat-icon>{{ step.completado ? 'check' : 'radio_button_unchecked' }}</mat-icon>
+                </div>
+                <span class="step-title">{{ step.titulo }}</span>
+                <span class="step-date">{{ step.fecha }}</span>
+              </div>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <!-- Items -->
+            <div class="order-items">
+              <div class="item-row" *ngFor="let item of compra.items">
+                <div class="item-info">
+                  <span class="item-name">{{ item.producto }}</span>
+                  <span class="item-qty">Cantidad: {{ item.cantidad }}</span>
+                </div>
+                <span class="item-subtotal">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="order-footer">
+              <div class="total-box">
+                <span>Total Abonado:</span>
+                <strong>Bs. {{ compra.total | number:'1.2-2' }}</strong>
+              </div>
+              <button mat-stroked-button color="primary" (click)="descargarComprobante(compra.codigo_venta)">
+                <mat-icon>receipt</mat-icon> Comprobante Fiscal
+              </button>
+            </div>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Pestaña 2: Reservas en Sucursal -->
+    <mat-tab label="Reservas para Retiro en Tienda">
+      <div class="tab-body">
+        <div *ngIf="(controller.reservas$ | async)?.length === 0" class="empty-state">
+          <mat-icon>store</mat-icon>
+          <h3>No tienes reservas activas</h3>
+          <p>Puedes reservar prendas desde el catálogo y pagarlas en tienda física.</p>
+        </div>
+
+        <div class="cards-list">
+          <mat-card class="order-card" *ngFor="let res of controller.reservas$ | async">
+            <div class="order-header">
+              <div class="order-meta">
+                <span class="code">#{{ res.codigo_reserva }}</span>
+                <span class="date">{{ res.fecha_reserva }}</span>
+                <span class="branch">• Retiro en: {{ res.sucursal_nombre }}</span>
+              </div>
+              <mat-chip highlighted class="status-chip">{{ res.estado }}</mat-chip>
+            </div>
+
+            <div class="reserve-location">
+              <mat-icon>place</mat-icon>
+              <span>{{ res.sucursal_direccion }}</span>
+              <span class="hours-badge" *ngIf="res.horas_restantes">Tiempo límite: {{ res.horas_restantes }} horas</span>
+            </div>
+
+            <mat-divider></mat-divider>
+
+            <div class="order-items">
+              <div class="item-row" *ngFor="let item of res.items">
+                <div class="item-info">
+                  <span class="item-name">{{ item.producto }}</span>
+                  <span class="item-qty">Cantidad: {{ item.cantidad }}</span>
+                </div>
+                <span class="item-subtotal">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="order-footer">
+              <div class="total-box">
+                <span>Total Estimado a Pagar en Caja:</span>
+                <strong>Bs. {{ res.total_estimado | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+          </mat-card>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>

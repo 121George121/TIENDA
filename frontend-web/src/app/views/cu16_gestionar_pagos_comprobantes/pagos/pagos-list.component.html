@@ -1,0 +1,101 @@
+<div class="pagos-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <div class="badge-cu">CU16 • GESTIONAR PAGOS Y COMPROBANTES</div>
+      <h1>Métodos de Pago & Pasarelas Transaccionales</h1>
+      <p>Configuración de pasarelas digitales (QR Interoperable, Tarjetas, Efectivo y Comprobantes Fiscales).</p>
+    </div>
+    <div class="header-actions">
+      <button mat-flat-button color="primary" (click)="controller.cargarMetodosPago()">
+        <mat-icon>refresh</mat-icon> Actualizar Estado
+      </button>
+    </div>
+  </div>
+
+  <mat-progress-bar *ngIf="controller.loading$ | async" mode="indeterminate" class="mb-4"></mat-progress-bar>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon qr"><mat-icon>qr_code_scanner</mat-icon></div>
+      <div class="kpi-info">
+        <span class="label">Pago QR Bolivia</span>
+        <h3>Activo (BCB)</h3>
+        <span class="sub">Sin comisión extra</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon card"><mat-icon>credit_card</mat-icon></div>
+      <div class="kpi-info">
+        <span class="label">Pasarela Tarjetas</span>
+        <h3>Visa / Mastercard</h3>
+        <span class="sub">3D Secure v2</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon bill"><mat-icon>receipt_long</mat-icon></div>
+      <div class="kpi-info">
+        <span class="label">Facturación Electrónica</span>
+        <h3>Comprobante QR</h3>
+        <span class="sub">Descarga inmediata</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-card class="content-card">
+    <div class="card-header-flex">
+      <h3>Canales de Cobro Disponibles en Boutique</h3>
+      <span class="subtitle">Disponibles tanto en Web como en la App Móvil Flutter</span>
+    </div>
+
+    <table mat-table [dataSource]="(controller.metodos$ | async) || []" class="mat-elevation-z0 full-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef> ID </th>
+        <td mat-cell *matCellDef="let m"> #{{ m.id }} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="icono">
+        <th mat-header-cell *matHeaderCellDef> Canal </th>
+        <td mat-cell *matCellDef="let m">
+          <div class="channel-avatar">
+            <mat-icon>{{ m.icono || 'payments' }}</mat-icon>
+          </div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="nombre">
+        <th mat-header-cell *matHeaderCellDef> Método de Pago </th>
+        <td mat-cell *matCellDef="let m">
+          <span class="method-title">{{ m.nombre }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="descripcion">
+        <th mat-header-cell *matHeaderCellDef> Descripción Operativa </th>
+        <td mat-cell *matCellDef="let m"> {{ m.descripcion }} </td>
+      </ng-container>
+
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef> Estado </th>
+        <td mat-cell *matCellDef="let m">
+          <mat-chip-set>
+            <mat-chip [highlighted]="m.activo" class="chip-active">
+              <mat-icon matChipAvatar>check_circle</mat-icon> Operativo
+            </mat-chip>
+          </mat-chip-set>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef> Acciones </th>
+        <td mat-cell *matCellDef="let m">
+          <button mat-stroked-button color="accent" (click)="simularComprobante(m)">
+            <mat-icon>visibility</mat-icon> Ver Simulación
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </mat-card>
+</div>

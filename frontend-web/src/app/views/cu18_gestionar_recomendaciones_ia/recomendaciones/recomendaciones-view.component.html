@@ -1,0 +1,56 @@
+<div class="recomendaciones-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <div class="badge-cu">CU18 • RECOMENDACIONES MEDIANTE IA</div>
+      <h1>Asesor Estilista Inteligente & Tendencias</h1>
+      <p>Sugerencias de combinación textil, afinidad anatómica y tendencias impulsadas por Google Gemini Flash AI.</p>
+    </div>
+    <div class="header-actions">
+      <button mat-flat-button color="primary" (click)="controller.generarRecomendacionOutfit()">
+        <mat-icon>auto_awesome</mat-icon> Regenerar con IA
+      </button>
+    </div>
+  </div>
+
+  <mat-progress-bar *ngIf="controller.loading$ | async" mode="indeterminate" class="mb-4"></mat-progress-bar>
+
+  <!-- Sección 1: Match de Outfit con IA -->
+  <div class="section-title">
+    <mat-icon>style</mat-icon>
+    <h2>Combinaciones Sugeridas por IA (Look Completo)</h2>
+  </div>
+
+  <div class="outfits-grid">
+    <mat-card class="outfit-card" *ngFor="let item of controller.outfits$ | async">
+      <div class="outfit-img-box">
+        <img [src]="item.imagen_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500'" [alt]="item.nombre">
+        <span class="affinity-badge">{{ item.afinidad_porcentaje }}% Match</span>
+      </div>
+      <div class="outfit-body">
+        <h3>{{ item.nombre }}</h3>
+        <p class="reason">{{ item.razon_estilo }}</p>
+        <div class="outfit-footer">
+          <span class="price">Bs. {{ item.precio | number:'1.2-2' }}</span>
+          <a mat-stroked-button color="primary" routerLink="/catalogo">Ver Prenda</a>
+        </div>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Sección 2: Tendencias Streetwear -->
+  <div class="section-title mt-5">
+    <mat-icon>trending_up</mat-icon>
+    <h2>Tendencias de Moda de la Semana</h2>
+  </div>
+
+  <div class="trends-grid">
+    <mat-card class="trend-card" *ngFor="let trend of controller.tendencias$ | async">
+      <div class="trend-header">
+        <mat-chip class="tag-chip" highlighted>{{ trend.etiqueta }}</mat-chip>
+        <span class="trend-price">Bs. {{ trend.precio | number:'1.2-2' }}</span>
+      </div>
+      <h3>{{ trend.nombre }}</h3>
+      <p>{{ trend.razon }}</p>
+    </mat-card>
+  </div>
+</div>

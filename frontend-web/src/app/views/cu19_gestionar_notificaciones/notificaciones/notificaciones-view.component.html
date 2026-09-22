@@ -1,0 +1,69 @@
+<div class="notificaciones-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <div class="badge-cu">CU19 • GESTIONAR NOTIFICACIONES</div>
+      <h1>Centro de Mensajes & Alertas en Tiempo Real</h1>
+      <p>Notificaciones operativas sobre pedidos web, reservas en tienda, avisos de inventario y alertas del sistema.</p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button color="primary" (click)="controller.marcarTodasComoLeidas()">
+        <mat-icon>done_all</mat-icon> Marcar Todas Leídas
+      </button>
+      <button mat-flat-button color="primary" (click)="controller.cargarNotificaciones()">
+        <mat-icon>refresh</mat-icon> Refrescar
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filter-chips">
+    <mat-chip-listbox>
+      <mat-chip-option [selected]="filtroActual === 'todas'" (click)="cambiarFiltro('todas')">
+        Todas
+      </mat-chip-option>
+      <mat-chip-option [selected]="filtroActual === 'no_leidas'" (click)="cambiarFiltro('no_leidas')">
+        No Leídas
+      </mat-chip-option>
+      <mat-chip-option [selected]="filtroActual === 'pedido'" (click)="cambiarFiltro('pedido')">
+        Pedidos
+      </mat-chip-option>
+      <mat-chip-option [selected]="filtroActual === 'reserva'" (click)="cambiarFiltro('reserva')">
+        Reservas
+      </mat-chip-option>
+    </mat-chip-listbox>
+  </div>
+
+  <!-- Lista de Notificaciones -->
+  <div class="notif-list">
+    <ng-container *ngIf="(controller.notificaciones$ | async) as list">
+      <div *ngIf="list.length === 0" class="empty-notif">
+        <mat-icon>notifications_off</mat-icon>
+        <h3>No tienes notificaciones pendientes</h3>
+        <p>Te avisaremos cuando haya actualizaciones en tus pedidos o reservas.</p>
+      </div>
+
+      <mat-card
+        *ngFor="let notif of list"
+        class="notif-card"
+        [class.unread]="!notif.leido"
+        (click)="controller.marcarComoLeida(notif.id)">
+        <div class="notif-icon-box" [ngClass]="notif.tipo || 'sistema'">
+          <mat-icon *ngIf="notif.tipo === 'pedido'">local_shipping</mat-icon>
+          <mat-icon *ngIf="notif.tipo === 'reserva'">event_available</mat-icon>
+          <mat-icon *ngIf="notif.tipo === 'stock'">warning</mat-icon>
+          <mat-icon *ngIf="notif.tipo !== 'pedido' && notif.tipo !== 'reserva' && notif.tipo !== 'stock'">info</mat-icon>
+        </div>
+
+        <div class="notif-content">
+          <div class="notif-header">
+            <h4>{{ notif.titulo }}</h4>
+            <span class="date">{{ notif.fecha }}</span>
+          </div>
+          <p>{{ notif.mensaje }}</p>
+        </div>
+
+        <div class="notif-status-dot" *ngIf="!notif.leido"></div>
+      </mat-card>
+    </ng-container>
+  </div>
+</div>
