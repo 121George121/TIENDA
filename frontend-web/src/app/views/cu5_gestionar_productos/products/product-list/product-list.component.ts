@@ -179,8 +179,8 @@ export class ProductListComponent implements OnInit, OnDestroy {
       width: '420px',
       data: {
         title: '¿Eliminar Polera?',
-        message: `¿Estás seguro de eliminar la prenda "${producto.nombre}"? Esta acción removerá el producto del catálogo.`,
-        confirmText: 'Eliminar',
+        message: `¿Estás seguro de eliminar la prenda "${producto.nombre}"? Esta acción removerá el producto definitivamente de la base de datos.`,
+        confirmText: 'Eliminar definitivamente',
         cancelText: 'Cancelar',
         icon: 'delete_forever',
         color: 'warn'
@@ -190,8 +190,11 @@ export class ProductListComponent implements OnInit, OnDestroy {
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
         this.productController.deleteProducto(producto.id).subscribe({
-          next: () => this.snackBar.open(`Producto "${producto.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 }),
-          error: (err) => this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 })
+          next: () => this.snackBar.open(`Producto "${producto.nombre}" eliminado definitivamente de la base de datos`, 'Cerrar', { duration: 3000 }),
+          error: (err) => {
+            const errorMsg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al eliminar');
+            this.snackBar.open(`Error al eliminar: ${errorMsg}`, 'Cerrar', { duration: 5000 });
+          }
         });
       }
     });

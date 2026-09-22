@@ -76,12 +76,8 @@ export class ProductController {
     return this.productService.deleteProducto(id).pipe(
       tap(() => {
         const current = this.productosSubject.value;
-        const index = current.findIndex(p => p.id === id);
-        if (index !== -1) {
-          const list = [...current];
-          list[index] = { ...list[index], activo: false };
-          this.productosSubject.next(list);
-        }
+        const updatedList = current.filter(p => p.id !== id);
+        this.productosSubject.next(updatedList);
       }),
       finalize(() => this.loadingSubject.next(false))
     );

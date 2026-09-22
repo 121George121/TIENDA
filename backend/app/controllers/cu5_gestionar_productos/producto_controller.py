@@ -43,5 +43,9 @@ class ProductoController:
         return ProductoService.toggle_status(db=db, id=id, activo=activo)
 
     @staticmethod
+    def eliminar_producto(db: Session, id: int) -> dict:
+        return ProductoService.delete(db=db, id=id)
+
+    @staticmethod
     def baja_logica(db: Session, id: int) -> dict:
-        return ProductoService.logical_delete(db=db, id=id)
+        return ProductoService.delete(db=db, id=id)

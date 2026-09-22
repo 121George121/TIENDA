@@ -66,10 +66,10 @@ def cambiar_estado_producto(
     return ProductoController.cambiar_estado(db=db, id=id, activo=activo)
 
 @router.delete("/{id}")
-def baja_logica_producto(
+def eliminar_producto(
     id: int, 
     db: Session = Depends(get_db), 
     current_user=Depends(require_admin)
 ):
-    """Baja lógica de producto (Solo Administrador)"""
-    return ProductoController.baja_logica(db=db, id=id)
+    """Eliminar definitivamente un producto de la base de datos (Solo Administrador)"""
+    return ProductoController.eliminar_producto(db=db, id=id)
