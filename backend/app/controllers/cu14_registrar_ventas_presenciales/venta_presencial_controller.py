@@ -245,10 +245,21 @@ class VentaPresencialController:
             ventaid=nueva_venta.id,
             metodoid=metodo_pago.id
         )
-        db.add(pago)
-
         db.commit()
         db.refresh(nueva_venta)
+
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="VENTA_POS",
+                modulo="VENTAS",
+                usuario_id=current_user.id,
+                detalle=f"Emisión de comprobante de venta presencial POS {codigo_venta} por Bs {float(total_acumulado):.2f} (Sucursal: {sucursal.nombre})",
+                datos_nuevos={"codigo_venta": codigo_venta, "total": float(total_acumulado), "items": len(items_a_procesar), "sucursal_id": sucursal.id}
+            )
+        except Exception:
+            pass
 
         cambio = Decimal("0.00")
         if data.monto_recibido and data.monto_recibido > total_acumulado:
@@ -273,7 +284,16 @@ class VentaPresencialController:
     @staticmethod
     def listar_metodos_pago(db: Session) -> List[MetodoPagoModel]:
         VentaPresencialController._asegurar_metodos_pago(db)
-        return db.query(MetodoPagoModel).filter(MetodoPagoModel.estado == True).all()
+        return (
+            db.query(MetodoPagoModel)
+            .filter(
+                MetodoPagoModel.estado == True,
+                ~MetodoPagoModel.nombre.ilike("%Online%"),
+                ~MetodoPagoModel.nombre.ilike("%Digital%")
+            )
+            .order_by(MetodoPagoModel.id.asc())
+            .all()
+        )
 
     @staticmethod
     def listar_todas_ventas(

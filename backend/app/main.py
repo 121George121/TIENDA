@@ -29,6 +29,7 @@ from app.views.cu17_consultar_historial_compras_reservas import historial_views
 from app.views.cu18_gestionar_recomendaciones_ia import recomendacion_views
 from app.views.cu19_gestionar_notificaciones import notificacion_views
 from app.views.cu20_generar_reportes_dashboards import reporte_views
+from app.views.cu20_gestionar_bitacora import bitacora_views
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -36,12 +37,41 @@ app = FastAPI(
     description="API RESTful siguiendo el patrón de arquitectura Modelo-Vista-Controlador (MVC)"
 )
 
+def sync_db_sequences():
+    """Sincroniza automáticamente las secuencias seriales de PostgreSQL con el MAX(id) real"""
+    try:
+        with engine.begin() as conn:
+            from sqlalchemy import text
+            import re
+            query = text("""
+                SELECT table_name, column_name, column_default 
+                FROM information_schema.columns 
+                WHERE table_schema = 'public' AND column_default LIKE 'nextval%'
+            """)
+            cols = conn.execute(query).fetchall()
+            for table_name, column_name, column_default in cols:
+                match = re.search(r"nextval\('([^']+)'", column_default)
+                if match:
+                    seq_name = match.group(1)
+                    try:
+                        max_id = conn.execute(text(f'SELECT COALESCE(MAX("{column_name}"), 0) FROM "{table_name}"')).scalar()
+                        if max_id > 0:
+                            conn.execute(text(f"SELECT setval('{seq_name}', {max_id}, true)"))
+                        else:
+                            conn.execute(text(f"SELECT setval('{seq_name}', 1, false)"))
+                    except Exception:
+                        pass
+        print("[DB] Secuencias PostgreSQL resincronizadas automáticamente.")
+    except Exception as e:
+        print(f"[DB WARN] No se pudieron sincronizar secuencias: {e}")
+
 @app.on_event("startup")
 def on_startup():
     try:
         # Crear automáticamente las tablas en PostgreSQL si aún no existen
         Base.metadata.create_all(bind=engine)
         print("[DB] Tablas de la base de datos sincronizadas correctamente.")
+        sync_db_sequences()
     except Exception as e:
         print(f"[DB WARN] Advertencia al conectar con la base de datos: {e}")
 
@@ -76,13 +106,14 @@ app.include_router(historial_views.router, prefix=settings.API_V1_STR)
 app.include_router(recomendacion_views.router, prefix=settings.API_V1_STR)
 app.include_router(notificacion_views.router, prefix=settings.API_V1_STR)
 app.include_router(reporte_views.router, prefix=settings.API_V1_STR)
+app.include_router(bitacora_views.router, prefix=settings.API_V1_STR)
 
 
 
 @app.get("/", tags=["Inicio"])
 def read_root():
     return {
-        "mensaje": "¡Bienvenido a la API E-Commerce Tienda!",
+        "mensaje": "¡Bienvenido a la API Shopyn Golden Store!",
         "documentacion": "/docs",
         "arquitectura": "MVC (Modelo-Vista-Controlador)"
     }

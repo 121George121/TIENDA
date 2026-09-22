@@ -9,12 +9,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Reserva, CrearReservaDTO, CancelarReservaDTO } from '../../models/cu10_gestionar_reservas_prendas/reservation.model';
 import { CartService } from '../cu9_gestionar_carrito_compras/cart.service';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReservationService {
-  private apiUrl = 'http://localhost:8000/api/v1/reservas';
+  private apiUrl = `${environment.apiUrl}/reservas`;
 
   constructor(
     private http: HttpClient,

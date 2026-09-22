@@ -48,11 +48,13 @@ export interface TopPrenda {
   recaudacion_bs: number;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ReporteService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1/reportes';
+  private readonly apiUrl = `${environment.apiUrl}/reportes`;
 
   constructor(private http: HttpClient) {}
 

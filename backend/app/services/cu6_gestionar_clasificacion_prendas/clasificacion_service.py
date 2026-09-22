@@ -4,7 +4,7 @@
 # Ubicación: backend/app/services/clasificacion_service.py
 # ==============================================================================
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.models import CategoriaModel, TemporadaModel, ColeccionModel
 from app.schemas.clasificacion_schema import (
     CategoriaCreate, CategoriaUpdate,

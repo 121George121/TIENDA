@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Cliente, ClienteCreate, ClienteUpdate, HistorialCompra, HistorialReserva } from '../../models/cu3_gestionar_clientes/customer.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CustomerService {
-  private apiUrl = 'http://localhost:8000/api/v1/clientes';
+  private apiUrl = `${environment.apiUrl}/clientes`;
 
   constructor(private http: HttpClient) {}
 

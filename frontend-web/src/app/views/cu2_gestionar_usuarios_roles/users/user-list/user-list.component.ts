@@ -167,10 +167,11 @@ export class UserListComponent implements OnInit, AfterViewInit, OnDestroy {
       if (result) {
         this.userController.createUser(result).subscribe({
           next: () => {
-            this.snackBar.open('Usuario registrado exitosamente', 'Cerrar', { duration: 3000 });
+            this.snackBar.open('Usuario registrado exitosamente (Contraseña: usuario123.)', 'Cerrar', { duration: 4000 });
           },
           error: (err) => {
-            this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
+            const msg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al registrar usuario');
+            this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
           }
         });
       }

@@ -26,11 +26,13 @@ export interface OrdenResponseDTO {
   mensaje?: string;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class CompraDigitalService {
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

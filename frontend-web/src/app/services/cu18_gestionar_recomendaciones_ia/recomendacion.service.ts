@@ -26,11 +26,13 @@ export interface TendenciaDTO {
   razon: string;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class RecomendacionService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1/recomendaciones';
+  private readonly apiUrl = `${environment.apiUrl}/recomendaciones`;
 
   constructor(private http: HttpClient) {}
 

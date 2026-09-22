@@ -43,7 +43,7 @@ class ECommerceMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => RecommendationController()),
       ],
       child: MaterialApp(
-        title: 'T-Shirt Boutique Mobile',
+        title: 'Shopyn Golden Store',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorSchemeSeed: const Color(0xFFE11D48),

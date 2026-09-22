@@ -41,3 +41,5 @@ from app.models.cu10_gestionar_reservas_prendas.reserva_model import (
     ReservaDetalleModel,
 )
 from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
+from app.models.cu20_gestionar_bitacora.bitacora_model import BitacoraModel
+

@@ -26,11 +26,13 @@ export interface IniciarPagoResponseDTO {
   mensaje: string;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class PagoService {
-  private apiUrl = 'http://localhost:8000/api/v1/pagos';
+  private apiUrl = `${environment.apiUrl}/pagos`;
 
   constructor(private http: HttpClient) {}
 

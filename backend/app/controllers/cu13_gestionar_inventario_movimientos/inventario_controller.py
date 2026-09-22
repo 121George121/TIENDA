@@ -147,6 +147,7 @@ class InventarioController:
                 "stockreservado": inv.stockreservado,
                 "stockminimo": inv.stockminimo,
                 "estado_stock": estado_stock,
+                "imagen_url": p.imagenprincipal or (getattr(p, 'imagen_url', None)),
                 "fechaactualizacion": inv.fechaactualizacion
             })
 

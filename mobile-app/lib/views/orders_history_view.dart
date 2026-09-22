@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../controllers/order_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
+import '../models/order_model.dart';
 
 class OrdersHistoryView extends StatefulWidget {
   const OrdersHistoryView({super.key});
@@ -29,73 +30,134 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
     Provider.of<OrderController>(context, listen: false).fetchMisOrdenes(token);
   }
 
-  Widget _buildOrderTimeline(String estado) {
-    final steps = ['REGISTRADO', 'PREPARACIÓN', 'EN CAMINO', 'ENTREGADO'];
-    int currentStep = 0;
-    final normalized = estado.toUpperCase();
-    if (normalized.contains('PREPAR') || normalized.contains('CONFIRMAD')) {
-      currentStep = 1;
-    } else if (normalized.contains('CAMINO') || normalized.contains('ENVIAD') || normalized.contains('TRANSITO')) {
-      currentStep = 2;
-    } else if (normalized.contains('ENTREGAD') || normalized.contains('COMPLETAD') || normalized.contains('FINALIZAD')) {
-      currentStep = 3;
+  Widget _buildPurchasedItems(List<OrderItemModel> items) {
+    if (items.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Text(
+          'Detalle de prendas registrado en el comprobante digital.',
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+        ),
+      );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Column(
-        children: [
-          Row(
-            children: List.generate(steps.length * 2 - 1, (index) {
-              if (index.isOdd) {
-                final lineIndex = index ~/ 2;
-                final isCompleted = lineIndex < currentStep;
-                return Expanded(
-                  child: Container(
-                    height: 2,
-                    color: isCompleted ? Colors.indigo : Colors.grey.shade300,
-                  ),
-                );
-              } else {
-                final stepIndex = index ~/ 2;
-                final isCompleted = stepIndex <= currentStep;
-                return Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: isCompleted ? Colors.indigo : Colors.white,
-                    border: Border.all(
-                      color: isCompleted ? Colors.indigo : Colors.grey.shade400,
-                      width: 2,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: isCompleted
-                      ? const Icon(Icons.check, size: 12, color: Colors.white)
-                      : null,
-                );
-              }
-            }),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            'PRENDAS COMPRADAS (${items.length}):',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+              color: Colors.grey.shade600,
+            ),
           ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: steps.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final label = entry.value;
-              final isActive = idx <= currentStep;
-              return Text(
-                label,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                  color: isActive ? Colors.indigo.shade900 : Colors.grey,
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade200),
+            itemBuilder: (context, idx) {
+              final it = items[idx];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Miniatura o icono de prenda
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        color: Colors.white,
+                        child: it.imagenUrl != null && it.imagenUrl!.isNotEmpty
+                            ? Image.network(
+                                it.imagenUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.checkroom, color: Colors.indigo, size: 24),
+                              )
+                            : const Icon(Icons.checkroom, color: Colors.indigo, size: 24),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Descripción y variantes
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            it.productoNombre,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              if (it.talla != null && it.talla!.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  margin: const EdgeInsets.only(right: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.indigo.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Talla: ${it.talla}',
+                                    style: TextStyle(fontSize: 10, color: Colors.indigo.shade700, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              if (it.color != null && it.color!.isNotEmpty)
+                                Text(
+                                  it.color!,
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Cantidad y subtotal
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${it.cantidad}x Bs. ${it.precioUnitario.toStringAsFixed(2)}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Bs. ${it.subtotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
-            }).toList(),
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -207,19 +269,31 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: Colors.green.shade100,
+                                          color: orden.estado.toUpperCase().contains('ENTREGAD')
+                                              ? Colors.green.shade100
+                                              : Colors.blue.shade100,
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.check_circle, size: 14, color: Colors.green.shade800),
+                                            Icon(
+                                              orden.estado.toUpperCase().contains('ENTREGAD')
+                                                  ? Icons.done_all
+                                                  : Icons.check_circle,
+                                              size: 14,
+                                              color: orden.estado.toUpperCase().contains('ENTREGAD')
+                                                  ? Colors.green.shade800
+                                                  : Colors.blue.shade800,
+                                            ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              orden.estado,
+                                              orden.estado.toUpperCase().contains('ENTREGAD') ? 'Entregado' : 'Comprado',
                                               style: TextStyle(
-                                                color: Colors.green.shade900,
-                                                fontWeight: FontWeight.w600,
+                                                color: orden.estado.toUpperCase().contains('ENTREGAD')
+                                                    ? Colors.green.shade900
+                                                    : Colors.blue.shade900,
+                                                fontWeight: FontWeight.w700,
                                                 fontSize: 12,
                                               ),
                                             ),
@@ -239,21 +313,21 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                       ),
                                       const Spacer(),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade200,
                                           borderRadius: BorderRadius.circular(4),
                                         ),
                                         child: Text(
                                           orden.tipoVenta,
-                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade800),
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
                                         ),
                                       )
                                     ],
                                   ),
-                                  const SizedBox(height: 12),
-                                  // Tracker Visual de Estado
-                                  _buildOrderTimeline(orden.estado),
+                                  const SizedBox(height: 14),
+                                  // Detalle de Prendas Compradas
+                                  _buildPurchasedItems(orden.items),
                                   const Divider(height: 20),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

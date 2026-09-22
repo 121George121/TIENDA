@@ -55,11 +55,13 @@ export interface ResumenClienteDTO {
   reservas_activas: number;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class HistorialService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1/historial';
+  private readonly apiUrl = `${environment.apiUrl}/historial`;
 
   constructor(private http: HttpClient) {}
 

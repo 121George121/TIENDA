@@ -12,6 +12,7 @@ export interface InventarioItem {
   talla_nombre?: string;
   color?: string;
   talla?: string;
+  imagen_url?: string;
   sku?: string;
   stockfisico: number;
   stockreservado: number;

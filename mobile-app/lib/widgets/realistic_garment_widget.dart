@@ -48,32 +48,24 @@ class RealisticGarmentWidget extends StatelessWidget {
                   painter: _GarmentDropShadowPainter(tipoPrenda),
                 ),
 
-                // 2. Prenda Base con Iluminación y Pliegues Realistas
-                if (usarModoRecorteCompleto && imagenUrl != null && imagenUrl!.isNotEmpty)
-                  ClipPath(
-                    clipper: GarmentClipper(tipoPrenda),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Imagen de catálogo recortada a la silueta exacta
-                        Image.network(
-                          imagenUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildVectorGarment(size),
-                        ),
-                        // Tinte de color suave encima con modo de fusión
-                        Container(
-                          color: color.withValues(alpha: 0.35),
-                        ),
-                        // Sombras de tela y cuello por encima
-                        CustomPaint(
-                          size: size,
-                          painter: RealisticGarmentOverlayPainter(
-                            tipoPrenda: tipoPrenda,
-                            colorBase: color,
+                // 2. Prenda Real del Producto (PNG transparente de alta fidelidad)
+                if (imagenUrl != null && imagenUrl!.trim().isNotEmpty)
+                  Center(
+                    child: Image.network(
+                      imagenUrl!.trim(),
+                      fit: BoxFit.contain,
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) => _buildVectorGarment(size),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF6366F1)),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   )
                 else

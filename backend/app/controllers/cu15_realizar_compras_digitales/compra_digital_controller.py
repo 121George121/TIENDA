@@ -245,15 +245,53 @@ class CompraDigitalController:
 
         res = []
         for v in ventas:
+            metodo_str = "QR / Transferencia"
+            if v.pagos and len(v.pagos) > 0 and v.pagos[0].metodo:
+                metodo_str = v.pagos[0].metodo.nombre
+
+            items_det = []
+            for d in v.detalles:
+                prod_nombre = "Prenda Exclusiva"
+                img_url = None
+                talla_str = "M"
+                color_str = "Estándar"
+
+                if d.variante:
+                    if d.variante.producto:
+                        prod_nombre = d.variante.producto.nombre
+                        img_url = d.variante.producto.imagenprincipal or getattr(d.variante.producto, 'imagen_url', None)
+                    if d.variante.talla:
+                        talla_str = d.variante.talla.nombre
+                    if d.variante.color:
+                        color_str = d.variante.color.nombre
+
+                items_det.append({
+                    "producto_id": d.variante.productoid if d.variante else 0,
+                    "producto_nombre": prod_nombre,
+                    "imagen_url": img_url,
+                    "talla": talla_str,
+                    "color": color_str,
+                    "cantidad": d.cantidad,
+                    "preciounitario": d.preciounitario,
+                    "subtotal": d.subtotal
+                })
+
+            # Mostrar estado 'Comprado' en vez de técnico 'Completada' si corresponde
+            estado_cliente = v.estado
+            if estado_cliente.upper() in ["COMPLETADA", "APROBADA", "PAGADA"]:
+                estado_cliente = "Comprado"
+
             res.append({
                 "id": v.id,
                 "codigoventa": v.codigoventa,
-                "estado": v.estado,
+                "estado": estado_cliente,
                 "tipoventa": v.tipoventa,
                 "subtotal": v.subtotal,
                 "descuento": v.descuento,
                 "total": v.total,
                 "fecha": v.fecha,
-                "mensaje": "Orden procesada exitosamente"
+                "metodo_pago": metodo_str,
+                "mensaje": "¡Orden procesada y registrada exitosamente!",
+                "items": items_det
             })
         return res

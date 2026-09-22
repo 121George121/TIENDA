@@ -55,5 +55,12 @@ export const LISTA_PERMISOS_SISTEMA: PermisoCategoria[] = [
       { clave: 'ORDENES_LISTAR', nombre: 'Ver Todas las Órdenes', descripcion: 'Permite administrar los pedidos del sistema' },
       { clave: 'ORDENES_GESTIONAR', nombre: 'Cambiar Estado de Órdenes', descripcion: 'Permite procesar y despachar órdenes' }
     ]
+  },
+  {
+    categoria: 'Auditoría y Bitácora (CU20)',
+    permisos: [
+      { clave: 'BITACORA_LISTAR', nombre: 'Consultar Bitácora', descripcion: 'Permite visualizar el historial de actividades y eventos del sistema' },
+      { clave: 'BITACORA_EXPORTAR', nombre: 'Exportar Bitácora', descripcion: 'Permite descargar reportes de auditoría en formato CSV' }
+    ]
   }
 ];

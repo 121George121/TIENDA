@@ -1,0 +1,331 @@
+<div class="bitacora-container">
+  <!-- Header de la Vista -->
+  <div class="view-header">
+    <div class="header-title-group">
+      <div class="header-icon-box">
+        <mat-icon>history_edu</mat-icon>
+      </div>
+      <div>
+        <div class="badge-module">CASO DE USO 20 (CU20)</div>
+        <h1 class="page-title">Bitácora & Auditoría del Sistema</h1>
+        <p class="page-subtitle">Trazabilidad inmutable, registro de accesos y supervisión de operaciones del ERP</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button mat-flat-button class="btn-export" (click)="exportarCSV()" [disabled]="exporting$ | async">
+        <mat-icon *ngIf="!(exporting$ | async)">file_download</mat-icon>
+        <mat-icon *ngIf="exporting$ | async" class="spin-icon">autorenew</mat-icon>
+        <span>{{ (exporting$ | async) ? 'Generando CSV...' : 'Exportar Auditoría CSV' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas KPI de Auditoría -->
+  <div class="kpi-grid" *ngIf="stats$ | async as stats">
+    <div class="kpi-card card-today">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>today</mat-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Eventos Hoy</span>
+        <h3 class="kpi-value">{{ stats.total_hoy }}</h3>
+        <span class="kpi-subtext">Actividad últimas 24h</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-week">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>date_range</mat-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Últimos 7 Días</span>
+        <h3 class="kpi-value">{{ stats.total_semana }}</h3>
+        <span class="kpi-subtext">Operaciones consolidadas</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-month">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>calendar_month</mat-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Últimos 30 Días</span>
+        <h3 class="kpi-value">{{ stats.total_mes }}</h3>
+        <span class="kpi-subtext">Registro total mensual</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-total">
+      <div class="kpi-icon-wrapper">
+        <mat-icon>verified_user</mat-icon>
+      </div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total en Vista</span>
+        <h3 class="kpi-value">{{ totalRecords }}</h3>
+        <span class="kpi-subtext">Eventos filtrados</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros Avanzados -->
+  <mat-card class="filter-card">
+    <div class="filter-row">
+      <!-- Búsqueda General -->
+      <mat-form-field appearance="outline" class="filter-item filter-search">
+        <mat-label>Buscar por usuario, detalle o IP...</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [formControl]="searchControl" placeholder="Ej: admin, venta, 192.168...">
+        <button mat-icon-button matSuffix *ngIf="searchControl.value" (click)="searchControl.setValue('')">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- Selector de Módulo -->
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Módulo</mat-label>
+        <mat-select [(value)]="selectedModulo" (selectionChange)="pageIndex = 0; aplicarFiltros()">
+          <mat-option *ngFor="let m of modulos" [value]="m">{{ m }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Selector de Acción -->
+      <mat-form-field appearance="outline" class="filter-item">
+        <mat-label>Acción</mat-label>
+        <mat-select [(value)]="selectedAccion" (selectionChange)="pageIndex = 0; aplicarFiltros()">
+          <mat-option *ngFor="let a of acciones" [value]="a">{{ a }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Fecha Desde -->
+      <mat-form-field appearance="outline" class="filter-item filter-date">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" [(ngModel)]="fechaDesde" (change)="pageIndex = 0; aplicarFiltros()">
+      </mat-form-field>
+
+      <!-- Fecha Hasta -->
+      <mat-form-field appearance="outline" class="filter-item filter-date">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" [(ngModel)]="fechaHasta" (change)="pageIndex = 0; aplicarFiltros()">
+      </mat-form-field>
+
+      <!-- Botón Limpiar -->
+      <div class="filter-actions">
+        <button mat-stroked-button class="btn-reset" (click)="limpiarFiltros()" matTooltip="Restablecer filtros">
+          <mat-icon>restart_alt</mat-icon>
+          <span>Limpiar</span>
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Barra de Carga -->
+  <mat-progress-bar *ngIf="loading$ | async" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+  <!-- Tabla de Auditoría -->
+  <mat-card class="table-card">
+    <div class="table-responsive">
+      <table mat-table [dataSource]="dataSource" class="audit-table">
+        <!-- Columna ID -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>#ID</th>
+          <td mat-cell *matCellDef="let row" class="col-id">#{{ row.id }}</td>
+        </ng-container>
+
+        <!-- Columna Fecha y Hora -->
+        <ng-container matColumnDef="fechahora">
+          <th mat-header-cell *matHeaderCellDef>Fecha / Hora (Hora Boliviana BOT)</th>
+          <td mat-cell *matCellDef="let row" class="col-date">
+            <div class="date-wrapper">
+              <mat-icon class="date-icon">schedule</mat-icon>
+              <span>{{ row.fechahora | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Columna Usuario -->
+        <ng-container matColumnDef="usuario">
+          <th mat-header-cell *matHeaderCellDef>Operador / Usuario</th>
+          <td mat-cell *matCellDef="let row" class="col-user">
+            <div class="user-chip-box" *ngIf="row.usuario; else noUser">
+              <div class="user-avatar-mini">
+                {{ (row.usuario.nombre || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="user-meta">
+                <span class="user-name">{{ row.usuario.nombre }} {{ row.usuario.apellido || '' }}</span>
+                <span class="user-role">{{ row.usuario.rol_nombre || 'USUARIO' }}</span>
+              </div>
+            </div>
+            <ng-template #noUser>
+              <div class="anon-chip">
+                <mat-icon>smart_toy</mat-icon>
+                <span>Sistema / Anónimo</span>
+              </div>
+            </ng-template>
+          </td>
+        </ng-container>
+
+        <!-- Columna Módulo -->
+        <ng-container matColumnDef="modulo">
+          <th mat-header-cell *matHeaderCellDef>Módulo</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="module-badge" [ngClass]="getModuloBadgeClass(row.modulo)">
+              {{ row.modulo }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Columna Acción -->
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef>Acción</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="action-badge" [ngClass]="getBadgeClass(row.accion)">
+              {{ row.accion }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Columna Detalle -->
+        <ng-container matColumnDef="detalle">
+          <th mat-header-cell *matHeaderCellDef>Detalle del Evento</th>
+          <td mat-cell *matCellDef="let row" class="col-detail">
+            <span class="detail-text" [matTooltip]="row.detalle">{{ row.detalle || 'Sin observaciones' }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Columna IP -->
+        <ng-container matColumnDef="ip">
+          <th mat-header-cell *matHeaderCellDef>IP Origen</th>
+          <td mat-cell *matCellDef="let row" class="col-ip">
+            <code>{{ row.ip || '127.0.0.1' }}</code>
+          </td>
+        </ng-container>
+
+        <!-- Columna Acciones -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="text-center">Detalle</th>
+          <td mat-cell *matCellDef="let row" class="text-center">
+            <button mat-icon-button color="primary" (click)="verDetalle(row)" matTooltip="Inspeccionar payloads y metadatos">
+              <mat-icon>visibility</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row-hover"></tr>
+
+        <!-- Fila vacía -->
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-table" colspan="8">
+            <div class="empty-state-box">
+              <mat-icon>find_in_page</mat-icon>
+              <h4>No se encontraron eventos de bitácora</h4>
+              <p>Intenta ajustar los criterios de búsqueda o el rango cronológico seleccionado.</p>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Paginador -->
+    <mat-paginator
+      [length]="totalRecords"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      [pageIndex]="pageIndex"
+      (page)="onPageChange($event)"
+      showFirstLastButtons
+      class="audit-paginator">
+    </mat-paginator>
+  </mat-card>
+</div>
+
+<!-- Modal / Dialog de Detalle Forense del Evento -->
+<ng-template #detailDialog>
+  <div class="dialog-content" *ngIf="selectedItem">
+    <div class="dialog-header">
+      <div class="dialog-title-group">
+        <mat-icon class="dialog-icon">security</mat-icon>
+        <div>
+          <h2>Auditoría de Evento #{{ selectedItem.id }}</h2>
+          <span class="dialog-subtitle">Registro forense del sistema</span>
+        </div>
+      </div>
+      <button mat-icon-button mat-dialog-close>
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="dialog-body">
+      <!-- Grid de Metadatos -->
+      <div class="meta-grid">
+        <div class="meta-item">
+          <span class="meta-title">Fecha y Hora (Hora Boliviana BOT):</span>
+          <span class="meta-val">{{ selectedItem.fechahora | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-title">Módulo:</span>
+          <span class="meta-val">
+            <span class="module-badge" [ngClass]="getModuloBadgeClass(selectedItem.modulo)">
+              {{ selectedItem.modulo }}
+            </span>
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-title">Acción:</span>
+          <span class="meta-val">
+            <span class="action-badge" [ngClass]="getBadgeClass(selectedItem.accion)">
+              {{ selectedItem.accion }}
+            </span>
+          </span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-title">Dirección IP:</span>
+          <span class="meta-val"><code>{{ selectedItem.ip || '127.0.0.1' }}</code></span>
+        </div>
+      </div>
+
+      <!-- Datos del Operador -->
+      <div class="operator-section" *ngIf="selectedItem.usuario">
+        <h4 class="section-label">Información del Operador</h4>
+        <div class="operator-card">
+          <mat-icon>account_circle</mat-icon>
+          <div>
+            <strong>{{ selectedItem.usuario.nombre }} {{ selectedItem.usuario.apellido || '' }}</strong>
+            <span class="email-sub">{{ selectedItem.usuario.email }} (Rol: {{ selectedItem.usuario.rol_nombre || 'N/A' }})</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Descripción -->
+      <div class="description-section">
+        <h4 class="section-label">Descripción del Evento</h4>
+        <p class="description-box">{{ selectedItem.detalle || 'Sin detalle descriptivo registrado.' }}</p>
+      </div>
+
+      <!-- Payloads Diff (Previos vs Nuevos) -->
+      <div class="payload-diff-grid">
+        <div class="payload-box">
+          <div class="payload-header prev-header">
+            <mat-icon>history</mat-icon>
+            <span>Estado Previo (Snapshot)</span>
+          </div>
+          <pre class="json-code">{{ formatJson(selectedItem.datosprevios) }}</pre>
+        </div>
+
+        <div class="payload-box">
+          <div class="payload-header new-header">
+            <mat-icon>update</mat-icon>
+            <span>Estado Nuevo / Parámetros</span>
+          </div>
+          <pre class="json-code">{{ formatJson(selectedItem.datosnuevos) }}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="dialog-footer">
+      <button mat-flat-button mat-dialog-close class="btn-close-dialog">
+        Entendido
+      </button>
+    </div>
+  </div>
+</ng-template>

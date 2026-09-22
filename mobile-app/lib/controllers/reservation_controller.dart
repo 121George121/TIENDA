@@ -128,5 +128,45 @@ class ReservationController extends ChangeNotifier {
       return false;
     }
   }
+
+  /// CU10 / CU16: Pagar reserva desde el teléfono móvil
+  Future<bool> pagarReserva(int id, {required String metodoPago, String? referencia, String? token}) async {
+    _cargando = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+
+      final response = await http.post(
+        Uri.parse('$_reservasUrl/$id/pagar'),
+        headers: headers,
+        body: json.encode({
+          'metodo_pago': metodoPago,
+          if (referencia != null) 'referencia': referencia,
+          'origen': 'MOVIL',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        await cargarMisReservas();
+        return true;
+      } else {
+        final err = json.decode(utf8.decode(response.bodyBytes));
+        _error = err['detail'] ?? 'Error al procesar el pago de la reserva';
+        return false;
+      }
+    } catch (e) {
+      _error = 'Error de conexión: $e';
+      return false;
+    } finally {
+      _cargando = false;
+      notifyListeners();
+    }
+  }
 }
+
 

@@ -17,11 +17,13 @@ export interface NotificacionDTO {
   fecha: string;
 }
 
+import { environment } from '../../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class NotificacionService {
-  private readonly apiUrl = 'http://localhost:8000/api/v1/notificaciones';
+  private readonly apiUrl = `${environment.apiUrl}/notificaciones`;
 
   private notificacionesSubject = new BehaviorSubject<NotificacionDTO[]>([]);
   public notificaciones$ = this.notificacionesSubject.asObservable();

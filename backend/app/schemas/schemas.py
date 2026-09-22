@@ -54,7 +54,7 @@ class UsuarioAdminCreate(BaseModel):
     nombre: str
     apellido: Optional[str] = None
     email: EmailStr
-    password: str
+    password: Optional[str] = "usuario123."
     telefono: Optional[str] = None
     rol_id: Optional[int] = Field(default=None, validation_alias=AliasChoices('rol_id', 'rolid'))
     activo: Optional[bool] = True
@@ -62,6 +62,8 @@ class UsuarioAdminCreate(BaseModel):
     @field_validator('password')
     @classmethod
     def password_strong(cls, v):
+        if not v or not v.strip() or v == "usuario123.":
+            return "usuario123."
         return validate_password_complexity(v)
 
 class RolBase(BaseModel):

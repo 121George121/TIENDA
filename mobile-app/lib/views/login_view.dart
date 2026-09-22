@@ -77,7 +77,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'T-Shirt Boutique',
+                  'Shopyn Golden Store',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

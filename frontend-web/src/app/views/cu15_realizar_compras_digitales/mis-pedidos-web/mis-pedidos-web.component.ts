@@ -64,7 +64,8 @@ export class MisPedidosWebComponent implements OnInit {
   }
 
   verComprobante(ventaId: number): void {
-    const url = `http://localhost:8000/api/v1/pagos/${ventaId}/comprobante-html`;
+    const host = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
+    const url = `http://${host}:8000/api/v1/pagos/${ventaId}/comprobante-html`;
     window.open(url, '_blank');
   }
 

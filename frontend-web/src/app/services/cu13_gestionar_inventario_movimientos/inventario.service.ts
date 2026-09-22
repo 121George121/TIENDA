@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { InventarioItem, MovimientoInventarioCreateDTO, MovimientoInventarioItem } from '../../models/cu13_gestionar_inventario_movimientos/inventario.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventarioService {
-  private apiUrl = 'http://localhost:8000/api/v1/inventario';
+  private apiUrl = `${environment.apiUrl}/inventario`;
 
   constructor(private http: HttpClient) {}
 

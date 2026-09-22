@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Producto, ProductoCreateDTO, ProductoUpdateDTO } from '../../models/cu5_gestionar_productos/product.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
-  private apiUrl = 'http://localhost:8000/api/v1/productos';
+  private apiUrl = `${environment.apiUrl}/productos`;
 
   constructor(private http: HttpClient) {}
 

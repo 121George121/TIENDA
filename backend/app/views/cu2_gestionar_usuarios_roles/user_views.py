@@ -49,7 +49,7 @@ def crear_usuario(
     current_user: UsuarioModel = Depends(get_current_active_user)
 ):
     """Crear un nuevo usuario desde el panel administrativo"""
-    return UserController.create(db=db, user_data=user_data)
+    return UserController.create(db=db, user_data=user_data, operador_id=current_user.id)
 
 @router.put("/{user_id}", response_model=UsuarioResponse, summary="Editar usuario")
 def editar_usuario(
@@ -59,7 +59,7 @@ def editar_usuario(
     current_user: UsuarioModel = Depends(get_current_active_user)
 ):
     """Editar información de un usuario existente"""
-    return UserController.update(db=db, user_id=user_id, user_data=user_data)
+    return UserController.update(db=db, user_id=user_id, user_data=user_data, operador_id=current_user.id)
 
 @router.patch("/{user_id}/estado", response_model=UsuarioResponse, summary="Activar/Desactivar usuario")
 def cambiar_estado_usuario(
@@ -69,7 +69,7 @@ def cambiar_estado_usuario(
     current_user: UsuarioModel = Depends(get_current_active_user)
 ):
     """Activar o desactivar el acceso de un usuario"""
-    return UserController.toggle_status(db=db, user_id=user_id, activo=estado_data.activo)
+    return UserController.toggle_status(db=db, user_id=user_id, activo=estado_data.activo, operador_id=current_user.id)
 
 @router.patch("/{user_id}/rol", response_model=UsuarioResponse, summary="Asignar rol a usuario")
 def asignar_rol_usuario(
@@ -79,7 +79,7 @@ def asignar_rol_usuario(
     current_user: UsuarioModel = Depends(get_current_active_user)
 ):
     """Asignar o cambiar el rol de un usuario"""
-    return UserController.assign_role(db=db, user_id=user_id, rol_id=rol_data.rol_id)
+    return UserController.assign_role(db=db, user_id=user_id, rol_id=rol_data.rol_id, operador_id=current_user.id)
 
 @router.delete("/{user_id}", summary="Eliminar usuario")
 def eliminar_usuario(
@@ -88,5 +88,9 @@ def eliminar_usuario(
     current_user: UsuarioModel = Depends(get_current_active_user)
 ):
     """Eliminar definitivamente un usuario de la base de datos"""
-    return UserController.delete(db=db, user_id=user_id)
-
+    if current_user.id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes eliminar tu propia cuenta de usuario mientras estás conectado."
+        )
+    return UserController.delete(db=db, user_id=user_id, operador_id=current_user.id)

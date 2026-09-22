@@ -48,7 +48,8 @@
           </div>
 
           <div class="product-icon-container">
-            <mat-icon>checkroom</mat-icon>
+            <img *ngIf="prod.imagen_url" [src]="prod.imagen_url" [alt]="prod.producto_nombre" class="prod-card-img" (error)="prod.imagen_url = ''" />
+            <mat-icon *ngIf="!prod.imagen_url">checkroom</mat-icon>
           </div>
 
           <div class="product-card-body">
@@ -58,7 +59,7 @@
               <span class="attr-tag color">Color: {{ prod.color }}</span>
             </div>
             <div class="prod-footer">
-              <span class="prod-price">Bs. 85.00</span>
+              <span class="prod-price">Bs. {{ (prod.producto_precio || 85) | number:'1.2-2' }}</span>
               <button mat-mini-fab color="primary" class="btn-add-mini" [disabled]="prod.stockfisico <= 0">
                 <mat-icon>add</mat-icon>
               </button>
@@ -86,70 +87,84 @@
       </button>
     </div>
 
-    <!-- Selector de Cliente -->
-    <div class="client-box">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Nombre del Cliente (Para Recibo)</mat-label>
-        <input matInput [formControl]="clienteNombreControl" placeholder="Ej: Consumidor Final o Nombre" id="input-pos-cliente">
-        <mat-icon matPrefix>person</mat-icon>
-      </mat-form-field>
-    </div>
-
-    <!-- Lista de Items en Carrito -->
-    <div class="cart-items-scroll">
-      <div *ngIf="cart.length === 0" class="empty-cart">
-        <mat-icon>shopping_cart</mat-icon>
-        <p>Haga clic en los productos para agregarlos al ticket de venta</p>
-      </div>
-
-      <div *ngFor="let item of cart" class="cart-row">
-        <div class="item-details">
-          <span class="item-title">{{ item.inventarioItem.producto_nombre }}</span>
-          <span class="item-specs">
-            Talla {{ item.inventarioItem.talla }} &bull; {{ item.inventarioItem.color }}
-          </span>
-          <span class="item-unit-price">Bs. {{ item.precioUnitario | number:'1.2-2' }} c/u</span>
-        </div>
-
-        <div class="item-stepper">
-          <button mat-icon-button class="btn-step" (click)="decrementQty(item)">
-            <mat-icon>remove</mat-icon>
-          </button>
-          <span class="item-qty">{{ item.cantidad }}</span>
-          <button mat-icon-button class="btn-step" (click)="incrementQty(item)">
-            <mat-icon>add</mat-icon>
-          </button>
-        </div>
-
-        <div class="item-subtotal-box">
-          <span class="item-subtotal">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
-          <button mat-icon-button color="warn" class="btn-remove" (click)="removeItem(item)">
-            <mat-icon>close</mat-icon>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Totales y Métodos de Pago -->
-    <div class="cart-footer">
+    <!-- Contenido Scrollable de la Caja -->
+    <div class="cart-scrollable-content">
       
+      <!-- Selector de Cliente -->
+      <div class="client-box">
+        <mat-form-field appearance="outline" class="full-width compact-field">
+          <mat-label>Cliente (Para Recibo / Factura)</mat-label>
+          <input matInput [formControl]="clienteNombreControl" placeholder="Ej: Consumidor Final o Nombre" id="input-pos-cliente">
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- Sección: Prendas Agregadas al Ticket -->
+      <div class="cart-items-section">
+        <div class="items-header-bar">
+          <span class="items-header-title">Prendas en el Ticket:</span>
+          <span class="items-count-badge" [class.has-items]="cart.length > 0">{{ cart.length }} prenda(s)</span>
+        </div>
+
+        <div *ngIf="cart.length === 0" class="empty-cart-compact">
+          <mat-icon>add_shopping_cart</mat-icon>
+          <p>Haga clic en las prendas del catálogo para agregarlas al ticket de venta.</p>
+        </div>
+
+        <div *ngFor="let item of cart" class="cart-item-card">
+          <div class="item-img-box">
+            <img 
+              *ngIf="item.inventarioItem.imagen_url" 
+              [src]="item.inventarioItem.imagen_url" 
+              [alt]="item.inventarioItem.producto_nombre"
+              class="item-thumb"
+              (error)="item.inventarioItem.imagen_url = ''"
+            />
+            <mat-icon *ngIf="!item.inventarioItem.imagen_url">checkroom</mat-icon>
+          </div>
+
+          <div class="item-info">
+            <span class="item-name">{{ item.inventarioItem.producto_nombre }}</span>
+            <span class="item-specs-badge">
+              Talla: {{ item.inventarioItem.talla }} &bull; {{ item.inventarioItem.color }}
+            </span>
+            <span class="item-price-unit">Bs. {{ item.precioUnitario | number:'1.2-2' }} c/u</span>
+          </div>
+
+          <div class="item-stepper">
+            <button mat-icon-button class="btn-step" (click)="decrementQty(item)">
+              <mat-icon>remove</mat-icon>
+            </button>
+            <span class="item-qty">{{ item.cantidad }}</span>
+            <button mat-icon-button class="btn-step" (click)="incrementQty(item)">
+              <mat-icon>add</mat-icon>
+            </button>
+          </div>
+
+          <div class="item-actions">
+            <span class="item-subtotal">Bs. {{ item.subtotal | number:'1.2-2' }}</span>
+            <button mat-icon-button color="warn" class="btn-remove" (click)="removeItem(item)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Desglose de Totales -->
-      <div class="totals-breakdown">
-        <div class="breakdown-line">
+      <div class="totals-box">
+        <div class="totals-line">
           <span>Subtotal:</span>
           <span>Bs. {{ subtotal | number:'1.2-2' }}</span>
         </div>
-        <div class="breakdown-line total-line">
+        <div class="totals-line total-highlight">
           <span>TOTAL A COBRAR:</span>
-          <span class="amount-total">Bs. {{ total | number:'1.2-2' }}</span>
+          <span class="amount-val">Bs. {{ total | number:'1.2-2' }}</span>
         </div>
       </div>
 
-      <mat-divider></mat-divider>
-
-      <!-- Método de Pago -->
-      <div class="payment-method-box">
-        <mat-form-field appearance="outline" class="full-width">
+      <!-- Métodos de Pago y Formularios -->
+      <div class="payment-section">
+        <mat-form-field appearance="outline" class="full-width compact-field">
           <mat-label>Forma de Pago</mat-label>
           <mat-select [formControl]="metodoPagoControl" id="select-pos-metodo-pago">
             <mat-option *ngFor="let m of metodosPago" [value]="m.id">
@@ -159,9 +174,9 @@
           <mat-icon matPrefix>payments</mat-icon>
         </mat-form-field>
 
-        <!-- Entrada de Efectivo y Cambio -->
-        <div class="cash-calculator">
-          <mat-form-field appearance="outline" class="cash-input">
+        <!-- 1. Entrada de Efectivo y Cambio -->
+        <div class="cash-calculator" *ngIf="esEfectivo">
+          <mat-form-field appearance="outline" class="full-width compact-field">
             <mat-label>Monto Recibido en Caja (Bs.)</mat-label>
             <input matInput [formControl]="montoRecibidoControl" type="number" step="10" placeholder="0.00" id="input-pos-recibido">
             <mat-icon matPrefix>monetization_on</mat-icon>
@@ -179,14 +194,105 @@
             <span class="change-amount">Bs. {{ cambio | number:'1.2-2' }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Botón de Cobro Principal -->
+        <!-- 2. Pago por QR / Transferencia Bancaria -->
+        <div class="qr-box" *ngIf="esQR">
+          <div class="qr-header">
+            <mat-icon class="qr-icon">qr_code_2</mat-icon>
+            <div>
+              <span class="qr-title">Pago QR Simple / BCP & Banco Unión</span>
+              <span class="qr-sub">Shopyn Golden Store S.R.L. &bull; NIT: 1028472021</span>
+            </div>
+          </div>
+
+          <div class="qr-body-row">
+            <div class="qr-code-wrapper">
+              <img 
+                [src]="'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=ShopynGoldenStore_Total_' + total" 
+                alt="Código QR de Pago" 
+                class="qr-image"
+              />
+            </div>
+            <div class="qr-details-col">
+              <div class="qr-amount-badge">
+                Monto: <strong>Bs. {{ total | number:'1.2-2' }}</strong>
+              </div>
+              <p class="qr-tip">Escanee desde cualquier banca móvil boliviana para transferir.</p>
+            </div>
+          </div>
+
+          <div class="qr-confirm-check">
+            <mat-checkbox [(ngModel)]="qrConfirmadoManual" [ngModelOptions]="{standalone: true}" color="primary">
+              <span class="checkbox-label">Confirmar recepción del pago QR en la cuenta (Bs. {{ total | number:'1.2-2' }}).</span>
+            </mat-checkbox>
+          </div>
+        </div>
+
+        <!-- 3. Pago con Tarjeta Visa / Débito -->
+        <div class="card-box" *ngIf="esTarjeta">
+          <div class="card-header-bar">
+            <mat-icon class="card-top-icon">credit_card</mat-icon>
+            <div>
+              <span class="card-top-title">Terminal POS &bull; Tarjeta Visa</span>
+              <span class="card-top-sub">Red Enlace / Procesamiento Electrónico</span>
+            </div>
+          </div>
+
+          <!-- Tarjeta Visual Compacta -->
+          <div class="card-mini-preview">
+            <div class="card-chip-mini"></div>
+            <span class="card-brand-tag">VISA</span>
+            <div class="card-number-text">{{ tarjetaNumero || '4532 •••• •••• 8821' }}</div>
+            <div class="card-sub-row">
+              <span>{{ tarjetaTitular || 'CONSUMIDOR FINAL' }}</span>
+              <span>{{ tarjetaVencimiento || '12/28' }}</span>
+            </div>
+          </div>
+
+          <!-- Campos de Tarjeta Compactos -->
+          <div class="card-form-compact">
+            <mat-form-field appearance="outline" class="full-width compact-field">
+              <mat-label>Número de Tarjeta</mat-label>
+              <input matInput [(ngModel)]="tarjetaNumero" [ngModelOptions]="{standalone: true}" placeholder="4532 8920 1144 7820" maxlength="19">
+              <mat-icon matPrefix>credit_card</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width compact-field">
+              <mat-label>Titular de la Tarjeta</mat-label>
+              <input matInput [(ngModel)]="tarjetaTitular" [ngModelOptions]="{standalone: true}" placeholder="Nombre del titular">
+              <mat-icon matPrefix>person</mat-icon>
+            </mat-form-field>
+
+            <div class="card-row-two">
+              <mat-form-field appearance="outline" class="compact-field half-field">
+                <mat-label>Vencimiento (MM/AA)</mat-label>
+                <input matInput [(ngModel)]="tarjetaVencimiento" [ngModelOptions]="{standalone: true}" placeholder="12/28" maxlength="5">
+                <mat-icon matPrefix>calendar_today</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="compact-field half-field">
+                <mat-label>CVV</mat-label>
+                <input matInput [(ngModel)]="tarjetaCvv" [ngModelOptions]="{standalone: true}" placeholder="842" maxlength="4" type="password">
+                <mat-icon matPrefix>lock</mat-icon>
+              </mat-form-field>
+            </div>
+          </div>
+
+          <div class="card-pos-status" *ngIf="procesandoTarjeta">
+            <mat-progress-bar mode="indeterminate" color="accent"></mat-progress-bar>
+            <span class="pos-auth-text">Contactando Red Enlace Visa... Procesando transacción...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra Inferior Fija: Botón de Cobro Siempre Visible -->
+    <div class="cart-sticky-bottom">
       <button 
         mat-raised-button 
         color="primary" 
         class="btn-checkout"
-        [disabled]="cart.length === 0 || procesandoVenta"
+        [disabled]="cart.length === 0 || procesandoVenta || (esQR && !qrConfirmadoManual)"
         (click)="procesarCobro()"
         id="btn-pos-cobrar"
       >

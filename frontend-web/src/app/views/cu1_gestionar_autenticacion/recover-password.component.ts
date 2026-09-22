@@ -12,7 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="auth-container">
       <div class="auth-left">
         <div class="brand-overlay">
-          <h1>E-Commerce Tienda</h1>
+          <h1>Shopyn Golden Store</h1>
           <p class="tagline">Premium T-Shirts & Apparel</p>
         </div>
       </div>

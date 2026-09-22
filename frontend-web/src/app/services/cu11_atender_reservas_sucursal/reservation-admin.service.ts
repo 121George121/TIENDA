@@ -8,12 +8,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Reserva, AtenderReservaDTO } from '../../models/cu10_gestionar_reservas_prendas/reservation.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReservationAdminService {
-  private apiUrl = 'http://localhost:8000/api/v1/reservas';
+  private apiUrl = `${environment.apiUrl}/reservas`;
 
   constructor(private http: HttpClient) {}
 

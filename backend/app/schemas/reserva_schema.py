@@ -61,3 +61,10 @@ class AtenderReservaRequest(BaseModel):
     accion: str  # 'ENTREGAR' o 'CANCELAR'
     observaciones: Optional[str] = None
 
+
+class PagarReservaRequest(BaseModel):
+    metodo_pago: str = "QR"  # 'PayPal', 'Tarjeta', 'QR', 'Efectivo'
+    referencia: Optional[str] = None
+    origen: Optional[str] = "MOVIL"  # 'MOVIL' o 'TIENDA'
+
+

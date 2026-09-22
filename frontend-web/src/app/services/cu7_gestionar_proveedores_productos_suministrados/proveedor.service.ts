@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Proveedor, ProveedorCreateDTO, ProveedorUpdateDTO, ProductoProveedor } from '../../models/cu7_gestionar_proveedores_productos_suministrados/proveedor.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProveedorService {
-  private apiUrl = 'http://localhost:8000/api/v1/proveedores';
+  private apiUrl = `${environment.apiUrl}/proveedores`;
 
   constructor(private http: HttpClient) {}
 

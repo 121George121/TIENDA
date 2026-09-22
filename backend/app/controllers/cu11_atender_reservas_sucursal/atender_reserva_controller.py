@@ -97,8 +97,9 @@ class AtenderReservaController:
                     inv.stockreservado = max(0, inv.stockreservado - d.cantidad)
                     inv.cantidad = max(0, inv.cantidad - d.cantidad)
 
+            era_pagada = reserva.estado == "PAGADA"
             reserva.estado = "ENTREGADA"
-            nota = "[Entregada y Cobrada en Tienda]"
+            nota = "[Prendas Entregadas en Tienda - Pagada previamente]" if era_pagada else "[Entregada y Cobrada en Tienda]"
             if datos.observaciones:
                 nota += f" Nota: {datos.observaciones}"
             reserva.observaciones = f"{reserva.observaciones or ''} {nota}".strip()

@@ -52,7 +52,8 @@
       <label>Estado de Reserva:</label>
       <select [(ngModel)]="estadoFiltro" (change)="cargarReservas()" class="filter-select">
         <option value="TODAS">Todos los Estados</option>
-        <option value="PENDIENTE">⏳ Pendientes de Retiro</option>
+        <option value="PENDIENTE">⏳ Pendientes de Pago / Retiro</option>
+        <option value="PAGADA">💳 Pagadas desde el Móvil / Online</option>
         <option value="ENTREGADA">✅ Entregadas en Tienda</option>
         <option value="CANCELADA">❌ Canceladas</option>
       </select>
@@ -210,20 +211,28 @@
           </table>
         </div>
 
-        <!-- Total a Cobrar -->
-        <div class="total-banner">
+        <!-- Total a Cobrar o Banner de Pago Previo -->
+        <div *ngIf="reservaSeleccionada.estado === 'PAGADA'" class="paid-alert-banner">
+          <mat-icon class="paid-icon">verified</mat-icon>
+          <div>
+            <h4 class="paid-title">RESERVA YA PAGADA DESDE EL TELÉFONO MÓVIL</h4>
+            <p class="paid-desc">El cliente ya abonó el total de <strong>Bs. {{ reservaSeleccionada.total_estimado | number:'1.2-2' }}</strong>. Verifique el código y entregue las prendas sin realizar cobro adicional.</p>
+          </div>
+        </div>
+
+        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE'" class="total-banner">
           <span class="total-banner-lbl">Total a Cobrar en Caja:</span>
           <span class="total-banner-amount">Bs. {{ reservaSeleccionada.total_estimado | number:'1.2-2' }}</span>
         </div>
 
         <!-- Notas del Cajero -->
-        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE'" class="cashier-notes-box">
-          <label for="notas">Notas de la atención en caja (opcional):</label>
+        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE' || reservaSeleccionada.estado === 'PAGADA'" class="cashier-notes-box">
+          <label for="notas">Notas de la entrega en mostrador (opcional):</label>
           <input
             id="notas"
             type="text"
             [(ngModel)]="notasAtencion"
-            placeholder="Ej: Cobrado en efectivo con comprobante #1042..."
+            placeholder="Ej: Entregado a satisfacción del cliente..."
             class="input-notes"
             [disabled]="procesandoAccion"
           />
@@ -235,25 +244,27 @@
           Cerrar
         </button>
 
-        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE'" class="action-buttons-group">
+        <div *ngIf="reservaSeleccionada.estado === 'PENDIENTE' || reservaSeleccionada.estado === 'PAGADA'" class="action-buttons-group">
           <button
+            *ngIf="reservaSeleccionada.estado === 'PENDIENTE'"
             type="button"
             class="btn-reject"
             (click)="procesarEntrega('CANCELAR')"
             [disabled]="procesandoAccion"
           >
             <mat-icon>cancel</mat-icon>
-            <span>Cancelar / No se presentó</span>
+            <span>Cancelar Reserva</span>
           </button>
 
           <button
             type="button"
             class="btn-confirm-delivery"
+            [class.btn-paid-delivery]="reservaSeleccionada.estado === 'PAGADA'"
             (click)="procesarEntrega('ENTREGAR')"
             [disabled]="procesandoAccion"
           >
-            <mat-icon>check_circle</mat-icon>
-            <span>Confirmar Entrega y Cobro</span>
+            <mat-icon>{{ reservaSeleccionada.estado === 'PAGADA' ? 'local_mall' : 'point_of_sale' }}</mat-icon>
+            <span>{{ reservaSeleccionada.estado === 'PAGADA' ? 'Confirmar Entrega de Prendas' : 'Cobrar y Entregar en Tienda' }}</span>
           </button>
         </div>
       </div>

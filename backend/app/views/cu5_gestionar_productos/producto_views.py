@@ -43,7 +43,7 @@ def crear_producto(
     current_user=Depends(require_staff)
 ):
     """Crear producto nuevo (Solo Personal / Administrador)"""
-    return ProductoController.crear_producto(db=db, data=data)
+    return ProductoController.crear_producto(db=db, data=data, usuario_id=current_user.id)
 
 @router.put("/{id}", response_model=ProductoResponse)
 def actualizar_producto(
@@ -53,7 +53,7 @@ def actualizar_producto(
     current_user=Depends(require_staff)
 ):
     """Actualizar producto (Solo Personal / Administrador)"""
-    return ProductoController.actualizar_producto(db=db, id=id, data=data)
+    return ProductoController.actualizar_producto(db=db, id=id, data=data, usuario_id=current_user.id)
 
 @router.patch("/{id}/estado", response_model=ProductoResponse)
 def cambiar_estado_producto(
@@ -63,7 +63,7 @@ def cambiar_estado_producto(
     current_user=Depends(require_admin)
 ):
     """Activar / Desactivar producto del catálogo (Solo Administrador)"""
-    return ProductoController.cambiar_estado(db=db, id=id, activo=activo)
+    return ProductoController.cambiar_estado(db=db, id=id, activo=activo, usuario_id=current_user.id)
 
 @router.delete("/{id}")
 def eliminar_producto(
@@ -72,4 +72,4 @@ def eliminar_producto(
     current_user=Depends(require_admin)
 ):
     """Eliminar definitivamente un producto de la base de datos (Solo Administrador)"""
-    return ProductoController.eliminar_producto(db=db, id=id)
+    return ProductoController.eliminar_producto(db=db, id=id, usuario_id=current_user.id)

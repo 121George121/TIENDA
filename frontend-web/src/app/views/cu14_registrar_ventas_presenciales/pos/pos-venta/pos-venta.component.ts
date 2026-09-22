@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 
@@ -36,6 +37,7 @@ export interface PosCartItem {
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
@@ -46,7 +48,8 @@ export interface PosCartItem {
     MatSnackBarModule,
     MatProgressBarModule,
     MatDialogModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatCheckboxModule
   ],
   templateUrl: './pos-venta.component.html',
   styleUrls: ['./pos-venta.component.css']
@@ -70,6 +73,16 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   procesandoVenta = false;
   private destroy$ = new Subject<void>();
 
+  // QR Simulado
+  qrConfirmadoManual = false;
+
+  // Tarjeta Simulado
+  tarjetaNumero = '4532 8920 1144 7820';
+  tarjetaTitular = 'CONSUMIDOR FINAL';
+  tarjetaVencimiento = '12/28';
+  tarjetaCvv = '842';
+  procesandoTarjeta = false;
+
   constructor(
     private inventarioService: InventarioService,
     public ventaController: VentaController,
@@ -82,16 +95,21 @@ export class PosVentaComponent implements OnInit, OnDestroy {
     // 1. Cargar Sucursales
     this.sucursalController.sucursales$.pipe(takeUntil(this.destroy$)).subscribe(sucursales => {
       this.sucursales = sucursales;
-      if (sucursales.length > 0 && !this.sucursalControl.value) {
-        this.sucursalControl.setValue(sucursales[0].id);
+      if (sucursales.length > 0) {
+        const idToSet = this.sucursalControl.value || sucursales[0].id;
+        this.sucursalControl.setValue(idToSet, { emitEvent: false });
+        this.cargarInventarioSucursal(idToSet);
       }
     });
 
-    // 2. Cargar Métodos de Pago
+    // 2. Cargar Métodos de Pago (Filtrando estrictamente online / digital)
     this.ventaController.metodosPago$.pipe(takeUntil(this.destroy$)).subscribe(metodos => {
-      this.metodosPago = metodos;
-      if (metodos.length > 0 && !this.metodoPagoControl.value) {
-        const efectivo = metodos.find(m => m.nombre.toLowerCase().includes('efectivo')) || metodos[0];
+      this.metodosPago = metodos.filter(m => 
+        !m.nombre.toLowerCase().includes('digital') && 
+        !m.nombre.toLowerCase().includes('online')
+      );
+      if (this.metodosPago.length > 0 && !this.metodoPagoControl.value) {
+        const efectivo = this.metodosPago.find(m => m.nombre.toLowerCase().includes('efectivo')) || this.metodosPago[0];
         this.metodoPagoControl.setValue(efectivo.id);
       }
     });
@@ -113,6 +131,13 @@ export class PosVentaComponent implements OnInit, OnDestroy {
         this.filtrarProductos(term || '');
       });
 
+    // Resetear confirmaciones al cambiar método de pago
+    this.metodoPagoControl.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.qrConfirmadoManual = false;
+      });
+
     this.sucursalController.loadSucursales();
     this.ventaController.loadMetodosPago();
   }
@@ -122,6 +147,25 @@ export class PosVentaComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  // Getters de método de pago
+  get metodoSeleccionado(): MetodoPago | undefined {
+    return this.metodosPago.find(m => m.id === this.metodoPagoControl.value);
+  }
+
+  get esEfectivo(): boolean {
+    return !!this.metodoSeleccionado?.nombre.toLowerCase().includes('efectivo');
+  }
+
+  get esQR(): boolean {
+    const n = this.metodoSeleccionado?.nombre.toLowerCase() || '';
+    return n.includes('qr') || n.includes('transferencia');
+  }
+
+  get esTarjeta(): boolean {
+    const n = this.metodoSeleccionado?.nombre.toLowerCase() || '';
+    return n.includes('tarjeta') || n.includes('crédito') || n.includes('débito') || n.includes('visa');
+  }
+
   cargarInventarioSucursal(sucursalId: number): void {
     this.loading = true;
     this.inventarioService.getInventario(sucursalId).subscribe({
@@ -129,7 +173,8 @@ export class PosVentaComponent implements OnInit, OnDestroy {
         this.productosCatalogo = items.map(it => ({
           ...it,
           talla: it.talla || it.talla_nombre || 'Única',
-          color: it.color || it.color_nombre || 'Estándar'
+          color: it.color || it.color_nombre || 'Estándar',
+          imagen_url: it.imagen_url || ''
         }));
         this.filtrarProductos(this.searchControl.value || '');
         this.loading = false;
@@ -170,8 +215,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
       existing.cantidad += 1;
       existing.subtotal = existing.cantidad * existing.precioUnitario;
     } else {
-      // Precio base estimado o predeterminado para boutique t-shirts si no viene en inventario
-      const precioUnit = 85.00;
+      const precioUnit = item.producto_precio ? Number(item.producto_precio) : 85.00;
       this.cart.push({
         inventarioItem: item,
         cantidad: 1,
@@ -208,6 +252,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   clearCart(): void {
     this.cart = [];
     this.montoRecibidoControl.setValue(null);
+    this.qrConfirmadoManual = false;
   }
 
   // --- Totales ---
@@ -216,7 +261,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   }
 
   get total(): number {
-    return this.subtotal; // Descuentos se pueden aplicar aquí
+    return this.subtotal;
   }
 
   get cambio(): number {
@@ -234,7 +279,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   // --- Cobro / Checkout POS ---
   procesarCobro(): void {
     if (this.cart.length === 0) {
-      this.snackBar.open('El carrito de venta está vacío', 'Cerrar', { duration: 3000 });
+      this.snackBar.open('El ticket de venta está vacío', 'Cerrar', { duration: 3000 });
       return;
     }
 
@@ -246,20 +291,53 @@ export class PosVentaComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const montoRecibido = Number(this.montoRecibidoControl.value || 0);
-    const metodoSeleccionado = this.metodosPago.find(m => m.id === metodoPagoId);
-    const esEfectivo = metodoSeleccionado?.nombre.toLowerCase().includes('efectivo');
-
-    if (esEfectivo && montoRecibido < this.total) {
-      this.snackBar.open(`El monto en efectivo ingresado (Bs. ${montoRecibido}) es menor al total a pagar (Bs. ${this.total})`, 'Cerrar', { duration: 3500 });
+    // Validación Efectivo
+    if (this.esEfectivo) {
+      const montoRecibido = Number(this.montoRecibidoControl.value || 0);
+      if (montoRecibido < this.total) {
+        this.snackBar.open(`El monto en efectivo (Bs. ${montoRecibido.toFixed(2)}) es menor al total a cobrar (Bs. ${this.total.toFixed(2)})`, 'Cerrar', { duration: 3500 });
+        return;
+      }
+      this.ejecutarRegistroVenta(sucursalId, metodoPagoId, montoRecibido);
       return;
     }
 
+    // Validación QR con confirmación manual del cajero
+    if (this.esQR) {
+      if (!this.qrConfirmadoManual) {
+        this.snackBar.open('Debe marcar la casilla "Confirmar recepción de pago QR" una vez verificado el abono en cuenta.', 'Atención', { duration: 4000 });
+        return;
+      }
+      this.ejecutarRegistroVenta(sucursalId, metodoPagoId, this.total);
+      return;
+    }
+
+    // Simulación Cobro Tarjeta Visa
+    if (this.esTarjeta) {
+      if (!this.tarjetaNumero || this.tarjetaNumero.trim().length < 10) {
+        this.snackBar.open('Por favor ingrese los datos de la tarjeta Visa para procesar.', 'Cerrar', { duration: 3000 });
+        return;
+      }
+
+      this.procesandoTarjeta = true;
+      this.procesandoVenta = true;
+      setTimeout(() => {
+        this.procesandoTarjeta = false;
+        this.ejecutarRegistroVenta(sucursalId, metodoPagoId, this.total);
+      }, 1500);
+      return;
+    }
+
+    // Cualquier otro método
+    this.ejecutarRegistroVenta(sucursalId, metodoPagoId, this.total);
+  }
+
+  private ejecutarRegistroVenta(sucursalId: number, metodoPagoId: number, montoRecibido: number): void {
     const dto: VentaPresencialCreateDTO = {
       sucursal_id: sucursalId,
       cliente_nombre: this.clienteNombreControl.value || 'Consumidor Final',
       metodo_pago_id: metodoPagoId,
-      monto_recibido: esEfectivo ? montoRecibido : this.total,
+      monto_recibido: montoRecibido,
       items: this.cart.map(c => ({
         producto_id: c.inventarioItem.producto_id,
         cantidad: c.cantidad,
@@ -284,8 +362,8 @@ export class PosVentaComponent implements OnInit, OnDestroy {
               precio: c.precioUnitario,
               subtotal: c.subtotal
             })),
-            montoRecibido: esEfectivo ? montoRecibido : undefined,
-            cambio: esEfectivo ? this.cambio : undefined
+            montoRecibido: this.esEfectivo ? montoRecibido : this.total,
+            cambio: this.esEfectivo ? this.cambio : 0
           }
         });
 
@@ -302,3 +380,4 @@ export class PosVentaComponent implements OnInit, OnDestroy {
     });
   }
 }
+

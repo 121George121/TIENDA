@@ -95,9 +95,9 @@ class AuthController:
             telefono=user_data.telefono,
             passwordhash=hashed_pwd,
             rolid=rol_cliente.id,
-            verificado=False,
-            codigoverificacion=hashed_otp, # Cifrado seguro en PostgreSQL
-            codigoexpiracion=expiracion,
+            verificado=True, # Auto-verificado por requerimiento
+            codigoverificacion=None,
+            codigoexpiracion=None,
             activo=True
         )
         db.add(nuevo_usuario)
@@ -158,11 +158,11 @@ class AuthController:
         if not usuario.activo:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El usuario se encuentra inactivo")
 
+        # Eliminado bloqueo de cuenta no verificada por requerimiento: auto-verificar
         if not usuario.verificado:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Tu cuenta aún no ha sido verificada. Por favor ingresa el código OTP de 6 dígitos que fue enviado a tu correo."
-            )
+            usuario.verificado = True
+            db.commit()
+            db.refresh(usuario)
         
         access_token = create_access_token(subject=usuario.email)
         refresh_token = create_refresh_token(subject=usuario.email)
@@ -173,6 +173,19 @@ class AuthController:
             if rol_model:
                 rol_nombre = rol_model.nombre
                 
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="LOGIN",
+                modulo="AUTENTICACION",
+                usuario_id=usuario.id,
+                detalle=f"Inicio de sesión exitoso de {usuario.nombre} ({usuario.email})",
+                datos_nuevos={"rol": rol_nombre}
+            )
+        except Exception:
+            pass
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,

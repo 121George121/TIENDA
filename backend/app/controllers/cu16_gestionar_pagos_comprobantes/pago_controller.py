@@ -206,7 +206,48 @@ class PagoController:
             }
 
         # -------------------------------------------------------------
-        # 3. FLUJO EFECTIVO (Pago en sucursal / mostrador)
+        # 3. FLUJO TARJETA DE CRÉDITO / DÉBITO (VISA / MASTERCARD)
+        # -------------------------------------------------------------
+        elif "tarjeta" in nombre_lower or "visa" in nombre_lower or "debito" in nombre_lower or "credito" in nombre_lower:
+            pago = db.query(PagoModel).filter(PagoModel.ventaid == venta.id).first()
+            ref_tarjeta = f"CARD-{venta.codigoventa}"
+            
+            if not pago:
+                pago = PagoModel(
+                    monto=venta.total,
+                    estado="Aprobado",
+                    referencia=ref_tarjeta,
+                    fecha=ahora,
+                    ventaid=venta.id,
+                    metodoid=metodo.id
+                )
+                db.add(pago)
+            else:
+                pago.metodoid = metodo.id
+                pago.referencia = ref_tarjeta
+                pago.estado = "Aprobado"
+
+            venta.estado = "Completada"
+
+            recibo = db.query(ReciboModel).filter(ReciboModel.id == pago.reciboid).first()
+            if not recibo:
+                recibo = ReciboModel(estado="Emitido", fecha=ahora)
+                db.add(recibo)
+                db.flush()
+                pago.reciboid = recibo.id
+
+            db.commit()
+
+            return {
+                "metodo": "Tarjeta",
+                "requiere_redireccion": False,
+                "codigo_pago": ref_tarjeta,
+                "monto_total": float(venta.total),
+                "mensaje": "Pago con tarjeta procesado exitosamente por la pasarela de pagos."
+            }
+
+        # -------------------------------------------------------------
+        # 4. FLUJO EFECTIVO (Pago en sucursal / mostrador)
         # -------------------------------------------------------------
         else:
             pago = db.query(PagoModel).filter(PagoModel.ventaid == venta.id).first()

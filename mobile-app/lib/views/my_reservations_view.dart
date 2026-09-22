@@ -149,6 +149,8 @@ class _MyReservationsViewState extends State<MyReservationsView> {
         return Colors.amber.shade700;
       case 'CONFIRMADA':
         return Colors.blue.shade600;
+      case 'PAGADA':
+        return const Color(0xFF10B981);
       case 'ENTREGADA':
         return Colors.green.shade600;
       case 'CANCELADA':
@@ -157,6 +159,126 @@ class _MyReservationsViewState extends State<MyReservationsView> {
         return Colors.grey.shade600;
     }
   }
+
+  void _mostrarDialogoPagarReserva(BuildContext context, ReservaModel reserva) {
+    String metodoSeleccionado = 'PayPal';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.payment, color: Color(0xFF38BDF8)),
+                SizedBox(width: 8),
+                Text('Pagar Reserva Online', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reserva: ${reserva.codigoReserva}',
+                  style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Total a Pagar: Bs. ${reserva.totalEstimado.toStringAsFixed(2)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Selecciona la forma de pago:',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.payment, color: Color(0xFF003087)),
+                  title: const Text('PayPal', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  trailing: Radio<String>(
+                    value: 'PayPal',
+                    groupValue: metodoSeleccionado,
+                    activeColor: const Color(0xFF38BDF8),
+                    onChanged: (v) => setModalState(() => metodoSeleccionado = v!),
+                  ),
+                  onTap: () => setModalState(() => metodoSeleccionado = 'PayPal'),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.credit_card, color: Color(0xFF1E3A8A)),
+                  title: const Text('Tarjeta de Débito / Crédito', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  trailing: Radio<String>(
+                    value: 'Tarjeta',
+                    groupValue: metodoSeleccionado,
+                    activeColor: const Color(0xFF38BDF8),
+                    onChanged: (v) => setModalState(() => metodoSeleccionado = v!),
+                  ),
+                  onTap: () => setModalState(() => metodoSeleccionado = 'Tarjeta'),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.qr_code_2, color: Color(0xFF6D28D9)),
+                  title: const Text('QR Simple / Transferencia', style: TextStyle(color: Colors.white, fontSize: 14)),
+                  trailing: Radio<String>(
+                    value: 'QR',
+                    groupValue: metodoSeleccionado,
+                    activeColor: const Color(0xFF38BDF8),
+                    onChanged: (v) => setModalState(() => metodoSeleccionado = v!),
+                  ),
+                  onTap: () => setModalState(() => metodoSeleccionado = 'QR'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Confirmar Pago'),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  final ok = await context.read<ReservationController>().pagarReserva(
+                    reserva.id,
+                    metodoPago: metodoSeleccionado,
+                  );
+                  if (context.mounted) {
+                    if (ok) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('¡Reserva PAGADA exitosamente! Puedes retirarla en sucursal mostrando tu código.'),
+                          backgroundColor: Color(0xFF10B981),
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('No se pudo procesar el pago de la reserva.'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -332,6 +454,31 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                               ),
                             )),
 
+                        if (reserva.estado == 'PAGADA') ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withAlpha(30),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF10B981).withAlpha(100)),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.verified, color: Color(0xFF10B981), size: 16),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'PAGADA DESDE TU TELÉFONO • Puedes recoger tus prendas en la sucursal mostrando tu ticket.',
+                                    style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
                         const Divider(color: Colors.white12, height: 24),
 
                         // Footer con Total y Acciones
@@ -341,9 +488,9 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Total en caja:',
-                                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                                Text(
+                                  reserva.estado == 'PAGADA' ? 'Total Pagado:' : 'Total en caja:',
+                                  style: const TextStyle(color: Colors.white60, fontSize: 11),
                                 ),
                                 Text(
                                   'Bs. ${reserva.totalEstimado.toStringAsFixed(2)}',
@@ -357,6 +504,21 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                             ),
                             Row(
                               children: [
+                                if (reserva.estado == 'PENDIENTE') ...[
+                                  ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF10B981),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      elevation: 0,
+                                    ),
+                                    onPressed: () => _mostrarDialogoPagarReserva(context, reserva),
+                                    icon: const Icon(Icons.payment, size: 16),
+                                    label: const Text('Pagar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
                                 ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF0284C7),
@@ -369,6 +531,7 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                                   icon: const Icon(Icons.qr_code_2, size: 16),
                                   label: const Text('Ticket', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 ),
+
                                 if (reserva.estado == 'PENDIENTE') ...[
                                   const SizedBox(width: 4),
                                   TextButton.icon(

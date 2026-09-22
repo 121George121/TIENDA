@@ -8,12 +8,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap, map } from 'rxjs';
 import { Carrito, AgregarItemCarritoDTO } from '../../models/cu9_gestionar_carrito_compras/cart.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CartService {
-  private apiUrl = 'http://localhost:8000/api/v1/carrito';
+  private apiUrl = `${environment.apiUrl}/carrito`;
 
   // Estado reactivo del Carrito
   private cartSubject = new BehaviorSubject<Carrito | null>(null);

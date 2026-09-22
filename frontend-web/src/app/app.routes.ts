@@ -65,6 +65,10 @@ import { RecomendacionesViewComponent } from './views/cu18_gestionar_recomendaci
 // CU19: Gestionar Notificaciones
 import { NotificacionesViewComponent } from './views/cu19_gestionar_notificaciones/notificaciones/notificaciones-view.component';
 
+// CU20: Bitácora y Auditoría del Sistema
+import { BitacoraListComponent } from './views/cu20_gestionar_bitacora/bitacora/bitacora-list/bitacora-list.component';
+
+
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -106,6 +110,8 @@ export const routes: Routes = [
       // CU2: Usuarios y Roles
       { path: 'users', component: UserListComponent },
       { path: 'roles', component: RoleListComponent },
+      // CU20: Bitácora y Auditoría (Web)
+      { path: 'bitacora', component: BitacoraListComponent },
       // CU3: Clientes
       { path: 'customers', component: CustomerListComponent },
       // CU4: Sucursales

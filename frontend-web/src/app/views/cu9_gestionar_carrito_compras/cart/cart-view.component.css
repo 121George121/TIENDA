@@ -273,8 +273,9 @@
   width: 100px;
   height: 115px;
   border-radius: 10px;
-  object-fit: cover;
-  background: #f1f5f9;
+  object-fit: contain;
+  background: #f8fafc;
+  padding: 4px;
 }
 
 .item-details {

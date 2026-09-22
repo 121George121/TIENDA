@@ -33,6 +33,20 @@ class DetalleVentaResponse(BaseModel):
         from_attributes = True
 
 
+class OrdenItemDetalleResponse(BaseModel):
+    producto_id: int
+    producto_nombre: str
+    imagen_url: Optional[str] = None
+    talla: Optional[str] = None
+    color: Optional[str] = None
+    cantidad: int
+    preciounitario: Decimal
+    subtotal: Decimal
+
+    class Config:
+        from_attributes = True
+
+
 class OrdenResponse(BaseModel):
     id: int
     codigoventa: str
@@ -42,7 +56,9 @@ class OrdenResponse(BaseModel):
     descuento: Decimal
     total: Decimal
     fecha: Optional[datetime] = None
+    metodo_pago: Optional[str] = None
     mensaje: str = "¡Orden procesada y registrada exitosamente!"
+    items: List[OrdenItemDetalleResponse] = []
 
     class Config:
         from_attributes = True

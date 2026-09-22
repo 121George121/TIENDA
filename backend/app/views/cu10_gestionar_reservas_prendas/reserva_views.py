@@ -14,6 +14,7 @@ from app.schemas.reserva_schema import (
     ReservaResponse,
     ReservaCreate,
     CancelarReservaRequest,
+    PagarReservaRequest,
 )
 from app.controllers.cu10_gestionar_reservas_prendas.reserva_controller import (
     ReservaController,
@@ -98,3 +99,24 @@ def cancelar_reserva(
     return ReservaController.cancelar_reserva_cliente(
         db=db, reserva_id=reserva_id, usuario_id=usuario_id, motivo=motivo
     )
+
+
+@router.post("/{reserva_id}/pagar", response_model=ReservaResponse, summary="Pagar reserva (Móvil o Tienda)")
+def pagar_reserva(
+    reserva_id: int,
+    datos: PagarReservaRequest,
+    db: Session = Depends(get_db),
+    usuario_id: int = Depends(get_current_user_id),
+):
+    """
+    Registra el pago de una reserva realizada desde la app móvil o mostrador,
+    actualizando su estado a 'PAGADA'.
+    """
+    return ReservaController.pagar_reserva(
+        db=db,
+        reserva_id=reserva_id,
+        metodo_pago=datos.metodo_pago,
+        referencia=datos.referencia,
+        origen=datos.origen or "MOVIL",
+    )
+

@@ -321,3 +321,44 @@ class ReservaController:
         db.commit()
         db.refresh(reserva)
         return formatear_reserva(reserva)
+
+    @classmethod
+    def pagar_reserva(
+        cls,
+        db: Session,
+        reserva_id: int,
+        metodo_pago: str,
+        referencia: Optional[str] = None,
+        origen: str = "MOVIL",
+    ) -> ReservaResponse:
+        """
+        Registra el pago de una reserva (desde el teléfono móvil o en caja de la tienda).
+        Actualiza el estado a 'PAGADA' y registra la bitácora correspondiente.
+        """
+        reserva = db.query(ReservaModel).filter(ReservaModel.id == reserva_id).first()
+        if not reserva:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Reserva con ID {reserva_id} no encontrada.",
+            )
+
+        if reserva.estado in ["PAGADA", "ENTREGADA"]:
+            return formatear_reserva(reserva)
+
+        if reserva.estado == "CANCELADA":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se puede pagar una reserva cancelada.",
+            )
+
+        reserva.estado = "PAGADA"
+        origen_txt = "Teléfono Móvil" if origen.upper() == "MOVIL" else "Tienda Física / Caja"
+        nota = f"[PAGADA desde {origen_txt} | Método: {metodo_pago}"
+        if referencia:
+            nota += f" | Ref: {referencia}"
+        nota += "]"
+        reserva.observaciones = f"{reserva.observaciones or ''} {nota}".strip()
+
+        db.commit()
+        db.refresh(reserva)
+        return formatear_reserva(reserva)

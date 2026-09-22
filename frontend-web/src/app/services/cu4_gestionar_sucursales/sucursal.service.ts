@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Sucursal, SucursalCreateDTO, SucursalUpdateDTO } from '../../models/cu4_gestionar_sucursales/sucursal.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SucursalService {
-  private apiUrl = 'http://localhost:8000/api/v1/sucursales';
+  private apiUrl = `${environment.apiUrl}/sucursales`;
 
   constructor(private http: HttpClient) {}
 

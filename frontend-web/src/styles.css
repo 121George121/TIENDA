@@ -80,3 +80,31 @@ input {
   outline: none;
   font-family: 'Outfit', sans-serif;
 }
+
+/* Global Print Styles for Receipts & Invoices */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .no-print,
+  .mat-mdc-dialog-actions,
+  .mat-dialog-actions {
+    display: none !important;
+  }
+
+  .cdk-overlay-backdrop {
+    display: none !important;
+  }
+
+  .mat-mdc-dialog-container,
+  .mat-dialog-container {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+}
+

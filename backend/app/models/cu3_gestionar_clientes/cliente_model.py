@@ -22,7 +22,7 @@ class ClienteModel(Base):
     genero = Column(String(30), nullable=True)
     activo = Column(Boolean, default=True)
     fecharegistro = Column(DateTime, default=datetime.utcnow)
-    usuarioid = Column(Integer, ForeignKey("usuario.id"), nullable=True)
+    usuarioid = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=True)
 
     usuario = relationship("UsuarioModel")
 

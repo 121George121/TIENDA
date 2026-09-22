@@ -31,21 +31,72 @@ class ProductoController:
         return ProductoService.get_by_id(db=db, id=id)
 
     @staticmethod
-    def crear_producto(db: Session, data: ProductoCreate) -> ProductoModel:
-        return ProductoService.create(db=db, data=data)
+    def crear_producto(db: Session, data: ProductoCreate, usuario_id: Optional[int] = None) -> ProductoModel:
+        prod = ProductoService.create(db=db, data=data)
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="CREAR",
+                modulo="PRODUCTOS",
+                usuario_id=usuario_id,
+                detalle=f"Registro de nuevo producto: {prod.nombre} (ID: {prod.id})",
+                datos_nuevos={"id": prod.id, "nombre": prod.nombre, "precio": float(prod.preciobase or 0)}
+            )
+        except Exception:
+            pass
+        return prod
 
     @staticmethod
-    def actualizar_producto(db: Session, id: int, data: ProductoUpdate) -> ProductoModel:
-        return ProductoService.update(db=db, id=id, data=data)
+    def actualizar_producto(db: Session, id: int, data: ProductoUpdate, usuario_id: Optional[int] = None) -> ProductoModel:
+        prod = ProductoService.update(db=db, id=id, data=data)
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="MODIFICAR",
+                modulo="PRODUCTOS",
+                usuario_id=usuario_id,
+                detalle=f"Actualización del producto ID={id} ({prod.nombre})",
+                datos_nuevos={"id": prod.id, "nombre": prod.nombre, "precio": float(prod.preciobase or 0)}
+            )
+        except Exception:
+            pass
+        return prod
 
     @staticmethod
-    def cambiar_estado(db: Session, id: int, activo: bool) -> ProductoModel:
-        return ProductoService.toggle_status(db=db, id=id, activo=activo)
+    def cambiar_estado(db: Session, id: int, activo: bool, usuario_id: Optional[int] = None) -> ProductoModel:
+        prod = ProductoService.toggle_status(db=db, id=id, activo=activo)
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="CAMBIO_ESTADO",
+                modulo="PRODUCTOS",
+                usuario_id=usuario_id,
+                detalle=f"Cambio de estado del producto ID={id} a {'Activo' if activo else 'Inactivo'}",
+                datos_nuevos={"id": id, "activo": activo}
+            )
+        except Exception:
+            pass
+        return prod
 
     @staticmethod
-    def eliminar_producto(db: Session, id: int) -> dict:
-        return ProductoService.delete(db=db, id=id)
+    def eliminar_producto(db: Session, id: int, usuario_id: Optional[int] = None) -> dict:
+        res = ProductoService.delete(db=db, id=id)
+        try:
+            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            BitacoraController.registrar_evento(
+                db=db,
+                accion="ELIMINAR",
+                modulo="PRODUCTOS",
+                usuario_id=usuario_id,
+                detalle=f"Baja de producto ID={id} del catálogo"
+            )
+        except Exception:
+            pass
+        return res
 
     @staticmethod
     def baja_logica(db: Session, id: int) -> dict:
-        return ProductoService.delete(db=db, id=id)
+        return ProductoController.eliminar_producto(db=db, id=id)

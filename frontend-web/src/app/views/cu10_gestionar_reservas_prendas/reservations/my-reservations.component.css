@@ -516,8 +516,9 @@ h1 {
   width: 54px;
   height: 54px;
   border-radius: 8px;
-  object-fit: cover;
-  background: #0f172a;
+  object-fit: contain;
+  background: #f8fafc;
+  padding: 2px;
 }
 
 .item-meta {

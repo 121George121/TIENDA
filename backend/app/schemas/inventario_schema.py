@@ -114,6 +114,7 @@ class InventarioResponse(BaseModel):
     stockreservado: int
     stockminimo: int
     estado_stock: str  # 'NORMAL', 'BAJO_STOCK', 'AGOTADO'
+    imagen_url: Optional[str] = None
     fechaactualizacion: Optional[datetime] = None
 
     class Config:

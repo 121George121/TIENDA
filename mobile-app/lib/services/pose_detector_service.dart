@@ -34,10 +34,20 @@ class BodyPoseData {
 }
 
 class PoseDetectorService {
-  PoseDetector? _poseDetector;
+  PoseDetector? _streamDetector;
+  PoseDetector? _singleDetector;
 
-  void _initDetector() {
-    _poseDetector ??= PoseDetector(
+  PoseDetector _getStreamDetector() {
+    return _streamDetector ??= PoseDetector(
+      options: PoseDetectorOptions(
+        mode: PoseDetectionMode.stream,
+        model: PoseDetectionModel.base,
+      ),
+    );
+  }
+
+  PoseDetector _getSingleDetector() {
+    return _singleDetector ??= PoseDetector(
       options: PoseDetectorOptions(
         mode: PoseDetectionMode.single,
         model: PoseDetectionModel.base,
@@ -45,10 +55,18 @@ class PoseDetectorService {
     );
   }
 
+  /// Procesa un cuadro de video en vivo (CameraImage stream) de forma continua
+  Future<List<Pose>> processLiveImage(InputImage inputImage) async {
+    try {
+      return await _getStreamDetector().processImage(inputImage);
+    } catch (e) {
+      debugPrint('Error en processLiveImage: $e');
+      return [];
+    }
+  }
+
   /// Procesa una imagen estática (foto tomada o subida de galería)
   Future<BodyPoseData?> detectPoseFromFile(File file) async {
-    _initDetector();
-
     try {
       // 1. Obtener dimensiones REALES de la imagen en píxeles (sin adivinanzas)
       Size imgSize = const Size(1080, 1920);
@@ -62,7 +80,7 @@ class PoseDetectorService {
       }
 
       final inputImage = InputImage.fromFile(file);
-      final List<Pose> poses = await _poseDetector!.processImage(inputImage);
+      final List<Pose> poses = await _getSingleDetector().processImage(inputImage);
 
       if (poses.isEmpty) return null;
 
@@ -113,7 +131,9 @@ class PoseDetectorService {
   }
 
   void dispose() {
-    _poseDetector?.close();
-    _poseDetector = null;
+    _streamDetector?.close();
+    _streamDetector = null;
+    _singleDetector?.close();
+    _singleDetector = null;
   }
 }

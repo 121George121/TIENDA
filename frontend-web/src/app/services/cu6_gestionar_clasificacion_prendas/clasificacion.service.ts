@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Categoria, Temporada, Coleccion } from '../../models/cu6_gestionar_clasificacion_prendas/clasificacion.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ClasificacionService {
-  private baseUrl = 'http://localhost:8000/api/v1';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MetodoPago, VentaCompleta, VentaDetallada, VentaPresencialCreateDTO } from '../../models/cu14_registrar_ventas_presenciales/venta.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class VentaService {
-  private apiUrl = 'http://localhost:8000/api/v1';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

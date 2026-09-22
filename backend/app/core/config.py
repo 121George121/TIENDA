@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "E-Commerce Tienda API"
+    PROJECT_NAME: str = "Shopyn Golden Store API"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
@@ -33,5 +33,8 @@ class Settings(BaseSettings):
 
     # Google Gemini AI Configuration (CU18)
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
+    # Decart AI Lucy VTON Configuration (CU12)
+    DECART_API_KEY: str = os.getenv("DECART_API_KEY", "")
 
 settings = Settings()

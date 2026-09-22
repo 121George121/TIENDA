@@ -15,13 +15,13 @@ def send_otp_email(email_to: str, otp_code: str) -> bool:
         
     try:
         msg = EmailMessage()
-        msg['Subject'] = f'🔑 Tu Código de Verificación es: {otp_code} - T-Shirt Boutique'
-        msg['From'] = f"T-Shirt Boutique <{settings.SMTP_USER}>"
+        msg['Subject'] = f'🔑 Tu Código de Verificación es: {otp_code} - Shopyn Golden Store'
+        msg['From'] = f"Shopyn Golden Store <{settings.SMTP_USER}>"
         msg['To'] = email_to
         
         text_content = f"""Hola,
 
-Gracias por registrarte en T-Shirt Boutique.
+Gracias por registrarte en Shopyn Golden Store.
 
 Tu código de verificación de 6 dígitos es: {otp_code}
 
@@ -45,7 +45,7 @@ Este código caducará en 15 minutos.
                     <!-- Header -->
                     <tr>
                         <td align="center" style="background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); padding: 35px 20px;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">T-Shirt Boutique</h1>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: 0.5px;">Shopyn Golden Store</h1>
                             <p style="color: #fecdd3; margin: 6px 0 0 0; font-size: 14px; font-weight: 500;">Verificación de Cuenta de Cliente</p>
                         </td>
                     </tr>
@@ -76,7 +76,7 @@ Este código caducará en 15 minutos.
                     <tr>
                         <td align="center" style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9;">
                             <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                                © 2026 T-Shirt Boutique ERP. Todos los derechos reservados.
+                                © 2026 Shopyn Golden Store ERP. Todos los derechos reservados.
                             </p>
                         </td>
                     </tr>
@@ -109,15 +109,15 @@ def send_recovery_email(email_to: str, token: str):
         
     try:
         msg = EmailMessage()
-        msg['Subject'] = '🔐 Recuperación de Contraseña - T-Shirt Boutique'
-        msg['From'] = f"T-Shirt Boutique <{settings.SMTP_USER}>"
+        msg['Subject'] = '🔐 Recuperación de Contraseña - Shopyn Golden Store'
+        msg['From'] = f"Shopyn Golden Store <{settings.SMTP_USER}>"
         msg['To'] = email_to
         
         link = f"http://localhost:4200/reset-password?token={token}"
         
         text_content = f"""Hola,
 
-Has solicitado restablecer tu contraseña en T-Shirt Boutique.
+Has solicitado restablecer tu contraseña en Shopyn Golden Store.
 
 Ingresa al siguiente enlace para restablecerla:
 {link}
@@ -144,7 +144,7 @@ Nota: Este enlace caducará en 15 minutos. Si no realizaste esta solicitud, pued
                     <!-- Header -->
                     <tr>
                         <td align="center" style="background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); padding: 35px 20px;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">T-Shirt Boutique</h1>
+                            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">Shopyn Golden Store</h1>
                             <p style="color: #fecdd3; margin: 6px 0 0 0; font-size: 14px; font-weight: 500;">Recuperación de Contraseña</p>
                         </td>
                     </tr>

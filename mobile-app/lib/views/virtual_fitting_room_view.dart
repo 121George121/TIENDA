@@ -11,11 +11,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 import '../config/api_config.dart';
 import '../models/product_model.dart';
@@ -44,6 +46,9 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   // Servicio de Detección de Pose con IA (ML Kit)
   final PoseDetectorService _poseDetectorService = PoseDetectorService();
   bool _detectandoPose = false;
+  bool _trackingActivoEnVivo = true;
+  bool _isProcessingLiveFrame = false;
+  DateTime _lastLiveFrameTime = DateTime.now();
 
   // Controlador de Cámara en Tiempo Real
   List<CameraDescription> _camarasDisponibles = [];
@@ -57,7 +62,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   Offset? _prendaCenter;
   double? _prendaAncho;
   double _prendaRotacion = 0.0;
-  double _prendaOpacidad = 0.95;
+  final double _prendaOpacidad = 0.95;
   Size _viewportSize = Size.zero;
 
   // Variables para gestos multitáctiles
@@ -66,21 +71,11 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   double _baseAncho = 0.0;
   double _baseRotation = 0.0;
 
-  // Personalización de la Prenda
+  // Parámetros de la Prenda
   String _tallaSeleccionada = 'M';
-  Color _colorSeleccionado = const Color(0xFF1E293B); // Charcoal / Grafito elegante
+  final Color _colorSeleccionado = const Color(0xFF1E293B); // Charcoal / Grafito elegante
   GarmentType _tipoPrenda = GarmentType.poleraCuelloRedondo;
-  bool _usarRecorteFotoCatalogo = false;
   final bool _mostrarControlesFlotantes = true;
-
-  // Lista de Tallas con medidas sugeridas
-  final Map<String, String> _tallasInfo = {
-    'S': 'Pecho: 88-92 cm',
-    'M': 'Pecho: 96-102 cm',
-    'L': 'Pecho: 104-108 cm',
-    'XL': 'Pecho: 110-116 cm',
-    'XXL': 'Pecho: 118-124 cm',
-  };
 
   // Paleta de Colores de Telas Realistas
   final List<Map<String, dynamic>> _coloresDisponibles = [
@@ -115,6 +110,11 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+      try {
+        _cameraController!.stopImageStream();
+      } catch (_) {}
+    }
     _cameraController?.dispose();
     _poseDetectorService.dispose();
     super.dispose();
@@ -125,6 +125,11 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
 
     if (state == AppLifecycleState.inactive) {
+      if (_cameraController!.value.isStreamingImages) {
+        try {
+          _cameraController!.stopImageStream();
+        } catch (_) {}
+      }
       _cameraController?.dispose();
     } else if (state == AppLifecycleState.resumed) {
       _inicializarCamara();
@@ -169,13 +174,19 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   Future<void> _configurarControladorCamara(CameraDescription cameraDescription) async {
     final prevController = _cameraController;
     if (prevController != null) {
+      if (prevController.value.isStreamingImages) {
+        try {
+          await prevController.stopImageStream();
+        } catch (_) {}
+      }
       await prevController.dispose();
     }
 
     final newController = CameraController(
       cameraDescription,
-      ResolutionPreset.high,
+      ResolutionPreset.medium, // Resolución óptima para inferencia ML Kit en tiempo real a alta tasa de cuadros
       enableAudio: false,
+      imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
     );
 
     try {
@@ -187,6 +198,10 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         _camaraLista = true;
         _camaraIniciando = false;
       });
+
+      if (_modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo) {
+        _iniciarLivePoseTracking(newController, cameraDescription);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -199,9 +214,150 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
 
   Future<void> _cambiarCamara() async {
     if (_camarasDisponibles.length < 2) return;
+    if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+      try {
+        await _cameraController!.stopImageStream();
+      } catch (_) {}
+    }
     final nextIndex = (_camaraSeleccionadaIndex + 1) % _camarasDisponibles.length;
     _camaraSeleccionadaIndex = nextIndex;
     await _configurarControladorCamara(_camarasDisponibles[nextIndex]);
+  }
+
+  /// INICIA EL TRACKING CONTINUO DE POSE (Filtro estilo Snapchat)
+  void _iniciarLivePoseTracking(CameraController controller, CameraDescription camera) {
+    if (!controller.value.isInitialized) return;
+    if (controller.value.isStreamingImages) return;
+
+    try {
+      controller.startImageStream((CameraImage image) async {
+        if (!mounted || _modoActual != FittingMode.camaraVivo || !_trackingActivoEnVivo) {
+          return;
+        }
+
+        // Tasa de procesamiento: cada ~40ms para máxima suavidad (hasta 25 fps estables)
+        final now = DateTime.now();
+        if (now.difference(_lastLiveFrameTime).inMilliseconds < 40) {
+          return;
+        }
+
+        if (_isProcessingLiveFrame) return;
+        _isProcessingLiveFrame = true;
+        _lastLiveFrameTime = now;
+
+        try {
+          final inputImage = _construirInputImageDeCamara(image, camera);
+          if (inputImage == null) return;
+
+          final poses = await _poseDetectorService.processLiveImage(inputImage);
+          if (poses.isNotEmpty && mounted && _modoActual == FittingMode.camaraVivo) {
+            _actualizarPrendaEnVivo(poses.first, image, camera);
+          }
+        } catch (e) {
+          debugPrint('Error en pose stream: $e');
+        } finally {
+          _isProcessingLiveFrame = false;
+        }
+      });
+    } catch (e) {
+      debugPrint('No se pudo iniciar live tracking stream: $e');
+    }
+  }
+
+  InputImage? _construirInputImageDeCamara(CameraImage image, CameraDescription camera) {
+    final sensorOrientation = camera.sensorOrientation;
+    InputImageRotation? rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
+    if (rotation == null) return null;
+
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (format == null) return null;
+
+    final allBytes = WriteBuffer();
+    for (final Plane plane in image.planes) {
+      allBytes.putUint8List(plane.bytes);
+    }
+    final bytes = allBytes.done().buffer.asUint8List();
+
+    return InputImage.fromBytes(
+      bytes: bytes,
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation,
+        format: format,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      ),
+    );
+  }
+
+  void _actualizarPrendaEnVivo(Pose pose, CameraImage image, CameraDescription camera) {
+    final leftShoulder = pose.landmarks[PoseLandmarkType.leftShoulder];
+    final rightShoulder = pose.landmarks[PoseLandmarkType.rightShoulder];
+
+    if (leftShoulder == null || rightShoulder == null) return;
+    if (leftShoulder.likelihood < 0.35 || rightShoulder.likelihood < 0.35) return;
+
+    final viewW = _viewportSize.width > 0 ? _viewportSize.width : MediaQuery.of(context).size.width;
+    final viewH = _viewportSize.height > 0 ? _viewportSize.height : (MediaQuery.of(context).size.height * 0.55);
+
+    final isFront = camera.lensDirection == CameraLensDirection.front;
+
+    // Dimensiones en orientación vertical de pantalla
+    final double srcW = min(image.width, image.height).toDouble();
+    final double srcH = max(image.width, image.height).toDouble();
+
+    final scaleX = viewW / srcW;
+    final scaleY = viewH / srcH;
+    final scale = max(scaleX, scaleY);
+
+    final renderedW = srcW * scale;
+    final renderedH = srcH * scale;
+
+    final originX = (viewW - renderedW) / 2.0;
+    final originY = (viewH - renderedH) / 2.0;
+
+    double lx = leftShoulder.x * scale + originX;
+    double ly = leftShoulder.y * scale + originY;
+    double rx = rightShoulder.x * scale + originX;
+    double ry = rightShoulder.y * scale + originY;
+
+    // En cámara frontal (modo espejo), reflejar horizontalmente
+    if (isFront) {
+      lx = viewW - lx;
+      rx = viewW - rx;
+    }
+
+    final shoulderCenterX = (lx + rx) / 2.0;
+    final shoulderCenterY = (ly + ry) / 2.0;
+
+    final dx = rx - lx;
+    final dy = ry - ly;
+    final shoulderWidth = sqrt(dx * dx + dy * dy);
+    final rotationAngle = atan2(dy, dx);
+
+    final factorTalla = _obtenerFactorTalla(_tallaSeleccionada);
+    final targetGarmentWidth = (shoulderWidth * factorTalla).clamp(viewW * 0.35, viewW * 1.45);
+    final targetGarmentHeight = targetGarmentWidth * 1.14;
+
+    final collarY = shoulderCenterY - (shoulderWidth * 0.08);
+    final targetCenterY = collarY + (targetGarmentHeight * 0.45);
+
+    final newCenter = Offset(shoulderCenterX, targetCenterY);
+
+    if (mounted) {
+      setState(() {
+        if (_prendaCenter == null) {
+          _prendaCenter = newCenter;
+          _prendaAncho = targetGarmentWidth;
+          _prendaRotacion = rotationAngle;
+        } else {
+          // Filtro exponencial adaptativo (Lerp / EMA) para calce suave sin sacudidas (estilo Snapchat)
+          const double alpha = 0.38;
+          _prendaCenter = Offset.lerp(_prendaCenter!, newCenter, alpha)!;
+          _prendaAncho = (_prendaAncho! * (1.0 - alpha)) + (targetGarmentWidth * alpha);
+          _prendaRotacion = (_prendaRotacion * (1.0 - alpha)) + (rotationAngle * alpha);
+        }
+      });
+    }
   }
 
   double _obtenerFactorTalla(String talla) {
@@ -276,32 +432,19 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         });
 
         if (mostrarFeedback && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.auto_awesome, color: Colors.amber, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '¡Hombros detectados! Prenda ajustada automáticamente (${(poseData.confidence * 100).toInt()}% precisión)',
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF065F46),
-              duration: const Duration(seconds: 3),
-            ),
+          _mostrarMensaje(
+            '¡Hombros detectados! Prenda ajustada automáticamente (${(poseData.confidence * 100).toInt()}% precisión)',
+            icon: Icons.auto_awesome,
+            backgroundColor: const Color(0xFF065F46),
           );
         }
       } else {
         setState(() => _detectandoPose = false);
         if (mostrarFeedback && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Enfócate de frente para detectar hombros, o ajusta con los controles.'),
-              backgroundColor: Colors.orange,
-            ),
+          _mostrarMensaje(
+            'Enfócate de frente para detectar hombros, o ajusta con los controles.',
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
           );
         }
       }
@@ -314,11 +457,23 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   Future<void> _capturarYAutoAlinear() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) return;
 
+    bool wasStreaming = false;
+    if (_cameraController!.value.isStreamingImages) {
+      wasStreaming = true;
+      try {
+        await _cameraController!.stopImageStream();
+      } catch (_) {}
+    }
+
     try {
       final xFile = await _cameraController!.takePicture();
       await _analizarPoseDeArchivo(File(xFile.path));
     } catch (e) {
       debugPrint('Error en auto-alinear: $e');
+    } finally {
+      if (wasStreaming && _cameraController != null && _cameraController!.value.isInitialized && _modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo) {
+        _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
+      }
     }
   }
 
@@ -340,9 +495,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo cargar la imagen: $e')),
-        );
+        _mostrarMensaje('No se pudo cargar la imagen: $e', backgroundColor: Colors.redAccent);
       }
     }
   }
@@ -353,11 +506,23 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
 
     // Si está en cámara en vivo y no ha subido foto, toma un fotograma de alta calidad
     if (imagenAProcesar == null && _modoActual == FittingMode.camaraVivo && _cameraController != null && _cameraController!.value.isInitialized) {
+      bool wasStreaming = false;
+      if (_cameraController!.value.isStreamingImages) {
+        wasStreaming = true;
+        try {
+          await _cameraController!.stopImageStream();
+        } catch (_) {}
+      }
+
       try {
         final xFile = await _cameraController!.takePicture();
         imagenAProcesar = File(xFile.path);
       } catch (e) {
         debugPrint('Error al capturar fotograma para VTON: $e');
+      } finally {
+        if (wasStreaming && _cameraController != null && _cameraController!.value.isInitialized && _modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo) {
+          _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
+        }
       }
     }
 
@@ -472,38 +637,39 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
               child: Column(
                 children: [
                   Text(
-                    '⚡ $motor • Talla $_tallaSeleccionada',
+                    '⚡ $motor',
                     style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white70,
                             side: const BorderSide(color: Colors.white24),
                           ),
-                          child: const Text('Cerrar'),
-                          onPressed: () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.add_a_photo, size: 15, color: Color(0xFF38BDF8)),
+                          label: const Text('Otra Foto', style: TextStyle(fontSize: 12)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _mostrarBottomSheetFoto();
+                          },
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
                           icon: const Icon(Icons.shopping_bag, size: 16, color: Colors.white),
-                          label: const Text('Comprar Talla', style: TextStyle(color: Colors.white)),
+                          label: const Text('Llevar al Carrito', style: TextStyle(color: Colors.white, fontSize: 12)),
                           onPressed: () {
                             Navigator.pop(ctx);
                             Provider.of<CartController>(context, listen: false).agregarProducto(widget.producto);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('¡${widget.producto.nombre} agregada al carrito!'),
-                                backgroundColor: Colors.green,
-                              ),
+                            _mostrarMensaje(
+                              '¡${widget.producto.nombre} agregada al carrito!',
+                              icon: Icons.check_circle_outline,
                             );
-                            Navigator.pop(context);
                           },
                         ),
                       ),
@@ -519,8 +685,43 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   }
 
   void _mostrarErrorTryOn(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+    if (mounted) {
+      _mostrarMensaje(msg, backgroundColor: Colors.redAccent, duration: const Duration(seconds: 3));
+    }
+  }
+
+  /// Mensaje Flotante Autodismiss (Evita que el SnackBar se quede congelado en pantalla)
+  void _mostrarMensaje(
+    String texto, {
+    Color backgroundColor = const Color(0xFF10B981),
+    IconData? icon,
+    Duration duration = const Duration(seconds: 2),
+  }) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: Text(
+                texto,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: duration,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
     );
   }
 
@@ -807,20 +1008,47 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                       // 3. Prenda AR Interactiva
                       _buildPrendaInteractiva(_viewportSize),
 
-                  // 4. Botón Flotante Izquierdo: AUTO-CALCE A HOMBROS
+                  // 4. Botón Flotante Izquierdo: AUTO-CALCE / TRACKING EN VIVO
                   Positioned(
                     left: 14,
                     bottom: 24,
                     child: FloatingActionButton.extended(
                       heroTag: 'btn_auto_snap',
-                      backgroundColor: const Color(0xFF065F46),
+                      backgroundColor: _modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo
+                          ? const Color(0xFF065F46)
+                          : const Color(0xFF1E293B),
                       foregroundColor: Colors.white,
                       elevation: 4,
-                      icon: const Icon(Icons.auto_awesome, size: 18, color: Colors.amber),
-                      label: const Text('Auto-Calce', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      icon: Icon(
+                        _modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo
+                            ? Icons.auto_awesome
+                            : Icons.center_focus_strong,
+                        size: 18,
+                        color: Colors.amber,
+                      ),
+                      label: Text(
+                        _modoActual == FittingMode.camaraVivo
+                            ? (_trackingActivoEnVivo ? 'Tracking AR Vivo' : 'Pausado')
+                            : 'Auto-Calce',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
                       onPressed: () {
                         if (_modoActual == FittingMode.camaraVivo) {
-                          _capturarYAutoAlinear();
+                          if (!_trackingActivoEnVivo) {
+                            setState(() => _trackingActivoEnVivo = true);
+                            if (_cameraController != null && !_cameraController!.value.isStreamingImages) {
+                              _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Tracking En Vivo reactivado (sigue tu cuerpo tipo filtro Snapchat)'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: Color(0xFF065F46),
+                              ),
+                            );
+                          } else {
+                            _capturarYAutoAlinear();
+                          }
                         } else if (_modoActual == FittingMode.fotoPersonal && _fotoUsuario != null) {
                           _analizarPoseDeArchivo(_fotoUsuario!);
                         } else {
@@ -882,6 +1110,22 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                         child: const Icon(Icons.flip_camera_ios, size: 20),
                       ),
                     ),
+
+                  // 9. Botón flotante para cambiar o tomar otra foto
+                  if (_modoActual == FittingMode.fotoPersonal && _fotoUsuario != null)
+                    Positioned(
+                      left: 14,
+                      top: 16,
+                      child: FloatingActionButton.extended(
+                        heroTag: 'btn_cambiar_foto_personal',
+                        backgroundColor: const Color(0xFF1E293B).withValues(alpha: 0.88),
+                        foregroundColor: Colors.white,
+                        elevation: 4,
+                        icon: const Icon(Icons.add_a_photo, size: 16, color: Color(0xFF38BDF8)),
+                        label: const Text('Cambiar Foto', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        onPressed: _mostrarBottomSheetFoto,
+                      ),
+                    ),
                 ],
                   );
                 },
@@ -929,16 +1173,54 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
                   ],
                 ),
                 Text(
-                  '${_tallasInfo[_tallaSeleccionada]} • Bs. ${widget.producto.precio.toStringAsFixed(2)}',
+                  'Probador Virtual AR • Bs. ${widget.producto.precio.toStringAsFixed(2)}',
                   style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 11),
                 ),
               ],
             ),
           ),
+          if (_modoActual == FittingMode.fotoPersonal && _fotoUsuario != null)
+            IconButton(
+              icon: const Icon(Icons.add_photo_alternate, color: Color(0xFF38BDF8), size: 22),
+              tooltip: 'Cambiar o Tomar Nueva Foto',
+              onPressed: _mostrarBottomSheetFoto,
+            ),
           IconButton(
             icon: const Icon(Icons.restart_alt, color: Colors.white, size: 22),
             tooltip: 'Centrar Prenda',
             onPressed: _resetearPosicionPrenda,
+          ),
+          Consumer<CartController>(
+            builder: (_, cart, __) => Stack(
+              alignment: Alignment.topRight,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 22),
+                  tooltip: 'Ver Carrito',
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const CartView()));
+                  },
+                ),
+                if (cart.totalItemCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE11D48),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Text(
+                        '${cart.totalItemCount}',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -958,21 +1240,37 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
             FittingMode.camaraVivo,
             Icons.videocam,
             'En Tiempo Real',
-            onTap: () {
+            onTap: () async {
               setState(() => _modoActual = FittingMode.camaraVivo);
-              if (!_camaraLista && !_camaraIniciando) _inicializarCamara();
+              if (!_camaraLista && !_camaraIniciando) {
+                _inicializarCamara();
+              } else if (_cameraController != null && _cameraController!.value.isInitialized) {
+                if (!_cameraController!.value.isStreamingImages && _trackingActivoEnVivo) {
+                  _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
+                }
+              }
             },
           ),
           const SizedBox(width: 8),
           _buildModeTab(
             FittingMode.fotoPersonal,
             Icons.photo_camera_back,
-            'Mi Foto / Galería',
-            onTap: () {
-              if (_fotoUsuario == null) {
+            _fotoUsuario != null ? 'Mi Foto (Cambiar)' : 'Mi Foto / Galería',
+            onTap: () async {
+              if (_cameraController != null && _cameraController!.value.isStreamingImages) {
+                try {
+                  await _cameraController!.stopImageStream();
+                } catch (_) {}
+              }
+              if (_modoActual == FittingMode.fotoPersonal) {
+                // Si ya está en la pestaña de foto, al presionar de nuevo abre el selector
                 _mostrarBottomSheetFoto();
               } else {
-                setState(() => _modoActual = FittingMode.fotoPersonal);
+                if (_fotoUsuario == null) {
+                  _mostrarBottomSheetFoto();
+                } else {
+                  setState(() => _modoActual = FittingMode.fotoPersonal);
+                }
               }
             },
           ),
@@ -1095,7 +1393,11 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
 
     if (_modoActual == FittingMode.fotoPersonal && _fotoUsuario != null) {
       return SizedBox.expand(
-        child: Image.file(_fotoUsuario!, fit: BoxFit.cover),
+        child: Image.file(
+          _fotoUsuario!,
+          key: ValueKey(_fotoUsuario!.path + (_fotoUsuario!.existsSync() ? _fotoUsuario!.lastModifiedSync().toIso8601String() : '')),
+          fit: BoxFit.cover,
+        ),
       );
     }
 
@@ -1197,7 +1499,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
             tipoPrenda: _tipoPrenda,
             opacidad: _prendaOpacidad,
             mostrarEstampado: false,
-            usarModoRecorteCompleto: _usarRecorteFotoCatalogo,
+            usarModoRecorteCompleto: true,
           ),
         ),
       ),
@@ -1267,212 +1569,36 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: const BoxDecoration(
         color: Color(0xFF111827),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(top: BorderSide(color: Color(0xFF1F2937))),
         boxShadow: [
           BoxShadow(color: Colors.black54, blurRadius: 16, offset: Offset(0, -4)),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 1. Selector de Tipo de Prenda
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildTipoPrendaChip('Cuello Redondo', GarmentType.poleraCuelloRedondo),
-                const SizedBox(width: 8),
-                _buildTipoPrendaChip('Cuello en V', GarmentType.poleraCuelloV),
-                const SizedBox(width: 8),
-                _buildTipoPrendaChip('Polo', GarmentType.poleraPolo),
-                const SizedBox(width: 8),
-                _buildTipoPrendaChip('Hoodie', GarmentType.hoodie),
-              ],
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
-          ),
-          const SizedBox(height: 8),
-
-          // 2. Selector de Talla con Medidas
-          Row(
-            children: [
-              const Text('TALLA:', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _tallasInfo.keys.map((talla) {
-                    final isSel = _tallaSeleccionada == talla;
-                    return GestureDetector(
-                      onTap: () => setState(() => _aplicarEscalaPorTalla(talla)),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isSel ? const Color(0xFF6366F1) : const Color(0xFF1F2937),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isSel ? const Color(0xFF818CF8) : Colors.white10,
-                            width: isSel ? 1.5 : 1.0,
-                          ),
-                        ),
-                        child: Text(
-                          talla,
-                          style: TextStyle(
-                            color: isSel ? Colors.white : Colors.white70,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // 3. Paleta de Colores Textiles
-          Row(
-            children: [
-              const Text('COLOR:', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SizedBox(
-                  height: 30,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _coloresDisponibles.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (ctx, i) {
-                      final item = _coloresDisponibles[i];
-                      final Color c = item['color'];
-                      final isSel = _colorSeleccionado == c;
-
-                      return GestureDetector(
-                        onTap: () => setState(() => _colorSeleccionado = c),
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSel ? const Color(0xFF38BDF8) : Colors.white30,
-                              width: isSel ? 3 : 1,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // 4. Control de Fusión / Opacidad
-          Row(
-            children: [
-              const Icon(Icons.opacity, size: 16, color: Colors.white60),
-              const SizedBox(width: 6),
-              const Text('Fusión:', style: TextStyle(color: Colors.white60, fontSize: 11)),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                    activeTrackColor: const Color(0xFF6366F1),
-                    thumbColor: const Color(0xFF818CF8),
-                  ),
-                  child: Slider(
-                    value: _prendaOpacidad,
-                    min: 0.35,
-                    max: 1.0,
-                    onChanged: (v) => setState(() => _prendaOpacidad = v),
-                  ),
-                ),
-              ),
-              if (widget.producto.imagenUrl != null)
-                TextButton.icon(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  icon: Icon(
-                    _usarRecorteFotoCatalogo ? Icons.check_box : Icons.check_box_outline_blank,
-                    size: 16,
-                    color: const Color(0xFF38BDF8),
-                  ),
-                  label: const Text('Foto Catálogo', style: TextStyle(color: Color(0xFF38BDF8), fontSize: 11)),
-                  onPressed: () => setState(() => _usarRecorteFotoCatalogo = !_usarRecorteFotoCatalogo),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // 5. Botón de Compra Directa
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                cartCtrl.agregarProducto(widget.producto);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('¡${widget.producto.nombre} (Talla $_tallaSeleccionada) agregada al carrito!'),
-                    backgroundColor: const Color(0xFF10B981),
-                    action: SnackBarAction(
-                      label: 'Ver Carrito',
-                      textColor: Colors.white,
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const CartView()));
-                      },
-                    ),
-                  ),
-                );
-                Navigator.pop(context);
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.shopping_bag_outlined, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    '¡Me queda perfecto! Llevar Talla $_tallaSeleccionada (Bs. ${widget.producto.precio.toStringAsFixed(2)})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                ],
-              ),
+            icon: const Icon(Icons.shopping_bag_outlined, size: 20),
+            label: Text(
+              '¡Me queda perfecto! Llevar al Carrito • Bs. ${widget.producto.precio.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTipoPrendaChip(String label, GarmentType tipo) {
-    final isSel = _tipoPrenda == tipo;
-    return GestureDetector(
-      onTap: () => setState(() => _tipoPrenda = tipo),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: isSel ? const Color(0xFF6366F1).withValues(alpha: 0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSel ? const Color(0xFF818CF8) : Colors.white24,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSel ? const Color(0xFF818CF8) : Colors.white70,
-            fontSize: 11,
-            fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+            onPressed: () {
+              cartCtrl.agregarProducto(widget.producto);
+              _mostrarMensaje(
+                '¡${widget.producto.nombre} agregada al carrito!',
+                icon: Icons.check_circle_outline,
+                duration: const Duration(seconds: 2),
+              );
+            },
           ),
         ),
       ),
@@ -1484,35 +1610,90 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       context: context,
       backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Cargar Foto para el Probador',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.camera_alt, color: Color(0xFF38BDF8)),
-              title: const Text('Tomar Foto de Cuerpo Entero', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Auto-calce anatómico inmediato con IA', style: TextStyle(color: Colors.white54, fontSize: 11)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _seleccionarFotoPersonal(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF6366F1)),
-              title: const Text('Elegir de Galería', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Detecta hombros y calza la prenda sola', style: TextStyle(color: Colors.white54, fontSize: 11)),
-              onTap: () {
-                Navigator.pop(ctx);
-                _seleccionarFotoPersonal(ImageSource.gallery);
-              },
-            ),
-          ],
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _fotoUsuario == null ? 'Cargar Foto para el Probador' : 'Cambiar Foto para el Probador',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.camera_alt, color: Color(0xFF38BDF8), size: 22),
+                ),
+                title: Text(
+                  _fotoUsuario == null ? 'Tomar Foto de Cuerpo Entero' : 'Tomar Nueva Foto con Cámara',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text('Auto-calce anatómico inmediato con IA', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _seleccionarFotoPersonal(ImageSource.camera);
+                },
+              ),
+              const SizedBox(height: 4),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_library, color: Color(0xFF818CF8), size: 22),
+                ),
+                title: Text(
+                  _fotoUsuario == null ? 'Elegir de Galería' : 'Elegir otra Foto de Galería',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text('Detecta hombros y calza la prenda sola', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _seleccionarFotoPersonal(ImageSource.gallery);
+                },
+              ),
+              if (_fotoUsuario != null) ...[
+                const Divider(color: Colors.white12, height: 20),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+                  ),
+                  title: const Text('Quitar Foto Actual', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Vuelve a la pantalla de selección de foto', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _fotoUsuario = null;
+                      _resetearPosicionPrenda();
+                    });
+                  },
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

@@ -164,7 +164,7 @@ class _RegisterViewState extends State<RegisterView> {
                 const SizedBox(height: 6),
                 const Center(
                   child: Text(
-                    'Únete a T-Shirt Boutique para comprar poleras exclusivas',
+                    'Únete a Shopyn Golden Store para comprar poleras exclusivas',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

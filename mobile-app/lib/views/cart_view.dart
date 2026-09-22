@@ -23,7 +23,7 @@ class CartView extends StatefulWidget {
 }
 
 class _CartViewState extends State<CartView> {
-  int _metodoPagoSeleccionado = 6; // 6: PayPal, 4: QR Simple, 2: Efectivo
+  int _metodoPagoSeleccionado = 5; // 5: PayPal, 2: Tarjeta Visa, 3: QR Simple
 
   @override
   void initState() {
@@ -416,11 +416,11 @@ class _CartViewState extends State<CartView> {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              _buildMetodoChip(6, 'PayPal', Icons.credit_card, const Color(0xFF003087)),
+                              _buildMetodoChip(5, 'PayPal', Icons.payment, const Color(0xFF003087)),
                               const SizedBox(width: 6),
-                              _buildMetodoChip(4, 'QR Simple', Icons.qr_code_2, const Color(0xFF6D28D9)),
+                              _buildMetodoChip(2, 'Tarjeta Visa', Icons.credit_card, const Color(0xFF1E3A8A)),
                               const SizedBox(width: 6),
-                              _buildMetodoChip(2, 'Efectivo', Icons.payments_outlined, const Color(0xFF15803D)),
+                              _buildMetodoChip(3, 'QR Simple', Icons.qr_code_2, const Color(0xFF6D28D9)),
                             ],
                           ),
                         ],
@@ -495,12 +495,12 @@ class _CartViewState extends State<CartView> {
 
                               if (!context.mounted) return;
 
-                              if (_metodoPagoSeleccionado == 6) {
+                              if (_metodoPagoSeleccionado == 5) {
                                 _mostrarDialogoPayPal(context, ventaId, pagoInfo, payCtrl);
-                              } else if (_metodoPagoSeleccionado == 4) {
-                                _mostrarDialogoQR(context, ventaId, pagoInfo, payCtrl);
+                              } else if (_metodoPagoSeleccionado == 2) {
+                                _mostrarDialogoTarjeta(context, ventaId, pagoInfo, payCtrl);
                               } else {
-                                _mostrarDialogoEfectivo(context, ventaId, pagoInfo, payCtrl);
+                                _mostrarDialogoQR(context, ventaId, pagoInfo, payCtrl);
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -788,58 +788,152 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  void _mostrarDialogoEfectivo(BuildContext context, int ventaId, Map<String, dynamic>? pagoInfo, PaymentController payCtrl) {
+  void _mostrarDialogoTarjeta(BuildContext context, int ventaId, Map<String, dynamic>? pagoInfo, PaymentController payCtrl) {
+    final numeroTarjetaCtrl = TextEditingController(text: '4532 8920 1144 7820');
+    final titularCtrl = TextEditingController(text: 'CONSUMIDOR FINAL');
+    final venceCtrl = TextEditingController(text: '12/28');
+    final cvvCtrl = TextEditingController(text: '884');
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.payments_outlined, color: Color(0xFF15803D)),
-            SizedBox(width: 8),
-            Text('Orden en Efectivo Registrada', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Tu orden ha sido reservada para pago en ventanilla.',
-              style: TextStyle(fontSize: 13, color: Colors.black87),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.credit_card, color: Color(0xFF1E3A8A)),
+                SizedBox(width: 8),
+                Text('Pago con Tarjeta Visa', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              'Código de Venta: ORD-$ventaId',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0F172A), Color(0xFF1E3A8A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Icon(Icons.nfc, color: Colors.amber, size: 24),
+                            Text('VISA', style: TextStyle(color: Colors.white, fontStyle: FontStyle.italic, fontWeight: FontWeight.w900, fontSize: 18)),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Text(
+                          '•••• •••• •••• 7820',
+                          style: TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 2, fontFamily: 'monospace'),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              titularCtrl.text.toUpperCase(),
+                              style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                            const Text('VENCE 12/28', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: numeroTarjetaCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Número de Tarjeta',
+                      prefixIcon: const Icon(Icons.credit_card),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: titularCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre del Titular',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: venceCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Vence (MM/AA)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: cvvCtrl,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            labelText: 'CVV',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
-            const Text(
-              'Presenta este código al cajero al momento de recoger tus prendas para realizar el pago en efectivo.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-            ),
-          ],
-        ),
-        actions: [
-          OutlinedButton.icon(
-            icon: const Icon(Icons.receipt_long, size: 16),
-            label: const Text('Ver Comprobante'),
-            onPressed: () async {
-              final url = payCtrl.getComprobanteHtmlUrl(ventaId);
-              await payCtrl.abrirPayPal(url);
-            },
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF15803D), foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OrdersHistoryView()));
-            },
-            child: const Text('Entendido'),
-          ),
-        ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E3A8A),
+                  foregroundColor: Colors.white,
+                ),
+                icon: const Icon(Icons.lock, size: 16),
+                label: const Text('Confirmar Pago'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OrdersHistoryView()),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('¡Pago con tarjeta procesado y aprobado exitosamente!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
+
 }

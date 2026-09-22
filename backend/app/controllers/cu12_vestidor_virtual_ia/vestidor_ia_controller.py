@@ -203,6 +203,14 @@ class VestidorIaController:
         """
         api_key = os.getenv("DECART_API_KEY")
         if not api_key:
+            try:
+                from dotenv import load_dotenv
+                load_dotenv(override=True)
+                api_key = os.getenv("DECART_API_KEY")
+            except Exception:
+                pass
+
+        if not api_key:
             print("[Decart AI Lucy VTON] DECART_API_KEY no configurada en entorno.")
             return None
 

@@ -51,24 +51,11 @@ export class UserFormDialogComponent implements OnInit {
       nombre: [u?.nombre || '', [Validators.required, Validators.minLength(2)]],
       apellido: [u?.apellido || ''],
       email: [u?.email || '', [Validators.required, Validators.email]],
-      password: ['', this.data.isEdit ? [] : [Validators.required, Validators.minLength(8), this.validateStrongPassword]],
+      password: [this.data.isEdit ? '' : 'usuario123.'],
       telefono: [u?.telefono || ''],
       rol_id: [u?.rol_id || u?.rolid || (this.data.roles.length > 0 ? this.data.roles[0].id : null), [Validators.required]],
       activo: [u !== undefined ? u.activo : true]
     });
-  }
-
-  validateStrongPassword(control: any) {
-    const value = control.value || '';
-    if (!value) return null;
-
-    const hasUpper = /[A-Z]/.test(value);
-    const hasLower = /[a-z]/.test(value);
-    const hasNumber = /[0-9]/.test(value);
-    const hasSpecial = /[\W_]/.test(value);
-
-    const valid = hasUpper && hasLower && hasNumber && hasSpecial;
-    return valid ? null : { weakPassword: true };
   }
 
   onSubmit(): void {
@@ -78,6 +65,9 @@ export class UserFormDialogComponent implements OnInit {
     }
 
     const formValue = { ...this.userForm.value };
+    if (!this.data.isEdit && (!formValue.password || !formValue.password.trim())) {
+      formValue.password = 'usuario123.';
+    }
     if (this.data.isEdit && !formValue.password) {
       delete formValue.password;
     }

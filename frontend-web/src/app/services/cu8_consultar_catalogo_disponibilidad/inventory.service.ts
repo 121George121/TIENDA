@@ -12,12 +12,13 @@ import {
   ProductoCatalogoItem,
   DisponibilidadProducto
 } from '../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventoryService {
-  private baseUrl = 'http://localhost:8000/api/v1/inventario';
+  private baseUrl = `${environment.apiUrl}/inventario`;
 
   constructor(private http: HttpClient) {}
 
