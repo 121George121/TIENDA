@@ -17,6 +17,7 @@ from typing import Dict, Any, Optional
 from fastapi import UploadFile
 from PIL import Image, ImageEnhance, ImageFilter
 import aiohttp
+from app.core.config import settings
 
 # SDK oficial de Google GenAI
 genai = None
@@ -201,12 +202,12 @@ class VestidorIaController:
         Ejecuta la inferencia fotorrealista de Virtual Try-On usando Decart AI Lucy VTON (lucy-image-2).
         Retorna los bytes brutos en formato PNG si la inferencia es exitosa, o None ante errores.
         """
-        api_key = os.getenv("DECART_API_KEY")
+        api_key = os.getenv("DECART_API_KEY") or getattr(settings, "DECART_API_KEY", "")
         if not api_key:
             try:
                 from dotenv import load_dotenv
                 load_dotenv(override=True)
-                api_key = os.getenv("DECART_API_KEY")
+                api_key = os.getenv("DECART_API_KEY") or getattr(settings, "DECART_API_KEY", "")
             except Exception:
                 pass
 
@@ -219,8 +220,28 @@ class VestidorIaController:
             f"size {talla}, perfect fit, realistic fabric folds, premium studio lighting, seamless blending."
         )
 
+        # 1. Intentar con el SDK oficial de Decart
         try:
-            # Normalizar imágenes para acelerar transferencia y garantizar máxima estabilidad
+            import decart
+            client = decart.DecartClient(api_key=api_key.strip())
+            try:
+                model_def = decart.models.image("lucy-image-2")
+                result_bytes = await client.process({
+                    "model": model_def,
+                    "data": user_bytes,
+                    "reference_image": garment_bytes,
+                    "prompt": prompt_text
+                })
+                if result_bytes and len(result_bytes) > 1000:
+                    print(f"[Decart AI Lucy VTON] Inferencia con SDK completada con éxito ({len(result_bytes)} bytes)!")
+                    return result_bytes
+            finally:
+                await client.close()
+        except Exception as sdk_err:
+            print(f"[Decart AI Lucy VTON] SDK error: {sdk_err}. Intentando con fallback HTTP aiohttp...")
+
+        # 2. Fallback HTTP directo con aiohttp
+        try:
             user_opt = VestidorIaController._normalizar_imagen_bytes(user_bytes, max_dim=1024, as_format="JPEG")
             garment_opt = VestidorIaController._normalizar_imagen_bytes(garment_bytes, max_dim=1024, as_format="PNG")
 
@@ -240,14 +261,14 @@ class VestidorIaController:
                     if resp.status == 200:
                         img_bytes = await resp.read()
                         if len(img_bytes) > 1000:
-                            print(f"[Decart AI Lucy VTON] Inferencia completada con éxito ({len(img_bytes)} bytes)!")
+                            print(f"[Decart AI Lucy VTON] Inferencia HTTP completada con éxito ({len(img_bytes)} bytes)!")
                             return img_bytes
                     else:
                         err_text = await resp.text()
                         print(f"[Decart AI Lucy VTON] Respuesta HTTP {resp.status}: {err_text[:200]}")
                         return None
         except Exception as e:
-            print(f"[Decart AI Lucy VTON] Error en petición: {type(e).__name__} - {e}")
+            print(f"[Decart AI Lucy VTON] Error en petición HTTP: {type(e).__name__} - {e}")
             return None
 
     @staticmethod

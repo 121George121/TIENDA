@@ -504,35 +504,105 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
   Future<void> _generarPruebaVirtualFotorrealista() async {
     File? imagenAProcesar = _fotoUsuario;
 
-    // Si está en cámara en vivo y no ha subido foto, toma un fotograma de alta calidad
+    // 1. Si está en cámara en vivo y no ha subido foto, capturar fotograma de alta calidad
     if (imagenAProcesar == null && _modoActual == FittingMode.camaraVivo && _cameraController != null && _cameraController!.value.isInitialized) {
-      bool wasStreaming = false;
       if (_cameraController!.value.isStreamingImages) {
-        wasStreaming = true;
         try {
           await _cameraController!.stopImageStream();
         } catch (_) {}
+        // Pequeña pausa para permitir que el hardware de la cámara libere el búfer de análisis
+        await Future.delayed(const Duration(milliseconds: 300));
       }
 
       try {
         final xFile = await _cameraController!.takePicture();
         imagenAProcesar = File(xFile.path);
       } catch (e) {
-        debugPrint('Error al capturar fotograma para VTON: $e');
-      } finally {
-        if (wasStreaming && _cameraController != null && _cameraController!.value.isInitialized && _modoActual == FittingMode.camaraVivo && _trackingActivoEnVivo) {
-          _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
-        }
+        debugPrint('Error al capturar fotograma con cameraController: $e');
       }
     }
 
     if (!mounted) return;
 
+    // 2. Si no se pudo obtener imagen con la cámara en vivo, solicitar foto al usuario
     if (imagenAProcesar == null) {
-      _mostrarBottomSheetFoto();
-      return;
+      final ImageSource? source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        backgroundColor: const Color(0xFF1E293B),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Prueba Virtual Fotorrealista (IA)',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Elige cómo capturar tu foto para generar el Try-On con IA:',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.camera_alt, color: Color(0xFF38BDF8), size: 22),
+                  ),
+                  title: const Text('Tomar Foto con la Cámara', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.photo_library, color: Color(0xFF6366F1), size: 22),
+                  ),
+                  title: const Text('Elegir de la Galería', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      if (source != null) {
+        try {
+          final XFile? imagen = await _picker.pickImage(
+            source: source,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageQuality: 85,
+          );
+          if (imagen != null) {
+            imagenAProcesar = File(imagen.path);
+            setState(() {
+              _fotoUsuario = imagenAProcesar;
+              _modoActual = FittingMode.fotoPersonal;
+            });
+          }
+        } catch (e) {
+          debugPrint('Error seleccionando imagen: $e');
+        }
+      }
+
+      if (imagenAProcesar == null) return;
     }
 
+    if (!mounted) return;
+
+    // 3. Mostrar diálogo de progreso
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -565,7 +635,13 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/vestidor/try-on-fotorrealista');
       final request = http.MultipartRequest('POST', uri);
-      request.fields['prenda_url'] = widget.producto.imagenUrl ?? '';
+
+      // Asegurar URL de prenda válida
+      String prendaUrl = widget.producto.imagenUrl ?? '';
+      if (prendaUrl.trim().isEmpty) {
+        prendaUrl = 'https://i.postimg.cc/zvwjvHfH/ai-generated-t-shirt-mockup-clip-art-free-png.png';
+      }
+      request.fields['prenda_url'] = prendaUrl.trim();
       request.fields['talla'] = _tallaSeleccionada;
       final nombreColor = _coloresDisponibles.firstWhere(
         (c) => c['color'] == _colorSeleccionado,
@@ -574,23 +650,36 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
       request.fields['color'] = nombreColor;
       request.files.add(await http.MultipartFile.fromPath('imagen_usuario', imagenAProcesar.path));
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 90));
+      debugPrint('[VTON IA] Enviando petición a $uri para prenda: $prendaUrl');
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 70));
       if (mounted) Navigator.pop(context); // Cerrar loader
 
+      final respStr = await streamedResponse.stream.bytesToString();
+      debugPrint('[VTON IA] Respuesta recibida con código: ${streamedResponse.statusCode}');
+
       if (streamedResponse.statusCode == 200) {
-        final respStr = await streamedResponse.stream.bytesToString();
         final Map<String, dynamic> data = json.decode(respStr);
         if (data['status'] == 'success' && data['imagen_base64'] != null) {
           _mostrarModalResultadoVton(data['imagen_base64'], data['motor'] ?? 'IDM-VTON');
         } else {
-          _mostrarErrorTryOn(data['mensaje'] ?? 'No se pudo generar la prueba');
+          _mostrarErrorTryOn(data['mensaje'] ?? 'No se pudo generar la prueba fotorrealista');
         }
       } else {
-        _mostrarErrorTryOn('Error en el servidor al generar la prueba fotorrealista.');
+        _mostrarErrorTryOn('El servidor de IA respondió con error (${streamedResponse.statusCode})');
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
-      _mostrarErrorTryOn('Error de comunicación con el motor de IA: $e');
+      debugPrint('[VTON IA] Error en conexión: $e');
+      _mostrarErrorTryOn('Error al conectar con el servidor de IA: $e');
+    } finally {
+      // Reanudar tracking en vivo si corresponde
+      if (_modoActual == FittingMode.camaraVivo &&
+          _trackingActivoEnVivo &&
+          _cameraController != null &&
+          _cameraController!.value.isInitialized &&
+          !_cameraController!.value.isStreamingImages) {
+        _iniciarLivePoseTracking(_cameraController!, _camarasDisponibles[_camaraSeleccionadaIndex]);
+      }
     }
   }
 

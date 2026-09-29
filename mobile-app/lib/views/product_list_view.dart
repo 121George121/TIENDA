@@ -16,6 +16,7 @@ import '../models/inventory_model.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
 import 'virtual_fitting_room_view.dart';
+import '../widgets/cached_garment_image.dart';
 
 class ProductListView extends StatefulWidget {
   const ProductListView({super.key});
@@ -268,12 +269,22 @@ class _ProductListViewState extends State<ProductListView> {
                         ),
                       )
                     : productCtrl.catalogo.isEmpty
-                        ? const Center(
-                            child: Text('No hay productos disponibles con estos filtros.'),
+                        ? RefreshIndicator(
+                            onRefresh: () => productCtrl.fetchProductos(forceRefresh: true),
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: const [
+                                SizedBox(height: 120),
+                                Center(child: Text('No hay productos disponibles con estos filtros.')),
+                              ],
+                            ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(12),
-                            itemCount: productCtrl.catalogo.length,
+                        : RefreshIndicator(
+                            onRefresh: () => productCtrl.fetchProductos(forceRefresh: true),
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(12),
+                              itemCount: productCtrl.catalogo.length,
                             itemBuilder: (ctx, i) {
                               final prod = productCtrl.catalogo[i];
                               final bool enStock = prod.disponible && prod.stockSucursal > 0;
@@ -287,28 +298,13 @@ class _ProductListViewState extends State<ProductListView> {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // Imagen del producto
-                                      ClipRRect(
+                                      // Imagen del producto (Caché local persistente en disco)
+                                      CachedGarmentImage(
+                                        imageUrl: prod.imagenprincipal,
+                                        width: 85,
+                                        height: 95,
+                                        fit: BoxFit.cover,
                                         borderRadius: BorderRadius.circular(10),
-                                        child: (prod.imagenprincipal != null && prod.imagenprincipal!.isNotEmpty)
-                                            ? Image.network(
-                                                prod.imagenprincipal!,
-                                                width: 85,
-                                                height: 95,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) => Container(
-                                                  width: 85,
-                                                  height: 95,
-                                                  color: Colors.grey[200],
-                                                  child: const Icon(Icons.checkroom, size: 40, color: Colors.grey),
-                                                ),
-                                              )
-                                            : Container(
-                                                width: 85,
-                                                height: 95,
-                                                color: Colors.grey[200],
-                                                child: const Icon(Icons.checkroom, size: 40, color: Colors.grey),
-                                              ),
                                       ),
                                       const SizedBox(width: 14),
 
@@ -475,6 +471,7 @@ class _ProductListViewState extends State<ProductListView> {
                               );
                             },
                           ),
+                        ),
           ),
         ],
       ),

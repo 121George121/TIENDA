@@ -14,6 +14,7 @@ import '../controllers/payment_controller.dart';
 import '../controllers/recommendation_controller.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
+import '../widgets/cached_garment_image.dart';
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -150,27 +151,12 @@ class _CartViewState extends State<CartView> {
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
-                              ClipRRect(
+                              CachedGarmentImage(
+                                imageUrl: item.product.imagenUrl,
+                                width: 65,
+                                height: 75,
+                                fit: BoxFit.cover,
                                 borderRadius: BorderRadius.circular(8),
-                                child: item.product.imagenUrl != null
-                                    ? Image.network(
-                                        item.product.imagenUrl!,
-                                        width: 65,
-                                        height: 75,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          width: 65,
-                                          height: 75,
-                                          color: Colors.grey[200],
-                                          child: const Icon(Icons.image_not_supported),
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 65,
-                                        height: 75,
-                                        color: Colors.grey[200],
-                                        child: const Icon(Icons.checkroom),
-                                      ),
                               ),
                               const SizedBox(width: 14),
 
@@ -456,8 +442,8 @@ class _CartViewState extends State<CartView> {
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          icon: const Icon(Icons.shopping_bag_outlined),
-                          label: const Text('Comprar Online (Envío a Domicilio)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          icon: const Icon(Icons.payment),
+                          label: const Text('Pagar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           onPressed: () async {
                             if (!authCtrl.isAuthenticated) {
                               ScaffoldMessenger.of(context).showSnackBar(

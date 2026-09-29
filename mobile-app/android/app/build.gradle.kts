@@ -17,7 +17,7 @@ android {
     defaultConfig {
         applicationId = "com.example.ecommerce_mobile_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -25,18 +25,20 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
     packaging {
         jniLibs {
-            keepDebugSymbols.add("**/*.so")
+            useLegacyPackaging = true
         }
     }
-}
-
-tasks.matching { it.name.contains("StripDebugSymbols") }.configureEach {
-    enabled = false
 }
 
 kotlin {
