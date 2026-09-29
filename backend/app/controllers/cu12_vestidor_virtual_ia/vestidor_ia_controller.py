@@ -196,7 +196,8 @@ class VestidorIaController:
         user_bytes: bytes,
         garment_bytes: bytes,
         color: str,
-        talla: str
+        talla: str,
+        producto_nombre: str = ""
     ) -> Optional[bytes]:
         """
         Ejecuta la inferencia fotorrealista de Virtual Try-On usando Decart AI Lucy VTON (lucy-image-2).
@@ -215,10 +216,17 @@ class VestidorIaController:
             print("[Decart AI Lucy VTON] DECART_API_KEY no configurada en entorno.")
             return None
 
-        prompt_text = (
-            f"A high quality, photorealistic photo of the person naturally wearing the {color} clothing garment, "
-            f"size {talla}, perfect fit, realistic fabric folds, premium studio lighting, seamless blending."
-        )
+        if producto_nombre and producto_nombre.strip():
+            nombre_limpio = producto_nombre.strip()
+            prompt_text = (
+                f"A high quality photorealistic photo of the person naturally wearing the exact clothing garment shown in reference_image: '{nombre_limpio}', "
+                f"size {talla}. Seamless natural anatomical fit, maintaining all exact graphics, prints, embroidery, colors, collar shape, and fabric texture from the reference garment."
+            )
+        else:
+            prompt_text = (
+                f"A high quality photorealistic photo of the person naturally wearing the exact clothing garment shown in reference_image, "
+                f"size {talla}. Seamless natural fit, maintaining all exact graphics, prints, embroidery, colors and fabric texture from the reference garment."
+            )
 
         # 1. Intentar con el SDK oficial de Decart
         try:
@@ -305,7 +313,8 @@ class VestidorIaController:
         imagen_usuario: UploadFile,
         prenda_url: str,
         talla: str,
-        color: str
+        color: str,
+        producto_nombre: str = ""
     ) -> Dict[str, Any]:
         """
         CU12: Motor de Virtual Try-On Fotorrealista en Cascada Inteligente:
@@ -322,7 +331,8 @@ class VestidorIaController:
                 user_bytes=user_bytes,
                 garment_bytes=garment_bytes,
                 color=color,
-                talla=talla
+                talla=talla,
+                producto_nombre=producto_nombre
             )
             if decart_bytes:
                 b64_str = base64.b64encode(decart_bytes).decode("utf-8")
@@ -350,7 +360,7 @@ class VestidorIaController:
                 gf.write(garment_bytes)
                 garm_temp_path = gf.name
 
-            garment_des = f"A stylish short-sleeve {color} cotton t-shirt with graphics, boutique cut, size {talla}"
+            garment_des = f"Exact clothing piece '{producto_nombre or 't-shirt'}', size {talla}, high quality cotton boutique fit"
 
             # Timeout de 35 segundos para no dejar esperando indefinidamente al usuario si la cola de HF está llena
             output_file = await asyncio.wait_for(

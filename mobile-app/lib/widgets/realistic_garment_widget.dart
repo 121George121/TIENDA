@@ -6,7 +6,6 @@
 // ==============================================================================
 
 import 'package:flutter/material.dart';
-import 'cached_garment_image.dart';
 
 enum GarmentType { poleraCuelloRedondo, poleraCuelloV, poleraPolo, hoodie }
 
@@ -49,20 +48,24 @@ class RealisticGarmentWidget extends StatelessWidget {
                   painter: _GarmentDropShadowPainter(tipoPrenda),
                 ),
 
-                // 2. Prenda Real del Producto (PNG transparente con caché local persistente en disco)
+                // 2. Prenda Real del Producto (PNG transparente de alta fidelidad)
                 if (imagenUrl != null && imagenUrl!.trim().isNotEmpty)
                   Center(
-                    child: CachedGarmentImage(
-                      imageUrl: imagenUrl!.trim(),
+                    child: Image.network(
+                      imagenUrl!.trim(),
                       fit: BoxFit.contain,
-                      errorWidget: _buildVectorGarment(size),
-                      placeholder: const Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF6366F1)),
-                        ),
-                      ),
+                      filterQuality: FilterQuality.high,
+                      errorBuilder: (_, __, ___) => _buildVectorGarment(size),
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF6366F1)),
+                          ),
+                        );
+                      },
                     ),
                   )
                 else

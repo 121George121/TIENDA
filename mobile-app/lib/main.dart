@@ -22,14 +22,11 @@ import 'views/cart_view.dart';
 import 'views/orders_history_view.dart';
 import 'views/my_reservations_view.dart';
 
-import 'services/cache_service.dart';
-
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
   // Configurar memoria caché de imágenes en RAM para retener hasta 1000 fotos (150 MB)
   PaintingBinding.instance.imageCache.maximumSize = 1000;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 150 * 1024 * 1024;
-  await CacheService.instance.init();
   runApp(const ECommerceMobileApp());
 }
 

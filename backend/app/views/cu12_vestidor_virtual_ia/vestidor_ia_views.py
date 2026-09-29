@@ -48,6 +48,7 @@ def obtener_prenda_transparente(
 @router.post("/try-on-fotorrealista")
 async def generar_tryon_fotorrealista(
     prenda_url: str = Form(...),
+    producto_nombre: str = Form(""),
     talla: str = Form("M"),
     color: str = Form("Grafito"),
     imagen_usuario: UploadFile = File(...)
@@ -60,6 +61,7 @@ async def generar_tryon_fotorrealista(
     resultado = await VestidorIaController.generar_virtual_tryon(
         imagen_usuario=imagen_usuario,
         prenda_url=prenda_url,
+        producto_nombre=producto_nombre,
         talla=talla,
         color=color
     )

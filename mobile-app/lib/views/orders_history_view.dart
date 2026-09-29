@@ -9,7 +9,6 @@ import '../controllers/order_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../models/order_model.dart';
-import '../widgets/cached_garment_image.dart';
 
 class OrdersHistoryView extends StatefulWidget {
   const OrdersHistoryView({super.key});
@@ -76,12 +75,20 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Miniatura o icono de prenda
-                    CachedGarmentImage(
-                      imageUrl: it.imagenUrl,
-                      width: 42,
-                      height: 42,
-                      fit: BoxFit.cover,
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        color: Colors.white,
+                        child: it.imagenUrl != null && it.imagenUrl!.isNotEmpty
+                            ? Image.network(
+                                it.imagenUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.checkroom, color: Colors.indigo, size: 24),
+                              )
+                            : const Icon(Icons.checkroom, color: Colors.indigo, size: 24),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     // Descripción y variantes

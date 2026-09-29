@@ -11,8 +11,6 @@ import '../models/product_model.dart';
 import '../models/inventory_model.dart';
 import '../config/api_config.dart';
 
-import '../services/cache_service.dart';
-
 class ProductController extends ChangeNotifier {
   static String get baseUrl => '${ApiConfig.baseUrl}/productos';
   static String get inventarioUrl => '${ApiConfig.baseUrl}/inventario';
@@ -35,45 +33,8 @@ class ProductController extends ChangeNotifier {
   String? get error => _error;
 
   ProductController() {
-    // Al instanciar el controlador, cargamos inmediatamente los datos en caché desde disco
-    _cargarCacheDesdeDisco();
-  }
-
-  // --- GESTIÓN DE CACHÉ LOCAL EN DISCO OFFLINE-FIRST ---
-
-  Future<void> _cargarCacheDesdeDisco() async {
-    try {
-      // 1. Cargar sucursales cacheadas
-      final sucursalesRaw = await CacheService.instance.readJson('sucursales_cache.json');
-      if (sucursalesRaw != null && sucursalesRaw.isNotEmpty) {
-        final List<dynamic> data = json.decode(sucursalesRaw);
-        _sucursales = data.map((j) => BranchModel.fromJson(j)).toList();
-        if (_sucursales.isNotEmpty && _sucursalSeleccionadaId == null) {
-          _sucursalSeleccionadaId = _sucursales.first.id;
-        }
-      }
-
-      // 2. Cargar catálogo de poleras cacheado
-      final catalogoRaw = await CacheService.instance.readJson('catalogo_cache.json');
-      if (catalogoRaw != null && catalogoRaw.isNotEmpty) {
-        final List<dynamic> data = json.decode(catalogoRaw);
-        _catalogo = data.map((json) => CatalogProductModel.fromJson(json)).toList();
-        _productos = _catalogo.map((c) => ProductModel(
-          id: c.id,
-          nombre: c.nombre,
-          descripcion: c.descripcion,
-          precio: c.preciobase,
-          stock: c.stockSucursal,
-          imagenUrl: c.imagenprincipal,
-          activo: c.disponible,
-        )).toList();
-        notifyListeners();
-        // Precargar imágenes en disco para que no requieran internet
-        CacheService.instance.precacheImages(_catalogo.map((c) => c.imagenprincipal).toList());
-      }
-    } catch (e) {
-      debugPrint('Error inicializando cache de productos desde disco: $e');
-    }
+    fetchCatalogoConDisponibilidad();
+    fetchSucursales();
   }
 
   /// CU08: Obtiene las tiendas físicas para el selector
@@ -87,7 +48,6 @@ class ProductController extends ChangeNotifier {
         if (_sucursales.isNotEmpty && _sucursalSeleccionadaId == null) {
           _sucursalSeleccionadaId = _sucursales.first.id;
         }
-        CacheService.instance.writeJson('sucursales_cache.json', raw);
         notifyListeners();
       }
     } catch (e) {
@@ -103,11 +63,9 @@ class ProductController extends ChangeNotifier {
   }
 
   /// CU08: Consulta el catálogo con existencias y variantes por sucursal
-  /// Utiliza Stale-While-Revalidate: si ya hay datos en pantalla, no muestra spinner y actualiza suavemente en segundo plano
   Future<void> fetchCatalogoConDisponibilidad({int? sucursalId, String? search, bool forceRefresh = false}) async {
     final bool isSearch = search != null && search.trim().isNotEmpty;
 
-    // Solo mostramos pantalla de carga si el catálogo está completamente vacío o si es una búsqueda de texto
     if (_catalogo.isEmpty || isSearch || forceRefresh) {
       if (_catalogo.isEmpty || isSearch) {
         _cargando = true;
@@ -150,11 +108,6 @@ class ProductController extends ChangeNotifier {
           activo: c.disponible,
         )).toList();
 
-        // Guardar en disco el catálogo si es la consulta general (para que no se descargue a cada rato)
-        if (!isSearch && (sucursalId == null || sucursalId == _sucursalSeleccionadaId)) {
-          CacheService.instance.writeJson('catalogo_cache.json', rawBody);
-          CacheService.instance.precacheImages(_catalogo.map((c) => c.imagenprincipal).toList());
-        }
         _error = null;
       } else {
         if (_catalogo.isEmpty) {

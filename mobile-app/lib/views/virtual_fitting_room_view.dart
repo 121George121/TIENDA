@@ -642,6 +642,7 @@ class _VirtualFittingRoomViewState extends State<VirtualFittingRoomView> with Wi
         prendaUrl = 'https://i.postimg.cc/zvwjvHfH/ai-generated-t-shirt-mockup-clip-art-free-png.png';
       }
       request.fields['prenda_url'] = prendaUrl.trim();
+      request.fields['producto_nombre'] = widget.producto.nombre;
       request.fields['talla'] = _tallaSeleccionada;
       final nombreColor = _coloresDisponibles.firstWhere(
         (c) => c['color'] == _colorSeleccionado,

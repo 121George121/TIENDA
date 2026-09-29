@@ -14,7 +14,6 @@ import '../controllers/payment_controller.dart';
 import '../controllers/recommendation_controller.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
-import '../widgets/cached_garment_image.dart';
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -151,12 +150,27 @@ class _CartViewState extends State<CartView> {
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
-                              CachedGarmentImage(
-                                imageUrl: item.product.imagenUrl,
-                                width: 65,
-                                height: 75,
-                                fit: BoxFit.cover,
+                              ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
+                                child: item.product.imagenUrl != null
+                                    ? Image.network(
+                                        item.product.imagenUrl!,
+                                        width: 65,
+                                        height: 75,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          width: 65,
+                                          height: 75,
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.image_not_supported),
+                                        ),
+                                      )
+                                    : Container(
+                                        width: 65,
+                                        height: 75,
+                                        color: Colors.grey[200],
+                                        child: const Icon(Icons.checkroom),
+                                      ),
                               ),
                               const SizedBox(width: 14),
 

@@ -16,7 +16,6 @@ import '../models/inventory_model.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
 import 'virtual_fitting_room_view.dart';
-import '../widgets/cached_garment_image.dart';
 
 class ProductListView extends StatefulWidget {
   const ProductListView({super.key});
@@ -298,13 +297,28 @@ class _ProductListViewState extends State<ProductListView> {
                                   child: Row(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // Imagen del producto (Caché local persistente en disco)
-                                      CachedGarmentImage(
-                                        imageUrl: prod.imagenprincipal,
-                                        width: 85,
-                                        height: 95,
-                                        fit: BoxFit.cover,
+                                      // Imagen del producto
+                                      ClipRRect(
                                         borderRadius: BorderRadius.circular(10),
+                                        child: (prod.imagenprincipal != null && prod.imagenprincipal!.isNotEmpty)
+                                            ? Image.network(
+                                                prod.imagenprincipal!,
+                                                width: 85,
+                                                height: 95,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => Container(
+                                                  width: 85,
+                                                  height: 95,
+                                                  color: Colors.grey[200],
+                                                  child: const Icon(Icons.checkroom, color: Colors.grey),
+                                                ),
+                                              )
+                                            : Container(
+                                                width: 85,
+                                                height: 95,
+                                                color: Colors.grey[200],
+                                                child: const Icon(Icons.checkroom, color: Colors.grey),
+                                              ),
                                       ),
                                       const SizedBox(width: 14),
 
