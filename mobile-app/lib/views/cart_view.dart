@@ -12,6 +12,8 @@ import '../controllers/auth_controller.dart';
 import '../controllers/reservation_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../controllers/recommendation_controller.dart';
+import '../controllers/notification_controller.dart';
+import '../widgets/simulated_qr_widget.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
 
@@ -470,6 +472,12 @@ class _CartViewState extends State<CartView> {
                               return;
                             }
 
+                            // Extraer datos de la compra antes de procesar
+                            final nombresPrendas = cartCtrl.items.values.map((it) => it.product.nombre).toList();
+                            final double totalCompra = cartCtrl.totalMonto;
+                            final String resumenPrendas = nombresPrendas.take(2).join(', ') +
+                                (nombresPrendas.length > 2 ? ' y ${nombresPrendas.length - 2} prendas más' : '');
+
                             showDialog(
                               context: context,
                               barrierDismissible: false,
@@ -487,6 +495,7 @@ class _CartViewState extends State<CartView> {
 
                             if (order != null && order['id'] != null) {
                               final ventaId = order['id'] as int;
+                              final codigoVenta = order['codigoventa'] ?? 'ORD-$ventaId';
                               final pagoInfo = await payCtrl.iniciarPago(
                                 ventaId: ventaId,
                                 metodoId: _metodoPagoSeleccionado,
@@ -496,11 +505,11 @@ class _CartViewState extends State<CartView> {
                               if (!context.mounted) return;
 
                               if (_metodoPagoSeleccionado == 5) {
-                                _mostrarDialogoPayPal(context, ventaId, pagoInfo, payCtrl);
+                                _mostrarDialogoPayPal(context, ventaId, codigoVenta, resumenPrendas, totalCompra, pagoInfo, payCtrl);
                               } else if (_metodoPagoSeleccionado == 2) {
-                                _mostrarDialogoTarjeta(context, ventaId, pagoInfo, payCtrl);
+                                _mostrarDialogoTarjeta(context, ventaId, codigoVenta, resumenPrendas, totalCompra, pagoInfo, payCtrl);
                               } else {
-                                _mostrarDialogoQR(context, ventaId, pagoInfo, payCtrl);
+                                _mostrarDialogoQR(context, ventaId, codigoVenta, resumenPrendas, totalCompra, pagoInfo, payCtrl);
                               }
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -651,9 +660,17 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  void _mostrarDialogoPayPal(BuildContext context, int ventaId, Map<String, dynamic>? pagoInfo, PaymentController payCtrl) {
-    final paypalUrl = pagoInfo?['paypal_url'] ?? 'https://www.sandbox.paypal.com/checkoutnow';
-    final montoUsd = pagoInfo?['monto_usd'] ?? '0.00';
+  void _mostrarDialogoPayPal(
+    BuildContext context,
+    int ventaId,
+    String codigoVenta,
+    String resumenPrendas,
+    double totalCompra,
+    Map<String, dynamic>? pagoInfo,
+    PaymentController payCtrl,
+  ) {
+    final paypalUrl = pagoInfo?['paypal_url'] ?? pagoInfo?['url_redireccion'] ?? 'https://www.sandbox.paypal.com/checkoutnow';
+    final montoUsd = pagoInfo?['monto_usd'] ?? (totalCompra / 6.96).toStringAsFixed(2);
 
     showDialog(
       context: context,
@@ -662,7 +679,7 @@ class _CartViewState extends State<CartView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.payment, color: Color(0xFF003087)),
+            Icon(Icons.payment, color: Color(0xFF003087), size: 24),
             SizedBox(width: 10),
             Text('PayPal Checkout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
@@ -672,18 +689,42 @@ class _CartViewState extends State<CartView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Serás redirigido a la pasarela segura de PayPal para iniciar sesión o pagar con tu tarjeta de débito/crédito.',
+              'Serás redirigido a la pasarela segura de PayPal para completar tu pago con cuenta PayPal o tarjeta de débito/crédito internacional.',
               style: TextStyle(fontSize: 13, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(8)),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Column(
                 children: [
-                  const Text('Total a pagar (USD):', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                  Text('\$$montoUsd USD', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF003087))),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Orden:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      Text(codigoVenta, style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Color(0xFF003087))),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Monto en Bs:', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                      Text('Bs. ${totalCompra.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const Divider(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total a pagar (USD):', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF003087))),
+                      Text('\$$montoUsd USD', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF003087))),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -701,10 +742,24 @@ class _CartViewState extends State<CartView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF003087),
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             icon: const Icon(Icons.open_in_new, size: 16),
             label: const Text('Ir a Pagar en PayPal'),
             onPressed: () async {
+              // Disparar notificación oficial de compra realizada
+              try {
+                final notifCtrl = Provider.of<NotificationController>(context, listen: false);
+                final authCtrl = Provider.of<AuthController>(context, listen: false);
+                notifCtrl.agregarNotificacion(
+                  titulo: '🛍️ ¡Compra Realizada! #$codigoVenta',
+                  mensaje: 'Has comprado exitosamente: $resumenPrendas. Total: Bs. ${totalCompra.toStringAsFixed(2)} (\$$montoUsd USD). Abriendo pasarela PayPal.',
+                  tipo: 'COMPRA_EXITOSA',
+                  enlace: '/mis-pedidos',
+                );
+                notifCtrl.fetchNotificaciones(authCtrl.currentUser?.token);
+              } catch (_) {}
+
               await payCtrl.abrirPayPal(paypalUrl);
             },
           ),
@@ -713,9 +768,18 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  void _mostrarDialogoQR(BuildContext context, int ventaId, Map<String, dynamic>? pagoInfo, PaymentController payCtrl) {
-    final qrBase64 = pagoInfo?['qr_base64'] as String?;
+  void _mostrarDialogoQR(
+    BuildContext context,
+    int ventaId,
+    String codigoVenta,
+    String resumenPrendas,
+    double totalCompra,
+    Map<String, dynamic>? pagoInfo,
+    PaymentController payCtrl,
+  ) {
+    final qrBase64 = (pagoInfo?['qr_base64'] ?? pagoInfo?['qr_image']) as String?;
     final expiracion = pagoInfo?['tiempo_expiracion_minutos'] ?? 15;
+    final datosQr = 'BCP_SIMPLE_QR|VENTA:$ventaId|COD:$codigoVenta|MONTO:${totalCompra.toStringAsFixed(2)}|BANCO:BCP|CTA:1000004928371|TITULAR:BOUTIQUE_FASHIONSTORE';
 
     showDialog(
       context: context,
@@ -724,71 +788,148 @@ class _CartViewState extends State<CartView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.qr_code_2, color: Color(0xFF6D28D9)),
+            Icon(Icons.qr_code_2, color: Color(0xFF6D28D9), size: 24),
             SizedBox(width: 8),
             Text('Pago Simple por QR', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Escanea este código desde la app de tu banco (BCP, BNB, etc.) para completar el pago.',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            if (qrBase64 != null && qrBase64.contains(','))
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  base64Decode(qrBase64.split(',').last),
-                  width: 180,
-                  height: 180,
-                  fit: BoxFit.contain,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Escanea este código desde la app móvil de cualquier banco (BCP, BNB, Banco Sol, etc.) para pagar al instante.',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+
+              // Renderizado de código QR (Imagen base64 o Pintor simulado de alta fidelidad)
+              if (qrBase64 != null && qrBase64.contains(','))
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    base64Decode(qrBase64.split(',').last),
+                    width: 180,
+                    height: 180,
+                    fit: BoxFit.contain,
+                  ),
+                )
+              else
+                SimulatedQrWidget(
+                  data: datosQr,
+                  size: 180,
+                  foregroundColor: const Color(0xFF4C1D95),
+                  centerIcon: const Icon(Icons.qr_code_2, color: Color(0xFF6D28D9), size: 24),
                 ),
-              )
-            else
+
+              const SizedBox(height: 10),
               Container(
-                width: 180,
-                height: 180,
-                color: Colors.grey[200],
-                child: const Icon(Icons.qr_code, size: 80, color: Colors.grey),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F3FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDDD6FE)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total a pagar:', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                        Text('Bs. ${totalCompra.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFF6D28D9))),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Banco destino:', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                        Text('BCP - 1000004928371', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Titular:', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                        Text('FashionStore S.R.L.', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber.shade300)),
-              child: Text(
-                '⏱️ Válido por $expiracion minutos',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Text(
+                  '⏱️ Válido por $expiracion minutos',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           OutlinedButton.icon(
             icon: const Icon(Icons.receipt, size: 16),
-            label: const Text('Ver Recibo Fiscal'),
+            label: const Text('Ver Recibo'),
             onPressed: () async {
               final url = payCtrl.getComprobanteHtmlUrl(ventaId);
               await payCtrl.abrirPayPal(url);
             },
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6D28D9), foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6D28D9),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () {
+              // Disparar notificación oficial de compra realizada por QR
+              try {
+                final notifCtrl = Provider.of<NotificationController>(context, listen: false);
+                final authCtrl = Provider.of<AuthController>(context, listen: false);
+                notifCtrl.agregarNotificacion(
+                  titulo: '🛍️ ¡Compra Realizada! #$codigoVenta',
+                  mensaje: 'Has comprado exitosamente: $resumenPrendas. Transferencia QR de Bs. ${totalCompra.toStringAsFixed(2)} confirmada y en preparación.',
+                  tipo: 'COMPRA_EXITOSA',
+                  enlace: '/mis-pedidos',
+                );
+                notifCtrl.fetchNotificaciones(authCtrl.currentUser?.token);
+              } catch (_) {}
+
               Navigator.pop(ctx);
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const OrdersHistoryView()));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('¡Pago QR verificado y aprobado! Tu pedido ya está registrado.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             },
-            child: const Text('¡Ya transferí! Continuar'),
+            child: const Text('¡Ya transferí! Confirmar'),
           ),
         ],
       ),
     );
   }
 
-  void _mostrarDialogoTarjeta(BuildContext context, int ventaId, Map<String, dynamic>? pagoInfo, PaymentController payCtrl) {
+  void _mostrarDialogoTarjeta(
+    BuildContext context,
+    int ventaId,
+    String codigoVenta,
+    String resumenPrendas,
+    double totalCompra,
+    Map<String, dynamic>? pagoInfo,
+    PaymentController payCtrl,
+  ) {
     final numeroTarjetaCtrl = TextEditingController(text: '4532 8920 1144 7820');
     final titularCtrl = TextEditingController(text: 'CONSUMIDOR FINAL');
     final venceCtrl = TextEditingController(text: '12/28');
@@ -835,19 +976,19 @@ class _CartViewState extends State<CartView> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        const Text(
-                          '•••• •••• •••• 7820',
-                          style: TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 2, fontFamily: 'monospace'),
+                        Text(
+                          numeroTarjetaCtrl.text.isNotEmpty ? numeroTarjetaCtrl.text : '•••• •••• •••• 7820',
+                          style: const TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 2, fontFamily: 'monospace'),
                         ),
                         const SizedBox(height: 12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              titularCtrl.text.toUpperCase(),
+                              titularCtrl.text.isNotEmpty ? titularCtrl.text.toUpperCase() : 'CONSUMIDOR FINAL',
                               style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                             ),
-                            const Text('VENCE 12/28', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                            Text('VENCE ${venceCtrl.text}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
                           ],
                         ),
                       ],
@@ -856,6 +997,7 @@ class _CartViewState extends State<CartView> {
                   const SizedBox(height: 14),
                   TextField(
                     controller: numeroTarjetaCtrl,
+                    onChanged: (_) => setModalState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Número de Tarjeta',
                       prefixIcon: const Icon(Icons.credit_card),
@@ -866,6 +1008,7 @@ class _CartViewState extends State<CartView> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: titularCtrl,
+                    onChanged: (_) => setModalState(() {}),
                     decoration: InputDecoration(
                       labelText: 'Nombre del Titular',
                       prefixIcon: const Icon(Icons.person_outline),
@@ -879,6 +1022,7 @@ class _CartViewState extends State<CartView> {
                       Expanded(
                         child: TextField(
                           controller: venceCtrl,
+                          onChanged: (_) => setModalState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Vence (MM/AA)',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -900,6 +1044,21 @@ class _CartViewState extends State<CartView> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Monto total a cobrar:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text('Bs. ${totalCompra.toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A))),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -912,18 +1071,61 @@ class _CartViewState extends State<CartView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 icon: const Icon(Icons.lock, size: 16),
-                label: const Text('Confirmar Pago'),
-                onPressed: () {
-                  Navigator.pop(ctx);
+                label: Text('Pagar Bs. ${totalCompra.toStringAsFixed(2)}'),
+                onPressed: () async {
+                  // Simulación de procesamiento de tarjeta bancaria
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => const Center(
+                      child: Card(
+                        margin: EdgeInsets.all(32),
+                        child: Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+                              SizedBox(height: 16),
+                              Text('Procesando pago con red Visa...', style: TextStyle(fontWeight: FontWeight.bold)),
+                              SizedBox(height: 6),
+                              Text('Verificando fondos y autorizando transacción...', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+
+                  await Future.delayed(const Duration(milliseconds: 1400));
+                  if (!context.mounted) return;
+
+                  Navigator.pop(context); // Cierra spinner de simulación
+                  Navigator.pop(ctx); // Cierra diálogo de tarjeta
+
+                  // Disparar notificación oficial de compra realizada con tarjeta
+                  try {
+                    final notifCtrl = Provider.of<NotificationController>(context, listen: false);
+                    final authCtrl = Provider.of<AuthController>(context, listen: false);
+                    notifCtrl.agregarNotificacion(
+                      titulo: '🛍️ ¡Compra Realizada! #$codigoVenta',
+                      mensaje: 'Has comprado exitosamente: $resumenPrendas. Pago de Bs. ${totalCompra.toStringAsFixed(2)} aprobado con tarjeta Visa terminada en 7820.',
+                      tipo: 'COMPRA_EXITOSA',
+                      enlace: '/mis-pedidos',
+                    );
+                    notifCtrl.fetchNotificaciones(authCtrl.currentUser?.token);
+                  } catch (_) {}
+
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (_) => const OrdersHistoryView()),
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('¡Pago con tarjeta procesado y aprobado exitosamente!'),
+                      content: Text('¡Pago con tarjeta Visa aprobado y verificado exitosamente!'),
                       backgroundColor: Colors.green,
                     ),
                   );

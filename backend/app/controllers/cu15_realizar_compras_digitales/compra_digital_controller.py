@@ -25,6 +25,7 @@ from app.models.cu5_gestionar_productos.producto_model import (
 from app.models.cu4_gestionar_sucursales.sucursal_model import SucursalModel
 from app.models.cu3_gestionar_clientes.cliente_model import ClienteModel
 from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
+from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
 from app.schemas.orden_schema import OrdenCreate
 
 
@@ -232,6 +233,32 @@ class CompraDigitalController:
                 metodoid=metodo_digital.id
             )
             db.add(pago)
+
+        # 7. Registrar Notificación Oficial de Compra (CU19)
+        try:
+            nombres = []
+            for it in items_a_insertar:
+                v = it.get("variante")
+                if v and v.producto and v.producto.nombre:
+                    nombres.append(v.producto.nombre)
+            resumen_prod = ", ".join(nombres[:2])
+            if len(nombres) > 2:
+                resumen_prod += f" y {len(nombres) - 2} prendas más"
+            elif not resumen_prod:
+                resumen_prod = "Prendas de Catálogo"
+
+            notif_compra = NotificacionModel(
+                usuario_id=current_user.id,
+                titulo=f"🛍️ ¡Compra Realizada! #{nueva_venta.codigoventa}",
+                mensaje=f"Has comprado exitosamente: {resumen_prod}. Monto: Bs. {float(total_acumulado):.2f}. Tu pedido ya está confirmado y en preparación.",
+                tipo="COMPRA_EXITOSA",
+                enlace="/mis-pedidos",
+                leido=False,
+                fecha_creacion=ahora
+            )
+            db.add(notif_compra)
+        except Exception as err_notif:
+            print(f"[Notificaciones CU19] Error creando alerta: {err_notif}")
 
         db.commit()
         db.refresh(nueva_venta)

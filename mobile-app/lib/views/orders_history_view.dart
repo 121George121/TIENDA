@@ -9,6 +9,7 @@ import '../controllers/order_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../models/order_model.dart';
+import '../widgets/simulated_qr_widget.dart';
 
 class OrdersHistoryView extends StatefulWidget {
   const OrdersHistoryView({super.key});
@@ -357,10 +358,8 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
                                       ),
                                       icon: const Icon(Icons.receipt_long, size: 16),
                                       label: const Text('Ver Recibo Oficial (PDF / QR)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                                      onPressed: () async {
-                                        final payCtrl = Provider.of<PaymentController>(context, listen: false);
-                                        final url = payCtrl.getComprobanteHtmlUrl(orden.id);
-                                        await payCtrl.abrirPayPal(url);
+                                      onPressed: () {
+                                        _mostrarReciboDigitalModal(context, orden, fechaStr);
                                       },
                                     ),
                                   ),
@@ -373,4 +372,380 @@ class _OrdersHistoryViewState extends State<OrdersHistoryView> {
       ),
     );
   }
+
+  void _mostrarReciboDigitalModal(BuildContext context, OrderModel orden, String fechaStr) {
+    final subtotalSinIva = orden.total / 1.13;
+    final iva13 = orden.total - subtotalSinIva;
+    final codigoAut = 'AUT-${orden.id * 8372}-${orden.fecha?.millisecondsSinceEpoch ?? 2026}';
+    final datosQrFiscal = 'FASHIONSTORE|NIT:1029384756|RECIBO:${orden.codigoVenta}|TOTAL:${orden.total.toStringAsFixed(2)}|FECHA:$fechaStr|ESTADO:PAGADO';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.88,
+        minChildSize: 0.5,
+        maxChildSize: 0.96,
+        builder: (_, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.indigo.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.receipt_long, color: Colors.indigo.shade700, size: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Recibo Digital Oficial',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                      color: Colors.grey.shade700,
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFAFAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(8),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'BOUTIQUE FASHIONSTORE S.R.L.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              color: Color(0xFF0F172A),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'NIT: 1029384756 | Santa Cruz, Bolivia',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          ),
+                          Text(
+                            'Av. San Martín #450 • Tel: +591 70000000',
+                            style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.green.shade300),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.check_circle, size: 14, color: Colors.green.shade700),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'PAGO VERIFICADO Y REGISTRADO',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const _DashedLine(),
+                          const SizedBox(height: 14),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Nº DE RECIBO:', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    orden.codigoVenta,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, fontFamily: 'monospace', color: Colors.indigo),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('FECHA Y HORA:', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    fechaStr,
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('MODALIDAD:', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    'Compra Digital (${orden.tipoVenta})',
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('AUTORIZACIÓN:', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                                  Text(
+                                    codigoAut.substring(0, codigoAut.length > 14 ? 14 : codigoAut.length),
+                                    style: TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          const _DashedLine(),
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'DETALLE DE PRENDAS COMPRADAS',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5, color: Colors.grey.shade700),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (orden.items.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                'Prendas registradas en la transacción #${orden.id}',
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                              ),
+                            )
+                          else
+                            ...orden.items.map((it) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          it.productoNombre,
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                                        ),
+                                        Text(
+                                          'Talla: ${it.talla ?? 'M'}  |  Color: ${it.color ?? 'Estándar'}  |  Cant: ${it.cantidad}',
+                                          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    'Bs. ${it.subtotal.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          const SizedBox(height: 14),
+                          const _DashedLine(),
+                          const SizedBox(height: 14),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Subtotal Base:', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                              Text('Bs. ${subtotalSinIva.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('IVA Débito Fiscal (13% Ley):', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                              Text('Bs. ${iva13.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'TOTAL PAGADO:',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.indigo),
+                                ),
+                                Text(
+                                  'Bs. ${orden.total.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.indigo.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          const _DashedLine(),
+                          const SizedBox(height: 16),
+                          SimulatedQrWidget(
+                            data: datosQrFiscal,
+                            size: 150,
+                            foregroundColor: const Color(0xFF0F172A),
+                            centerIcon: Icon(Icons.verified, color: Colors.blue.shade700, size: 22),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'CÓDIGO DE CONTROL FISCAL DIGITAL',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            codigoAut,
+                            style: TextStyle(fontSize: 10, fontFamily: 'monospace', color: Colors.grey.shade500),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Este comprobante digital acredita la compra legal y entrega en FashionStore.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F172A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.open_in_browser, size: 18),
+                        label: const Text('Abrir Versión Web Imprimible', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          final payCtrl = Provider.of<PaymentController>(context, listen: false);
+                          final url = payCtrl.getComprobanteHtmlUrl(orden.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Abriendo comprobante oficial en el navegador...'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          await payCtrl.abrirPayPal(url);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text('Cerrar Recibo', style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
+
+class _DashedLine extends StatelessWidget {
+  const _DashedLine();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boxWidth = constraints.constrainWidth();
+        const dashWidth = 5.0;
+        const dashHeight = 1.0;
+        final dashCount = (boxWidth / (2 * dashWidth)).floor();
+        return Flex(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          direction: Axis.horizontal,
+          children: List.generate(dashCount, (_) {
+            return SizedBox(
+              width: dashWidth,
+              height: dashHeight,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Colors.grey.shade300),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+

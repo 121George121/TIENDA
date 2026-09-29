@@ -137,4 +137,24 @@ class NotificationController extends ChangeNotifier {
       debugPrint('Error marcar todas: $e');
     }
   }
+
+  /// Añade una notificación inmediata en el móvil (Zero Latency)
+  void agregarNotificacion({
+    required String titulo,
+    required String mensaje,
+    String tipo = 'COMPRA_EXITOSA',
+    String? enlace = '/mis-pedidos',
+  }) {
+    final nueva = NotificacionItem(
+      id: DateTime.now().millisecondsSinceEpoch,
+      titulo: titulo,
+      mensaje: mensaje,
+      tipo: tipo,
+      leido: false,
+      enlace: enlace,
+      fecha: DateTime.now().toIso8601String(),
+    );
+    _notificaciones.insert(0, nueva);
+    notifyListeners();
+  }
 }

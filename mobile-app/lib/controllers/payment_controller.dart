@@ -115,13 +115,19 @@ class PaymentController extends ChangeNotifier {
     }
   }
 
-  /// Abre la URL oficial de checkout de PayPal en el navegador del dispositivo
+  /// Abre la URL oficial en el navegador del dispositivo con fallback garantizado
   Future<bool> abrirPayPal(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      return await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final uri = Uri.parse(url);
+      try {
+        return await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        return await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      debugPrint('Error abriendo URL ($url): $e');
+      return false;
     }
-    return false;
   }
 
   /// Obtiene los datos oficiales del comprobante con QR fiscal

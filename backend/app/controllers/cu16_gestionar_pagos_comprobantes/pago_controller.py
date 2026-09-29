@@ -23,6 +23,7 @@ from app.models.models import (
     InventarioModel,
     MovimientoInventarioModel,
 )
+from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
 
 
 def generar_qr_base64(texto: str) -> str:
@@ -146,6 +147,7 @@ class PagoController:
                 "metodo": "PayPal",
                 "requiere_redireccion": True,
                 "url_redireccion": url_paypal_checkout,
+                "paypal_url": url_paypal_checkout,
                 "token": token_paypal,
                 "monto_total": float(venta.total),
                 "monto_usd": monto_usd,
@@ -184,6 +186,21 @@ class PagoController:
                 db.flush()
                 pago.reciboid = recibo.id
 
+            # Notificación de pago aprobado
+            try:
+                notif = NotificacionModel(
+                    usuario_id=current_user.id,
+                    titulo=f"💳 ¡Pago QR Aprobado! #{venta.codigoventa}",
+                    mensaje=f"Tu transferencia QR de Bs. {float(venta.total):.2f} fue verificada y aprobada exitosamente.",
+                    tipo="PAGO_APROBADO",
+                    enlace="/mis-pedidos",
+                    leido=False,
+                    fecha_creacion=ahora
+                )
+                db.add(notif)
+            except Exception:
+                pass
+
             db.commit()
 
             datos_qr = (
@@ -197,6 +214,7 @@ class PagoController:
                 "metodo": "QR",
                 "requiere_redireccion": False,
                 "qr_image": qr_base64,
+                "qr_base64": qr_base64,
                 "codigo_pago": ref_qr,
                 "monto_total": float(venta.total),
                 "cuenta_bancaria": "1000004928371 (Banco BCP - Moneda Nacional)",
@@ -235,6 +253,21 @@ class PagoController:
                 db.add(recibo)
                 db.flush()
                 pago.reciboid = recibo.id
+
+            # Notificación de pago aprobado
+            try:
+                notif = NotificacionModel(
+                    usuario_id=current_user.id,
+                    titulo=f"💳 ¡Pago con Tarjeta Aprobado! #{venta.codigoventa}",
+                    mensaje=f"Tu pago de Bs. {float(venta.total):.2f} con Tarjeta fue procesado y aprobado exitosamente.",
+                    tipo="PAGO_APROBADO",
+                    enlace="/mis-pedidos",
+                    leido=False,
+                    fecha_creacion=ahora
+                )
+                db.add(notif)
+            except Exception:
+                pass
 
             db.commit()
 
