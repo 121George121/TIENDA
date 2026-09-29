@@ -20,7 +20,8 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[RolResponse], summary="Listar todos los roles")
+@router.get("", response_model=List[RolResponse], summary="Listar todos los roles")
+@router.get("/", response_model=List[RolResponse], include_in_schema=False)
 def listar_roles(
     db: Session = Depends(get_db),
     current_user: UsuarioModel = Depends(get_current_active_user)
@@ -37,7 +38,8 @@ def obtener_rol(
     """Obtener detalle de un rol específico por ID"""
     return RoleController.get_by_id(db=db, rol_id=rol_id)
 
-@router.post("/", response_model=RolResponse, status_code=status.HTTP_201_CREATED, summary="Crear rol")
+@router.post("", response_model=RolResponse, status_code=status.HTTP_201_CREATED, summary="Crear rol")
+@router.post("/", response_model=RolResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def crear_rol(
     rol_data: RolCreate,
     db: Session = Depends(get_db),

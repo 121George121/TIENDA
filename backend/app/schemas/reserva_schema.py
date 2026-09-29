@@ -48,9 +48,16 @@ class ReservaResponse(BaseModel):
         from_attributes = True
 
 
+class ReservaItemCreate(BaseModel):
+    producto_id: Optional[int] = None
+    variante_id: Optional[int] = None
+    cantidad: int = 1
+
+
 class ReservaCreate(BaseModel):
     sucursal_id: Optional[int] = None
     observaciones: Optional[str] = None
+    items: Optional[List[ReservaItemCreate]] = None
 
 
 class CancelarReservaRequest(BaseModel):

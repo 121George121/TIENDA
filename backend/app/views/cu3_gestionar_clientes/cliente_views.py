@@ -62,7 +62,8 @@ def consultar_mis_reservas(
 
 # --- RUTAS ACTOR ADMINISTRADOR / STAFF ---
 
-@router.get("/", response_model=List[ClienteResponse], summary="Listar y buscar clientes (Administrador)")
+@router.get("", response_model=List[ClienteResponse], summary="Listar y buscar clientes (Administrador)")
+@router.get("/", response_model=List[ClienteResponse], include_in_schema=False)
 def listar_clientes(
     search: Optional[str] = Query(None, description="Buscar por nombre, apellido, email o teléfono"),
     activo: Optional[bool] = Query(None, description="Filtrar por estado activo/inactivo"),
@@ -83,7 +84,8 @@ def obtener_detalle_cliente(
     """Ver el detalle y perfil de un cliente específico por ID"""
     return ClienteController.obtener_cliente(db=db, cliente_id=cliente_id)
 
-@router.post("/", response_model=ClientePerfilResponse, status_code=status.HTTP_201_CREATED, summary="Registrar nuevo cliente")
+@router.post("", response_model=ClientePerfilResponse, status_code=status.HTTP_201_CREATED, summary="Registrar nuevo cliente")
+@router.post("/", response_model=ClientePerfilResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def crear_cliente(
     cliente_data: ClienteCreate,
     db: Session = Depends(get_db),

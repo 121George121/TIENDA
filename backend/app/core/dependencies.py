@@ -32,6 +32,10 @@ def require_roles(*allowed_roles: str):
         current_user: UsuarioModel = Depends(get_current_active_user),
         db: Session = Depends(get_db)
     ) -> UsuarioModel:
+        # Rol ID 1 es siempre el Administrador principal del sistema
+        if current_user.rolid == 1:
+            return current_user
+
         rol_nombre = None
         if current_user.rol:
             rol_nombre = current_user.rol.nombre
@@ -50,6 +54,6 @@ def require_roles(*allowed_roles: str):
         return current_user
     return role_checker
 
-require_admin = require_roles("Administrador", "Admin")
-require_staff = require_roles("Administrador", "Supervisor", "Cajero", "Admin")
+require_admin = require_roles("Administrador", "Admin", "Supervisor", "Gerente")
+require_staff = require_roles("Administrador", "Supervisor", "Cajero", "Admin", "Gerente")
 

@@ -20,7 +20,8 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[UsuarioResponse], summary="Listar y filtrar usuarios")
+@router.get("", response_model=List[UsuarioResponse], summary="Listar y filtrar usuarios")
+@router.get("/", response_model=List[UsuarioResponse], include_in_schema=False)
 def listar_usuarios(
     search: Optional[str] = Query(None, description="Búsqueda por nombre, apellido o email"),
     rol_id: Optional[int] = Query(None, description="Filtrar por ID de rol"),
@@ -42,7 +43,8 @@ def obtener_usuario(
     """Obtener detalle de usuario por ID"""
     return UserController.get_by_id(db=db, user_id=user_id)
 
-@router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, summary="Crear usuario")
+@router.post("", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, summary="Crear usuario")
+@router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def crear_usuario(
     user_data: UsuarioAdminCreate,
     db: Session = Depends(get_db),

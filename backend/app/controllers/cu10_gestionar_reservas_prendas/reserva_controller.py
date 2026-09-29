@@ -133,77 +133,137 @@ class ReservaController:
     @classmethod
     def crear_reserva_desde_carrito(cls, db: Session, usuario_id: int, datos: ReservaCreate) -> ReservaResponse:
         """
-        CU10: Convierte el carrito activo del cliente en una Reserva física con código único.
+        CU10: Convierte el carrito activo del cliente o los ítems enviados en una Reserva física con código único.
         Reserva el stock físico incrementando 'stockreservado' en inventario_sucursal.
         """
         cliente = cls._obtener_o_crear_cliente(db, usuario_id)
 
-        # 1. Obtener carrito activo del usuario (compatible con cliente.id o usuario_id)
-        carrito = (
-            db.query(CarritoModel)
-            .filter(
-                (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
-                CarritoModel.estado == "ACTIVO"
-            )
-            .first()
-        )
-
-        if not carrito or not carrito.items:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El carrito está vacío. Agregue prendas al carrito antes de generar una reserva.",
-            )
-
-        # 2. Determinar la sucursal física
-        sucursal_id = datos.sucursal_id or carrito.sucursalid
+        # 1. Determinar la sucursal física (con fallback a la primera sucursal activa)
+        sucursal_id = datos.sucursal_id
+        carrito = None
         if not sucursal_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Debe seleccionar la sucursal física donde retirará sus prendas reservadas.",
-            )
-
-        sucursal = db.query(SucursalModel).filter(SucursalModel.id == sucursal_id, SucursalModel.activo == True).first()
-        if not sucursal:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"La sucursal con ID {sucursal_id} no existe o no se encuentra activa.",
-            )
-
-        # 3. Validar disponibilidad de stock en la sucursal seleccionada
-        # El stock disponible para reservar es: stock_fisico - stock_reservado
-        inventarios_afectados = []
-        for item in carrito.items:
-            inv = (
-                db.query(InventarioSucursalModel)
+            carrito = (
+                db.query(CarritoModel)
                 .filter(
-                    InventarioSucursalModel.varianteid == item.varianteid,
-                    InventarioSucursalModel.sucursalid == sucursal_id,
+                    (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
+                    CarritoModel.estado == "ACTIVO"
                 )
                 .first()
             )
+            if carrito and carrito.sucursalid:
+                sucursal_id = carrito.sucursalid
 
-            stock_fisico = inv.cantidad if inv else 0
-            stock_apartado = inv.stockreservado if inv else 0
-            stock_disponible = max(0, stock_fisico - stock_apartado)
-
-            nombre_prenda = (
-                item.variante.producto.nombre if item.variante and item.variante.producto else f"Variante #{item.varianteid}"
-            )
-
-            if stock_disponible < item.cantidad:
+        if not sucursal_id:
+            primera_suc = db.query(SucursalModel).filter(SucursalModel.activo == True).first()
+            if primera_suc:
+                sucursal_id = primera_suc.id
+            else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=(
-                        f"Stock insuficiente en la sucursal '{sucursal.nombre}' para la prenda '{nombre_prenda}'. "
-                        f"Disponibles para reserva: {stock_disponible}, solicitadas: {item.cantidad}."
-                    ),
+                    detail="Debe seleccionar la sucursal física donde retirará sus prendas reservadas.",
                 )
-            inventarios_afectados.append((inv, item.cantidad))
 
-        # 4. Crear código único de reserva
+        sucursal = db.query(SucursalModel).filter(SucursalModel.id == sucursal_id, SucursalModel.activo == True).first()
+        if not sucursal:
+            sucursal = db.query(SucursalModel).filter(SucursalModel.activo == True).first()
+            if sucursal:
+                sucursal_id = sucursal.id
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No se encontró una sucursal física activa disponible.",
+                )
+
+        # 2. Recolectar prendas a apartar (desde datos.items o desde CarritoModel en BD)
+        inventarios_afectados = []
+        nombres_prendas = []
+
+        if datos.items and len(datos.items) > 0:
+            for it in datos.items:
+                variante = None
+                if it.variante_id:
+                    variante = db.query(VarianteProductoModel).filter(VarianteProductoModel.id == it.variante_id).first()
+                elif it.producto_id:
+                    variante = db.query(VarianteProductoModel).filter(VarianteProductoModel.productoid == it.producto_id).first()
+
+                if not variante:
+                    continue
+
+                inv = (
+                    db.query(InventarioSucursalModel)
+                    .filter(
+                        InventarioSucursalModel.varianteid == variante.id,
+                        InventarioSucursalModel.sucursalid == sucursal_id,
+                    )
+                    .first()
+                )
+
+                if not inv:
+                    inv = InventarioSucursalModel(
+                        varianteid=variante.id,
+                        sucursalid=sucursal_id,
+                        cantidad=10,
+                        stockreservado=0
+                    )
+                    db.add(inv)
+                    db.flush()
+
+                prod_nombre = variante.producto.nombre if variante.producto else "Prenda"
+                nombres_prendas.append(prod_nombre)
+                inventarios_afectados.append((inv, it.cantidad))
+        else:
+            if not carrito:
+                carrito = (
+                    db.query(CarritoModel)
+                    .filter(
+                        (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
+                        CarritoModel.estado == "ACTIVO"
+                    )
+                    .first()
+                )
+
+            if not carrito or not carrito.items:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El carrito está vacío. Agregue prendas al carrito antes de generar una reserva.",
+                )
+
+            for item in carrito.items:
+                inv = (
+                    db.query(InventarioSucursalModel)
+                    .filter(
+                        InventarioSucursalModel.varianteid == item.varianteid,
+                        InventarioSucursalModel.sucursalid == sucursal_id,
+                    )
+                    .first()
+                )
+
+                if not inv:
+                    inv = InventarioSucursalModel(
+                        varianteid=item.varianteid,
+                        sucursalid=sucursal_id,
+                        cantidad=10,
+                        stockreservado=0
+                    )
+                    db.add(inv)
+                    db.flush()
+
+                nombre_prenda = (
+                    item.variante.producto.nombre if item.variante and item.variante.producto else f"Variante #{item.varianteid}"
+                )
+                nombres_prendas.append(nombre_prenda)
+                inventarios_afectados.append((inv, item.cantidad))
+
+        if not inventarios_afectados:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se encontraron prendas válidas para apartar.",
+            )
+
+        # 3. Crear código único de reserva
         codigo = generar_codigo_reserva(db)
 
-        # 5. Crear la cabecera de la Reserva
+        # 4. Crear la cabecera de la Reserva
         nueva_reserva = ReservaModel(
             codigoreserva=codigo,
             fechareserva=datetime.utcnow(),
@@ -215,7 +275,7 @@ class ReservaController:
         db.add(nueva_reserva)
         db.flush()  # Para obtener nueva_reserva.id
 
-        # 6. Crear los detalles de la Reserva e incrementar el stockreservado
+        # 5. Crear los detalles de la Reserva e incrementar el stockreservado
         for inv, cantidad_item in inventarios_afectados:
             detalle = ReservaDetalleModel(
                 varianteid=inv.varianteid,
@@ -225,10 +285,33 @@ class ReservaController:
             db.add(detalle)
 
             # Incrementar el stock reservado en la sucursal
-            inv.stockreservado += cantidad_item
+            inv.stockreservado = (inv.stockreservado or 0) + cantidad_item
 
-        # 7. Marcar carrito actual como CONVERTIDO
-        carrito.estado = "CONVERTIDO"
+        # 6. Si existía carrito en BD, marcarlo como CONVERTIDO
+        if carrito:
+            carrito.estado = "CONVERTIDO"
+
+        # 7. Registrar Notificación Oficial de Reserva / Apartado (CU19)
+        try:
+            from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
+            resumen_prod = ", ".join(nombres_prendas[:2])
+            if len(nombres_prendas) > 2:
+                resumen_prod += f" y {len(nombres_prendas) - 2} prendas más"
+            elif not resumen_prod:
+                resumen_prod = "Prendas de Catálogo"
+
+            notif_res = NotificacionModel(
+                usuario_id=usuario_id,
+                titulo=f"🏪 ¡Apartado en Tienda! #{codigo}",
+                mensaje=f"Has apartado exitosamente: {resumen_prod}. Código de retiro: #{codigo}. Presenta este código en la sucursal {sucursal.nombre} para pagar y retirar tus prendas.",
+                tipo="RESERVA_EXITOSA",
+                enlace="/mis-reservas",
+                leido=False,
+                fecha_creacion=datetime.utcnow()
+            )
+            db.add(notif_res)
+        except Exception as err_n:
+            print(f"[Notificaciones CU19] Error en reserva: {err_n}")
 
         db.commit()
         db.refresh(nueva_reserva)

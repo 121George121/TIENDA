@@ -22,7 +22,12 @@ class ReservationController extends ChangeNotifier {
   String? get error => _error;
 
   /// CU10: Convierte el carrito activo en una reserva física
-  Future<ReservaModel?> crearReserva({int? sucursalId, String? observaciones, String? token}) async {
+  Future<ReservaModel?> crearReserva({
+    int? sucursalId,
+    String? observaciones,
+    String? token,
+    List<Map<String, dynamic>>? items,
+  }) async {
     _cargando = true;
     _error = null;
     notifyListeners();
@@ -39,6 +44,7 @@ class ReservationController extends ChangeNotifier {
         body: json.encode({
           if (sucursalId != null) 'sucursal_id': sucursalId,
           if (observaciones != null) 'observaciones': observaciones,
+          if (items != null && items.isNotEmpty) 'items': items,
         }),
       );
 
@@ -62,8 +68,18 @@ class ReservationController extends ChangeNotifier {
   }
 
   /// Alias de conveniencia para invocar desde la vista del carrito
-  Future<ReservaModel?> crearReservaDesdeCarrito({int? sucursalId, String? observaciones, String? token}) async {
-    return crearReserva(sucursalId: sucursalId, observaciones: observaciones, token: token);
+  Future<ReservaModel?> crearReservaDesdeCarrito({
+    int? sucursalId,
+    String? observaciones,
+    String? token,
+    List<Map<String, dynamic>>? items,
+  }) async {
+    return crearReserva(
+      sucursalId: sucursalId,
+      observaciones: observaciones,
+      token: token,
+      items: items,
+    );
   }
 
   /// CU10: Consulta el listado de reservas del usuario

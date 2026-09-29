@@ -538,6 +538,26 @@ class _CartViewState extends State<CartView> {
                           icon: const Icon(Icons.storefront),
                           label: const Text('Apartar y Pagar en Tienda (CU10)', style: TextStyle(fontWeight: FontWeight.bold)),
                           onPressed: () async {
+                            if (!authCtrl.isAuthenticated) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Inicia sesión para apartar tus prendas en tienda.'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              Navigator.pushNamed(context, '/login');
+                              return;
+                            }
+
+                            // Extraer prendas para el apartado
+                            final itemsPayload = cartCtrl.items.values.map((it) => {
+                              'producto_id': it.product.id,
+                              'cantidad': it.cantidad,
+                            }).toList();
+                            final nombresPrendas = cartCtrl.items.values.map((it) => it.product.nombre).toList();
+                            final String resumenPrendas = nombresPrendas.take(2).join(', ') +
+                                (nombresPrendas.length > 2 ? ' y ${nombresPrendas.length - 2} prendas más' : '');
+
                             showDialog(
                               context: context,
                               barrierDismissible: false,
@@ -546,6 +566,7 @@ class _CartViewState extends State<CartView> {
 
                             final nuevaReserva = await resCtrl.crearReservaDesdeCarrito(
                               sucursalId: cartCtrl.sucursalId,
+                              items: itemsPayload,
                               token: authCtrl.currentUser?.token,
                             );
 
@@ -553,16 +574,28 @@ class _CartViewState extends State<CartView> {
                             Navigator.pop(context); // Cerrar loading
 
                             if (nuevaReserva != null) {
+                              // Notificación inmediata en móvil
+                              try {
+                                final notifCtrl = Provider.of<NotificationController>(context, listen: false);
+                                notifCtrl.agregarNotificacion(
+                                  titulo: '🏪 ¡Apartado en Tienda! #${nuevaReserva.codigoReserva}',
+                                  mensaje: 'Has apartado exitosamente: $resumenPrendas. Código de retiro: #${nuevaReserva.codigoReserva}. Presenta este código en caja para abonar y retirar tus prendas.',
+                                  tipo: 'RESERVA_EXITOSA',
+                                  enlace: '/mis-reservas',
+                                );
+                                notifCtrl.fetchNotificaciones(authCtrl.currentUser?.token);
+                              } catch (_) {}
+
                               cartCtrl.limpiarCarrito();
                               showDialog(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  backgroundColor: const Color(0xFF1E293B),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                   title: const Row(
                                     children: [
-                                      Icon(Icons.check_circle, color: Colors.greenAccent),
+                                      Icon(Icons.check_circle, color: Colors.green),
                                       SizedBox(width: 8),
-                                      Text('¡Reserva Exitosa!', style: TextStyle(color: Colors.white)),
+                                      Text('¡Apartado Exitoso!', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                                     ],
                                   ),
                                   content: Column(
@@ -571,28 +604,43 @@ class _CartViewState extends State<CartView> {
                                     children: [
                                       const Text(
                                         'Código de Retiro en Tienda:',
-                                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                                        style: TextStyle(color: Colors.black54, fontSize: 12),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        nuevaReserva.codigoReserva,
-                                        style: const TextStyle(
-                                          color: Color(0xFF38BDF8),
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'monospace',
+                                      const SizedBox(height: 6),
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEFF6FF),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                                        ),
+                                        child: Text(
+                                          nuevaReserva.codigoReserva,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Color(0xFF1E3A8A),
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 2,
+                                            fontFamily: 'monospace',
+                                          ),
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 12),
                                       const Text(
-                                        'Presenta este código en sucursal para abonar y retirar tus prendas.',
-                                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                                        'Tus prendas han quedado reservadas en inventario. Presenta este código en caja al visitar la sucursal para cancelar y retirar.',
+                                        style: TextStyle(color: Colors.black87, fontSize: 13),
                                       ),
                                     ],
                                   ),
                                   actions: [
                                     ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0F172A),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
                                       onPressed: () {
                                         Navigator.pop(ctx);
                                         Navigator.push(
@@ -600,7 +648,7 @@ class _CartViewState extends State<CartView> {
                                           MaterialPageRoute(builder: (_) => const MyReservationsView()),
                                         );
                                       },
-                                      child: const Text('Ver Mis Reservas', style: TextStyle(color: Colors.black)),
+                                      child: const Text('Ver Mis Reservas'),
                                     ),
                                   ],
                                 ),
