@@ -24,11 +24,13 @@ class Settings(BaseSettings):
         # Priorizar DATABASE_URL inyectada por Supabase o Railway
         direct_url = os.getenv("DATABASE_URL") or self.DATABASE_URL_ENV
         if direct_url:
-            # Normalizar prefijo postgres:// a postgresql:// para compatibilidad con SQLAlchemy
+            # Forzar driver psycopg2 explícito para máxima compatibilidad con SQLAlchemy 2.0 en Railway
             if direct_url.startswith("postgres://"):
-                direct_url = direct_url.replace("postgres://", "postgresql://", 1)
+                direct_url = direct_url.replace("postgres://", "postgresql+psycopg2://", 1)
+            elif direct_url.startswith("postgresql://") and not direct_url.startswith("postgresql+"):
+                direct_url = direct_url.replace("postgresql://", "postgresql+psycopg2://", 1)
             return direct_url
-        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql+psycopg2://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super_secret_key_change_me_in_production_12345")
     ALGORITHM: str = "HS256"
