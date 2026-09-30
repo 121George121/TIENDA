@@ -16,12 +16,12 @@ class CartController extends ChangeNotifier {
   static String get _carritoUrl => '$_host/carrito';
   static String get _orderUrl => '$_host/ordenes/';
 
-  final Map<int, CartItemModel> _items = {};
+  final Map<String, CartItemModel> _items = {};
   int? _sucursalId;
   String? _sucursalNombre;
   bool _cargando = false;
 
-  Map<int, CartItemModel> get items => _items;
+  Map<String, CartItemModel> get items => _items;
   int? get sucursalId => _sucursalId;
   String? get sucursalNombre => _sucursalNombre;
   bool get cargando => _cargando;
@@ -34,12 +34,18 @@ class CartController extends ChangeNotifier {
     return _items.values.fold(0.0, (sum, item) => sum + item.subtotal);
   }
 
-  /// Añadir producto al carrito
+  /// Retorna la lista de IDs únicos de productos en el carrito (para recomendaciones CU18)
+  List<int> get productIds {
+    return _items.values.map((item) => item.product.id).toSet().toList();
+  }
+
+  /// Añadir producto al carrito diferenciando por variante/color
   void agregarProducto(ProductModel producto) {
-    if (_items.containsKey(producto.id)) {
-      _items[producto.id]!.cantidad += 1;
+    final key = '${producto.id}_${producto.varianteId ?? 0}';
+    if (_items.containsKey(key)) {
+      _items[key]!.cantidad += 1;
     } else {
-      _items[producto.id] = CartItemModel(product: producto);
+      _items[key] = CartItemModel(product: producto);
     }
     notifyListeners();
   }
@@ -52,9 +58,10 @@ class CartController extends ChangeNotifier {
   }
 
   /// Incrementar cantidad validando el stock disponible del producto
-  bool incrementar(int productoId) {
-    if (_items.containsKey(productoId)) {
-      final item = _items[productoId]!;
+  bool incrementar(dynamic idOrKey) {
+    final key = _resolverKey(idOrKey);
+    if (key != null && _items.containsKey(key)) {
+      final item = _items[key]!;
       if (item.cantidad < item.product.stock) {
         item.cantidad += 1;
         notifyListeners();
@@ -66,20 +73,36 @@ class CartController extends ChangeNotifier {
   }
 
   /// Decrementar cantidad o remover si llega a 0
-  void decrementar(int productoId) {
-    if (_items.containsKey(productoId)) {
-      if (_items[productoId]!.cantidad > 1) {
-        _items[productoId]!.cantidad -= 1;
+  void decrementar(dynamic idOrKey) {
+    final key = _resolverKey(idOrKey);
+    if (key != null && _items.containsKey(key)) {
+      if (_items[key]!.cantidad > 1) {
+        _items[key]!.cantidad -= 1;
       } else {
-        _items.remove(productoId);
+        _items.remove(key);
       }
       notifyListeners();
     }
   }
 
-  void removerProducto(int productoId) {
-    _items.remove(productoId);
-    notifyListeners();
+  void removerProducto(dynamic idOrKey) {
+    final key = _resolverKey(idOrKey);
+    if (key != null) {
+      _items.remove(key);
+      notifyListeners();
+    }
+  }
+
+  String? _resolverKey(dynamic idOrKey) {
+    if (idOrKey == null) return null;
+    final strKey = idOrKey.toString();
+    if (_items.containsKey(strKey)) return strKey;
+    if (idOrKey is int) {
+      for (final k in _items.keys) {
+        if (_items[k]!.product.id == idOrKey) return k;
+      }
+    }
+    return null;
   }
 
   void limpiarCarrito() {

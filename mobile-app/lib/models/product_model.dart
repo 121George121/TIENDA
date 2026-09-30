@@ -12,6 +12,10 @@ class ProductModel {
   final int? categoriaId;
   final String? imagenUrl;
   final bool activo;
+  final int? varianteId;
+  final String? colorSeleccionado;
+  final String? tallaSeleccionada;
+  final String? hexSeleccionado;
 
   ProductModel({
     required this.id,
@@ -22,6 +26,10 @@ class ProductModel {
     this.categoriaId,
     this.imagenUrl,
     required this.activo,
+    this.varianteId,
+    this.colorSeleccionado,
+    this.tallaSeleccionada,
+    this.hexSeleccionado,
   });
 
   // Método de Fábrica para mapear el JSON recibido de la API FastAPI de forma robusta y segura

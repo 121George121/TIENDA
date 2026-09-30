@@ -35,7 +35,7 @@ class _CartViewState extends State<CartView> {
       final cart = context.read<CartController>();
       if (cart.items.isNotEmpty) {
         context.read<RecommendationController>().fetchRecomendaciones(
-          carritoIds: cart.items.keys.toList(),
+          carritoIds: cart.productIds,
         );
       }
     });
@@ -191,6 +191,32 @@ class _CartViewState extends State<CartView> {
                                       'Bs. ${item.product.precio.toStringAsFixed(2)} c/u',
                                       style: const TextStyle(color: Colors.grey, fontSize: 12),
                                     ),
+                                    if (item.product.colorSeleccionado != null) ...[
+                                      const SizedBox(height: 3),
+                                      Row(
+                                        children: [
+                                          if (item.product.hexSeleccionado != null)
+                                            Container(
+                                              width: 10,
+                                              height: 10,
+                                              margin: const EdgeInsets.only(right: 5),
+                                              decoration: BoxDecoration(
+                                                color: _hexToColorSeguro(item.product.hexSeleccionado!),
+                                                shape: BoxShape.circle,
+                                                border: Border.all(color: Colors.grey.shade400, width: 0.8),
+                                              ),
+                                            ),
+                                          Text(
+                                            '${item.product.colorSeleccionado} • Talla ${item.product.tallaSeleccionada ?? "M"}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                     const SizedBox(height: 8),
 
                                     // Controles Stepper + y -
@@ -1184,6 +1210,16 @@ class _CartViewState extends State<CartView> {
         },
       ),
     );
+  }
+
+  static Color _hexToColorSeguro(String hex) {
+    try {
+      String clean = hex.replaceAll('#', '').trim();
+      if (clean.length == 6) clean = 'FF$clean';
+      return Color(int.parse(clean, radix: 16));
+    } catch (_) {
+      return const Color(0xFF0F172A);
+    }
   }
 
 }

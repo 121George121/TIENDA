@@ -189,4 +189,33 @@ class CatalogProductModel {
       variantes: listVariantes,
     );
   }
+
+  /// Lista de colores únicos disponibles para esta prenda
+  List<Map<String, String>> get coloresUnicos {
+    final seen = <String>{};
+    final result = <Map<String, String>>[];
+    for (final v in variantes) {
+      if (v.color != null && v.color!.isNotEmpty && !seen.contains(v.color)) {
+        seen.add(v.color!);
+        result.add({
+          'nombre': v.color!,
+          'hex': v.codigohex ?? '#000000',
+        });
+      }
+    }
+    return result;
+  }
+
+  /// Lista de tallas únicas disponibles para esta prenda
+  List<String> get tallasUnicas {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final v in variantes) {
+      if (v.talla != null && v.talla!.isNotEmpty && !seen.contains(v.talla)) {
+        seen.add(v.talla!);
+        result.add(v.talla!);
+      }
+    }
+    return result;
+  }
 }

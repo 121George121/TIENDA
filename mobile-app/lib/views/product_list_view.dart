@@ -352,6 +352,34 @@ class _ProductListViewState extends State<ProductListView> {
                                                 color: Color(0xFF0F172A),
                                               ),
                                             ),
+                                            if (prod.coloresUnicos.isNotEmpty) ...[
+                                              const SizedBox(height: 5),
+                                              Wrap(
+                                                spacing: 4,
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                children: [
+                                                  Text(
+                                                    'Colores:',
+                                                    style: TextStyle(
+                                                      fontSize: 10.5,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                  ...prod.coloresUnicos.map((col) {
+                                                    return Container(
+                                                      width: 13,
+                                                      height: 13,
+                                                      decoration: BoxDecoration(
+                                                        color: _colorFromHex(col['hex'] ?? '#000000'),
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(color: Colors.grey.shade400, width: 0.8),
+                                                      ),
+                                                    );
+                                                  }),
+                                                ],
+                                              ),
+                                            ],
                                             const SizedBox(height: 6),
 
                                             // Badge de disponibilidad por tienda
@@ -453,23 +481,32 @@ class _ProductListViewState extends State<ProductListView> {
                                                     label: Text(enStock ? 'Agregar' : 'Agotado', style: const TextStyle(fontSize: 10.5)),
                                                     onPressed: enStock
                                                         ? () {
-                                                            final pmodel = ProductModel(
-                                                              id: prod.id,
-                                                              nombre: prod.nombre,
-                                                              descripcion: prod.descripcion,
-                                                              precio: prod.preciobase,
-                                                              stock: prod.stockSucursal,
-                                                              imagenUrl: prod.imagenprincipal,
-                                                              activo: prod.disponible,
-                                                            );
-                                                            cartCtrl.agregarProducto(pmodel);
-                                                            ScaffoldMessenger.of(context).showSnackBar(
-                                                              SnackBar(
-                                                                content: Text('${prod.nombre} añadido al carrito'),
-                                                                duration: const Duration(milliseconds: 900),
-                                                                backgroundColor: const Color(0xFF0F172A),
-                                                              ),
-                                                            );
+                                                            if (prod.variantes.length > 1) {
+                                                              _mostrarSelectorVariantesModal(context, prod, cartCtrl);
+                                                            } else {
+                                                              final v = prod.variantes.isNotEmpty ? prod.variantes.first : null;
+                                                              final pmodel = ProductModel(
+                                                                id: prod.id,
+                                                                nombre: prod.nombre,
+                                                                descripcion: prod.descripcion,
+                                                                precio: prod.preciobase,
+                                                                stock: prod.stockSucursal,
+                                                                imagenUrl: prod.imagenprincipal,
+                                                                activo: prod.disponible,
+                                                                varianteId: v?.varianteId,
+                                                                colorSeleccionado: v?.color,
+                                                                tallaSeleccionada: v?.talla,
+                                                                hexSeleccionado: v?.codigohex,
+                                                              );
+                                                              cartCtrl.agregarProducto(pmodel);
+                                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text('${prod.nombre} añadido al carrito'),
+                                                                  duration: const Duration(milliseconds: 900),
+                                                                  backgroundColor: const Color(0xFF0F172A),
+                                                                ),
+                                                              );
+                                                            }
                                                           }
                                                         : null,
                                                   ),
@@ -753,6 +790,272 @@ class _ProductListViewState extends State<ProductListView> {
           },
         );
       },
+    );
+  }
+  static Color _colorFromHex(String hex) {
+    try {
+      String clean = hex.replaceAll('#', '').trim();
+      if (clean.length == 6) clean = 'FF$clean';
+      return Color(int.parse(clean, radix: 16));
+    } catch (_) {
+      return const Color(0xFF0F172A);
+    }
+  }
+
+  void _mostrarSelectorVariantesModal(
+    BuildContext context,
+    CatalogProductModel prod,
+    CartController cartCtrl,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _SelectorVarianteSheet(prod: prod, cartCtrl: cartCtrl),
+    );
+  }
+}
+
+class _SelectorVarianteSheet extends StatefulWidget {
+  final CatalogProductModel prod;
+  final CartController cartCtrl;
+
+  const _SelectorVarianteSheet({
+    required this.prod,
+    required this.cartCtrl,
+  });
+
+  @override
+  State<_SelectorVarianteSheet> createState() => _SelectorVarianteSheetState();
+}
+
+class _SelectorVarianteSheetState extends State<_SelectorVarianteSheet> {
+  late ProductVariantModel _selectedVariant;
+
+  @override
+  void initState() {
+    super.initState();
+    final conStock = widget.prod.variantes.where((v) => v.stock > 0).toList();
+    _selectedVariant = conStock.isNotEmpty ? conStock.first : widget.prod.variantes.first;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tieneStock = _selectedVariant.stock > 0;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: widget.prod.imagenprincipal != null
+                    ? Image.network(
+                        widget.prod.imagenprincipal!,
+                        width: 70,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 70,
+                          height: 80,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.checkroom),
+                        ),
+                      )
+                    : Container(
+                        width: 70,
+                        height: 80,
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.checkroom),
+                      ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.prod.nombre,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Bs. ${widget.prod.preciobase.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: tieneStock ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        tieneStock
+                            ? '${_selectedVariant.stock} disponibles en esta tienda'
+                            : 'Agotado en esta tienda',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: tieneStock ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 28),
+          const Text(
+            'Elige Color y Talla:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF0F172A)),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.prod.variantes.map((v) {
+              final isSelected = v.varianteId == _selectedVariant.varianteId;
+              final colHex = v.codigohex ?? '#000000';
+              final conExistencia = v.stock > 0;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  setState(() {
+                    _selectedVariant = v;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF0F172A) : Colors.grey[50],
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF0F172A)
+                          : (conExistencia ? Colors.grey.shade300 : Colors.red.shade200),
+                      width: isSelected ? 1.8 : 1.0,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: _ProductListViewState._colorFromHex(colHex),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected ? Colors.white : Colors.grey.shade400,
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${v.color ?? "Color"} • ${v.talla ?? "M"}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        conExistencia ? '(${v.stock})' : '(0)',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? (conExistencia ? Colors.greenAccent : Colors.redAccent)
+                              : (conExistencia ? Colors.green[700] : Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: tieneStock ? const Color(0xFF0F172A) : Colors.grey[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: Icon(tieneStock ? Icons.shopping_bag_outlined : Icons.block, size: 18),
+              label: Text(
+                tieneStock
+                    ? 'Añadir al Carrito (${_selectedVariant.color} - ${_selectedVariant.talla})'
+                    : 'Agotado en esta combinación',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+              ),
+              onPressed: tieneStock
+                  ? () {
+                      final pmodel = ProductModel(
+                        id: widget.prod.id,
+                        nombre: widget.prod.nombre,
+                        descripcion: widget.prod.descripcion,
+                        precio: widget.prod.preciobase,
+                        stock: _selectedVariant.stock,
+                        imagenUrl: widget.prod.imagenprincipal,
+                        activo: widget.prod.disponible,
+                        varianteId: _selectedVariant.varianteId,
+                        colorSeleccionado: _selectedVariant.color,
+                        tallaSeleccionada: _selectedVariant.talla,
+                        hexSeleccionado: _selectedVariant.codigohex,
+                      );
+                      widget.cartCtrl.agregarProducto(pmodel);
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${widget.prod.nombre} (${_selectedVariant.color} - ${_selectedVariant.talla}) añadido al carrito',
+                          ),
+                          backgroundColor: const Color(0xFF0F172A),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

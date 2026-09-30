@@ -75,3 +75,13 @@ def listar_sucursales_activas(db: Session = Depends(get_db)):
         }
         for s in sucursales
     ]
+
+
+@router.api_route("/seed-variantes-stock", methods=["GET", "POST"], tags=["Administración y Mantenimiento"])
+def trigger_seed_variantes(db: Session = Depends(get_db)):
+    """Ejecuta el seeder para poblar o actualizar las variantes de colores y stock diferenciado por sucursal"""
+    from app.core.seeder_variantes import aplicar_seeder_variantes_y_stock
+    resultado = aplicar_seeder_variantes_y_stock(db)
+    from app.main import sync_db_sequences
+    sync_db_sequences()
+    return resultado

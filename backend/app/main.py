@@ -73,6 +73,21 @@ def on_startup():
         Base.metadata.create_all(bind=engine)
         print("[DB] Tablas de la base de datos sincronizadas correctamente.")
         sync_db_sequences()
+
+        # Sembrar o actualizar variantes ricas de colores, tallas y stock diferenciado por sucursal
+        try:
+            from app.core.database import SessionLocal
+            from app.core.seeder_variantes import aplicar_seeder_variantes_y_stock
+            from app.models.models import VarianteProductoModel
+            with SessionLocal() as db_session:
+                var_count = db_session.query(VarianteProductoModel).count()
+                if var_count <= 25:
+                    print(f"[SEEDER] Detectadas {var_count} variantes base. Poblando múltiples colores y stock por sucursal...")
+                    res = aplicar_seeder_variantes_y_stock(db_session)
+                    print(f"[SEEDER SUCCESS] {res}")
+                    sync_db_sequences()
+        except Exception as seed_err:
+            print(f"[SEEDER WARN] No se pudo ejecutar seeder automático: {seed_err}")
     except Exception as e:
         print(f"[DB WARN] Advertencia al conectar con la base de datos: {e}")
 

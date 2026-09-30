@@ -15,4 +15,6 @@ class CartItemModel {
   });
 
   double get subtotal => product.precio * cantidad;
+
+  String get itemKey => '${product.id}_${product.varianteId ?? 0}';
 }
