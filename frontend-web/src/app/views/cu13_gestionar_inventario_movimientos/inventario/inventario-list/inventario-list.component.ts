@@ -115,11 +115,74 @@ export class InventarioListComponent implements OnInit, OnDestroy {
     this.inventarioController.loadInventario(sucursalId, search, soloBajoStock);
   }
 
+  setSucursalFilter(sucursalId: number | null): void {
+    this.sucursalFilterControl.setValue(sucursalId);
+  }
+
   resetFilters(): void {
     this.searchControl.setValue('');
     this.sucursalFilterControl.setValue(null);
     this.soloBajoStockControl.setValue(false);
     this.inventarioController.loadInventario();
+  }
+
+  getColorName(row: InventarioItem): string {
+    const raw = (row.color || row.color_nombre || '').trim();
+    if (raw && raw !== 'Único' && raw !== 'Estándar' && raw !== '--') {
+      return raw;
+    }
+    const name = (row.producto_nombre || '').toLowerCase();
+    if (name.includes('beige')) return 'Beige';
+    if (name.includes('blanc')) return 'Blanco';
+    if (name.includes('roj') || name.includes('bordo') || name.includes('vino')) return 'Rojo';
+    if (name.includes('negr')) return 'Negro';
+    if (name.includes('verd') || name.includes('olivo')) return 'Verde';
+    if (name.includes('azul')) return 'Azul';
+    if (name.includes('amarill')) return 'Amarillo';
+    if (name.includes('gris')) return 'Gris';
+    if (name.includes('terracota')) return 'Terracota';
+    return raw || 'Estándar';
+  }
+
+  getColorHex(row: InventarioItem): string {
+    const cName = this.getColorName(row).toLowerCase();
+    if (cName.includes('beige')) return '#D4B996';
+    if (cName.includes('blanc')) return '#FFFFFF';
+    if (cName.includes('roj') || cName.includes('borgoña')) return '#DC2626';
+    if (cName.includes('negr')) return '#1E293B';
+    if (cName.includes('verd') || cName.includes('olivo')) return '#059669';
+    if (cName.includes('azul')) return '#2563EB';
+    if (cName.includes('amarill')) return '#EAB308';
+    if (cName.includes('gris')) return '#64748B';
+    if (cName.includes('terracota')) return '#B45309';
+    if (row.color_hex && row.color_hex !== '#111827') {
+      return row.color_hex;
+    }
+    return '#334155';
+  }
+
+  getColorBg(row: InventarioItem): string {
+    const hex = this.getColorHex(row);
+    if (hex.toUpperCase() === '#FFFFFF') return '#F8FAFC';
+    return hex + '18';
+  }
+
+  getColorBorder(row: InventarioItem): string {
+    const hex = this.getColorHex(row);
+    if (hex.toUpperCase() === '#FFFFFF') return '#CBD5E1';
+    return hex + '55';
+  }
+
+  getColorTextColor(row: InventarioItem): string {
+    const hex = this.getColorHex(row);
+    if (hex.toUpperCase() === '#FFFFFF') return '#334155';
+    return hex;
+  }
+
+  getSizeName(row: InventarioItem): string {
+    const s = row.talla || row.talla_nombre;
+    if (s && s !== '--') return s;
+    return 'M';
   }
 
   openMovimientoDialog(item: InventarioItem): void {

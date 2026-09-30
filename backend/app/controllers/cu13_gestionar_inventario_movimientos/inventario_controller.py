@@ -124,6 +124,47 @@ class InventarioController:
             color = inv.variante.color
             talla = inv.variante.talla
 
+            color_nombre = color.nombre if color else None
+            color_hex = color.codigohex if color else None
+            talla_nombre = talla.nombre if talla else None
+
+            # Si el color es genérico o nulo, inferir del nombre del producto
+            if not color_nombre or color_nombre in ("Único", "Estándar", "--"):
+                p_lower = (p.nombre or "").lower()
+                if "beige" in p_lower:
+                    color_nombre = "Beige"
+                    color_hex = "#D4B996"
+                elif "blanc" in p_lower:
+                    color_nombre = "Blanco"
+                    color_hex = "#FFFFFF"
+                elif "roj" in p_lower:
+                    color_nombre = "Rojo"
+                    color_hex = "#DC2626"
+                elif "negr" in p_lower:
+                    color_nombre = "Negro"
+                    color_hex = "#1E293B"
+                elif "verd" in p_lower:
+                    color_nombre = "Verde"
+                    color_hex = "#059669"
+                elif "azul" in p_lower:
+                    color_nombre = "Azul"
+                    color_hex = "#2563EB"
+                elif "amarill" in p_lower:
+                    color_nombre = "Amarillo"
+                    color_hex = "#EAB308"
+                elif "gris" in p_lower:
+                    color_nombre = "Gris"
+                    color_hex = "#64748B"
+                elif "terracota" in p_lower:
+                    color_nombre = "Terracota"
+                    color_hex = "#B45309"
+                else:
+                    color_nombre = "Rojo" if "roja" in p_lower else "Negro"
+                    color_hex = "#DC2626" if "roja" in p_lower else "#1E293B"
+
+            if not talla_nombre or talla_nombre == "--":
+                talla_nombre = "M"
+
             estado_stock = "NORMAL"
             if inv.stockfisico <= 0:
                 estado_stock = "AGOTADO"
@@ -139,9 +180,11 @@ class InventarioController:
                 "producto_nombre": p.nombre,
                 "producto_marca": p.marca,
                 "producto_precio": Decimal(str(inv.variante.precioventa or p.preciobase)),
-                "color_nombre": color.nombre if color else "Único",
-                "color_hex": color.codigohex if color else "#111827",
-                "talla_nombre": talla.nombre if talla else "M",
+                "color_nombre": color_nombre,
+                "color_hex": color_hex,
+                "talla_nombre": talla_nombre,
+                "color": color_nombre,
+                "talla": talla_nombre,
                 "sku": inv.variante.sku or f"SKU-{p.id}",
                 "stockfisico": inv.stockfisico,
                 "stockreservado": inv.stockreservado,

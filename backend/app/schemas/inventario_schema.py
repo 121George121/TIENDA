@@ -109,6 +109,8 @@ class InventarioResponse(BaseModel):
     color_nombre: Optional[str] = None
     color_hex: Optional[str] = None
     talla_nombre: Optional[str] = None
+    color: Optional[str] = None
+    talla: Optional[str] = None
     sku: Optional[str] = None
     stockfisico: int
     stockreservado: int

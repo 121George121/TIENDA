@@ -89,6 +89,57 @@
   margin-top: 2px;
 }
 
+/* Quick Branch Filter Pills */
+.sucursal-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 0 6px 0;
+}
+
+.sucursal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.sucursal-pill mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+
+.sucursal-pill:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.sucursal-pill.active {
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(30, 58, 138, 0.25);
+}
+
+.sucursal-pill.active mat-icon {
+  color: #ffffff;
+}
+
 /* Filter Card */
 .filter-card {
   border-radius: 12px;
@@ -145,61 +196,138 @@
   overflow-x: auto;
 }
 
+/* STRICT VERTICAL CENTERING AND ROW ALIGNMENT */
 .inventory-table {
   width: 100%;
+  border-collapse: separate;
 }
 
+.inventory-table th.mat-mdc-header-cell {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  padding: 14px 16px !important;
+  border-bottom: 2px solid #e2e8f0;
+  vertical-align: middle !important;
+  white-space: nowrap;
+}
+
+.inventory-table td.mat-mdc-cell {
+  padding: 14px 16px !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  font-size: 0.88rem;
+}
+
+.table-row {
+  transition: background-color 0.15s ease;
+}
+
+.table-row:hover {
+  background-color: #f8fafc;
+}
+
+/* Product Column */
 .product-cell {
   padding-left: 20px !important;
+  vertical-align: middle !important;
 }
 
 .product-info {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  justify-content: center;
 }
 
 .product-name {
   font-weight: 700;
   color: #0f172a;
   font-size: 0.92rem;
+  line-height: 1.25;
 }
 
 .product-meta {
   font-size: 0.78rem;
   color: #94a3b8;
+  line-height: 1.2;
+}
+
+/* Variant Tags (Talla y Color real) */
+.variant-cell {
+  vertical-align: middle !important;
 }
 
 .variant-tags {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-}
-
-.pill-size, .pill-color {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: 8px;
+  vertical-align: middle;
 }
 
 .pill-size {
-  background: #e2e8f0;
-  color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  line-height: 1;
 }
 
 .pill-color {
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  line-height: 1;
+}
+
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.color-text {
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  line-height: 1;
+}
+
+/* Sucursal Badge */
+.sucursal-cell {
+  vertical-align: middle !important;
 }
 
 .sucursal-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.86rem;
   color: #475569;
+  font-weight: 600;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 .sucursal-badge mat-icon {
@@ -209,16 +337,27 @@
   color: #64748b;
 }
 
+/* Stock Físico - EN UNA SOLA LÍNEA, PERFECTAMENTE ALINEADO */
 .stock-cell {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
+  vertical-align: middle !important;
+}
+
+.stock-inline-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 .stock-num {
   font-size: 1.15rem;
   font-weight: 800;
+  line-height: 1;
   color: #0f172a;
+  letter-spacing: -0.3px;
+  display: inline-block;
 }
 
 .stock-num.danger {
@@ -226,60 +365,85 @@
 }
 
 .stock-unit {
-  font-size: 0.78rem;
-  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1;
+  display: inline-block;
+}
+
+/* Stock Mínimo */
+.min-stock-cell {
+  vertical-align: middle !important;
+}
+
+.min-stock-inline-box {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 .min-stock-badge {
   font-size: 0.85rem;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Estado Badges */
+.status-cell {
+  vertical-align: middle !important;
 }
 
 .badge-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
+  gap: 5px;
+  padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
+  vertical-align: middle;
+  line-height: 1;
 }
 
 .badge-status mat-icon {
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
 }
 
 .badge-optimo {
-  background: #dcfce7;
-  color: #15803d;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
 }
 
 .badge-alerta {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #b45309;
   border: 1px solid #fde68a;
-  animation: pulse-soft 2.5s infinite ease-in-out;
 }
 
 .badge-agotado {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #b91c1c;
   border: 1px solid #fecdd3;
 }
 
-@keyframes pulse-soft {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.03); }
+/* Acciones */
+.actions-cell {
+  vertical-align: middle !important;
 }
 
 .actions-wrapper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  vertical-align: middle;
 }
 
 .btn-action {
