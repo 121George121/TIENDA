@@ -23,26 +23,41 @@ class CarritoController:
     @staticmethod
     def _obtener_o_crear_cliente(db: Session, usuario_id: int):
         from app.models.models import ClienteModel, UsuarioModel
+        # 1. ¿usuario_id es ya el ID de un ClienteModel (cliente.id)?
+        cliente = db.query(ClienteModel).filter(ClienteModel.id == usuario_id).first()
+        if cliente:
+            return cliente
+
+        # 2. ¿usuario_id es el ID de un UsuarioModel (usuario.id)?
         cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
-        if not cliente:
-            user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
+        if cliente:
+            return cliente
+
+        # 3. Si existe el usuario en tabla usuario, crear su perfil cliente
+        user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
+        if user:
             cliente = ClienteModel(
-                nombre=user.nombre if user else "Cliente",
-                apellido=user.apellido or "" if user else "",
-                email=user.email if user else f"user_{usuario_id}@tienda.com",
-                telefono=user.telefono or "" if user else "",
-                usuarioid=usuario_id,
+                nombre=user.nombre,
+                apellido=user.apellido or "",
+                email=user.email,
+                telefono=user.telefono or "",
+                usuarioid=user.id,
                 activo=True
             )
             db.add(cliente)
             db.commit()
             db.refresh(cliente)
-        return cliente
+            return cliente
+
+        # 4. Fallback al primer cliente de la BD
+        return db.query(ClienteModel).first()
 
     @classmethod
     def _obtener_carrito_activo(cls, db: Session, usuario_id: int) -> CarritoModel:
         """Busca el carrito activo del usuario o crea uno nuevo en PostgreSQL"""
         cliente = cls._obtener_o_crear_cliente(db, usuario_id)
+        if not cliente:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró un cliente asociado para el carrito")
 
         carrito = db.query(CarritoModel).filter(
             CarritoModel.clienteid == cliente.id,
@@ -147,9 +162,17 @@ class CarritoController:
 
         carrito = cls._obtener_carrito_activo(db, usuario_id)
 
-        # Si se especificó sucursal en el request y el carrito no tenía una, asignarla
+        # Si se especificó sucursal en el request, asignarla
         if datos.sucursal_id:
             carrito.sucursalid = datos.sucursal_id
+        elif not carrito.sucursalid:
+            # Si el carrito no tiene sucursal, buscar una sucursal que tenga stock de esta prenda
+            inv_con_stock = db.query(InventarioSucursalModel).filter(
+                InventarioSucursalModel.varianteid == datos.variante_id,
+                (InventarioSucursalModel.cantidad - InventarioSucursalModel.stockreservado) >= datos.cantidad
+            ).first()
+            if inv_con_stock:
+                carrito.sucursalid = inv_con_stock.sucursalid
 
         # Validar stock disponible
         if carrito.sucursalid:
