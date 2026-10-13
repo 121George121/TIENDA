@@ -83,13 +83,17 @@ class ReservationController extends ChangeNotifier {
   }
 
   /// CU10: Consulta el listado de reservas del usuario
-  Future<void> cargarMisReservas() async {
+  Future<void> cargarMisReservas({String? token}) async {
     _cargando = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse('$_reservasUrl/mis-reservas'));
+      final headers = <String, String>{};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final response = await http.get(Uri.parse('$_reservasUrl/mis-reservas'), headers: headers);
       if (response.statusCode == 200) {
         final List data = json.decode(utf8.decode(response.bodyBytes));
         _reservas = data.map((json) => ReservaModel.fromJson(json)).toList();
@@ -105,15 +109,19 @@ class ReservationController extends ChangeNotifier {
   }
 
   /// CU10: Cancela una reserva pendiente
-  Future<bool> cancelarReserva(int id, {String? motivo}) async {
+  Future<bool> cancelarReserva(int id, {String? motivo, String? token}) async {
     try {
+      final headers = <String, String>{'Content-Type': 'application/json'};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
       final response = await http.patch(
         Uri.parse('$_reservasUrl/$id/cancelar'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: json.encode({'motivo': motivo ?? 'Cancelado desde app móvil'}),
       );
       if (response.statusCode == 200) {
-        await cargarMisReservas();
+        await cargarMisReservas(token: token);
         return true;
       }
       return false;

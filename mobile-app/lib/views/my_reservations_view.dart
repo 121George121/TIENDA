@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../controllers/reservation_controller.dart';
+import '../controllers/auth_controller.dart';
 import '../models/reservation_model.dart';
 
 class MyReservationsView extends StatefulWidget {
@@ -22,7 +23,8 @@ class _MyReservationsViewState extends State<MyReservationsView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReservationController>().cargarMisReservas();
+      final token = context.read<AuthController>().currentUser?.token;
+      context.read<ReservationController>().cargarMisReservas(token: token);
     });
   }
 
@@ -315,7 +317,10 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () => controller.cargarMisReservas(),
+                    onPressed: () {
+                      final token = context.read<AuthController>().currentUser?.token;
+                      controller.cargarMisReservas(token: token);
+                    },
                     child: const Text('Reintentar'),
                   ),
                 ],
@@ -346,7 +351,10 @@ class _MyReservationsViewState extends State<MyReservationsView> {
           }
 
           return RefreshIndicator(
-            onRefresh: () => controller.cargarMisReservas(),
+            onRefresh: () async {
+              final token = context.read<AuthController>().currentUser?.token;
+              await controller.cargarMisReservas(token: token);
+            },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: controller.reservas.length,
@@ -556,7 +564,8 @@ class _MyReservationsViewState extends State<MyReservationsView> {
                                       );
 
                                       if (confirmar == true) {
-                                        await controller.cancelarReserva(reserva.id);
+                                        final token = context.read<AuthController>().currentUser?.token;
+                                        await controller.cancelarReserva(reserva.id, token: token);
                                       }
                                     },
                                     icon: const Icon(Icons.cancel_outlined, size: 14, color: Colors.redAccent),

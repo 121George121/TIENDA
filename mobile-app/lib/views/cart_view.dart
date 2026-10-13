@@ -13,6 +13,7 @@ import '../controllers/reservation_controller.dart';
 import '../controllers/payment_controller.dart';
 import '../controllers/recommendation_controller.dart';
 import '../controllers/notification_controller.dart';
+import '../controllers/product_controller.dart';
 import '../widgets/simulated_qr_widget.dart';
 import 'my_reservations_view.dart';
 import 'orders_history_view.dart';
@@ -578,6 +579,7 @@ class _CartViewState extends State<CartView> {
                             // Extraer prendas para el apartado
                             final itemsPayload = cartCtrl.items.values.map((it) => {
                               'producto_id': it.product.id,
+                              'variante_id': it.product.varianteId,
                               'cantidad': it.cantidad,
                             }).toList();
                             final nombresPrendas = cartCtrl.items.values.map((it) => it.product.nombre).toList();
@@ -600,6 +602,11 @@ class _CartViewState extends State<CartView> {
                             Navigator.pop(context); // Cerrar loading
 
                             if (nuevaReserva != null) {
+                              // Refrescar catálogo móvil de inmediato para actualizar stock apartado
+                              try {
+                                context.read<ProductController>().fetchCatalogoConDisponibilidad(forceRefresh: true);
+                              } catch (_) {}
+
                               // Notificación inmediata en móvil
                               try {
                                 final notifCtrl = Provider.of<NotificationController>(context, listen: false);

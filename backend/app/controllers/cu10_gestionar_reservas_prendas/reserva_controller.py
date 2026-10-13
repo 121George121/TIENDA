@@ -222,6 +222,13 @@ class ReservaController:
                     db.flush()
 
                 prod_nombre = variante.producto.nombre if variante.producto else "Prenda"
+                disp = max(0, inv.cantidad - (inv.stockreservado or 0))
+                if it.cantidad > disp:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Stock insuficiente para apartar {prod_nombre}. Disponibles en tienda: {disp} uds."
+                    )
+
                 nombres_prendas.append(prod_nombre)
                 inventarios_afectados.append((inv, it.cantidad))
         else:
@@ -264,6 +271,13 @@ class ReservaController:
                 nombre_prenda = (
                     item.variante.producto.nombre if item.variante and item.variante.producto else f"Variante #{item.varianteid}"
                 )
+                disp = max(0, inv.cantidad - (inv.stockreservado or 0))
+                if item.cantidad > disp:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Stock insuficiente para apartar {nombre_prenda}. Disponibles en tienda: {disp} uds."
+                    )
+
                 nombres_prendas.append(nombre_prenda)
                 inventarios_afectados.append((inv, item.cantidad))
 

@@ -68,13 +68,13 @@ class InventarioController:
                     InventarioSucursalModel.varianteid == v.id
                 ).all()
 
-                stock_total_var = sum(inv.cantidad for inv in inventarios)
+                stock_total_var = sum(max(0, inv.cantidad - (inv.stockreservado or 0)) for inv in inventarios)
                 stock_sucursal_var = 0
 
                 if sucursal_id:
                     for inv in inventarios:
                         if inv.sucursalid == sucursal_id:
-                            stock_sucursal_var = inv.cantidad
+                            stock_sucursal_var = max(0, inv.cantidad - (inv.stockreservado or 0))
                             break
                 else:
                     stock_sucursal_var = stock_total_var
@@ -148,7 +148,7 @@ class InventarioController:
                     InventarioSucursalModel.sucursalid == suc.id
                 ).first()
 
-                stock_cant = inv.cantidad if inv else 0
+                stock_cant = max(0, inv.cantidad - (inv.stockreservado or 0)) if inv else 0
                 stock_total_sucursal += stock_cant
 
                 variantes_sucursal.append(
