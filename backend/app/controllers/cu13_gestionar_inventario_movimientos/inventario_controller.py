@@ -207,7 +207,7 @@ class InventarioController:
         if not inv:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registro de inventario no encontrado")
 
-        tipo = data.tipomovimiento.strip().capitalize()
+        tipo = data.tipo_normalizado
         cant = data.cantidad
 
         if tipo == "Entrada":
@@ -245,6 +245,7 @@ class InventarioController:
         return {
             "mensaje": f"Movimiento de {tipo} registrado exitosamente",
             "stock_actual": inv.stockfisico,
+            "stock_actualizado": inv.stockfisico,
             "inventario_id": inv.id
         }
 

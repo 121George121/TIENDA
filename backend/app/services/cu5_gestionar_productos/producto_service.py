@@ -67,6 +67,14 @@ class ProductoService:
         db.add(nuevo)
         db.commit()
         db.refresh(nuevo)
+
+        # Inicializar automáticamente la variante e inventario en todas las sucursales
+        try:
+            from app.controllers.cu13_gestionar_inventario_movimientos.inventario_controller import InventarioController
+            InventarioController._asegurar_variantes_e_inventario(db)
+        except Exception:
+            pass
+
         return nuevo
 
     @staticmethod

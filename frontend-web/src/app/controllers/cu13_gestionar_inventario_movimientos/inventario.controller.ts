@@ -38,14 +38,15 @@ export class InventarioController {
         const index = current.findIndex(i => i.id === inventarioId);
         if (index !== -1) {
           const updatedList = [...current];
-          updatedList[index] = {
-            ...updatedList[index],
-            stockfisico: res.stock_actualizado,
-            stockdisponible: res.stock_actualizado
-          };
-          this.inventarioSubject.next(updatedList);
-        }
-      }),
+            const newStock = res.stock_actualizado ?? res.stock_actual ?? current[index].stockfisico;
+            updatedList[index] = {
+              ...updatedList[index],
+              stockfisico: newStock,
+              stockdisponible: newStock
+            };
+            this.inventarioSubject.next(updatedList);
+          }
+        }),
       finalize(() => this.loadingSubject.next(false))
     );
   }

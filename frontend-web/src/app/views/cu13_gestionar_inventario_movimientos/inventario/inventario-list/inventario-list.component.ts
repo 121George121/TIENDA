@@ -195,8 +195,9 @@ export class InventarioListComponent implements OnInit, OnDestroy {
       if (result) {
         this.inventarioController.registrarMovimiento(item.id, result).subscribe({
           next: (res) => {
+            const nuevoStock = res.stock_actualizado ?? res.stock_actual ?? '';
             this.snackBar.open(
-              `Movimiento registrado: Stock de ${item.producto_nombre} actualizado a ${res.stock_actualizado} un.`,
+              `Movimiento registrado: Stock de ${item.producto_nombre} actualizado a ${nuevoStock} un.`,
               'Cerrar',
               { duration: 4000 }
             );

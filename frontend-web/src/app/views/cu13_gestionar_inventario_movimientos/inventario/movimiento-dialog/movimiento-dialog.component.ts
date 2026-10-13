@@ -81,6 +81,7 @@ export class MovimientoDialogComponent implements OnInit {
     }
 
     this.dialogRef.close({
+      tipomovimiento: tipo,
       tipo_movimiento: tipo,
       cantidad: cant,
       motivo: this.form.value.motivo,

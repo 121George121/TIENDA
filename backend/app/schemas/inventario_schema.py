@@ -74,10 +74,15 @@ class ActualizarStockRequest(BaseModel):
 # --- CU13: Gestión de Inventario Físico y Movimientos Kardex ---
 
 class MovimientoInventarioCreate(BaseModel):
-    tipomovimiento: str = Field(..., description="Tipo: Entrada, Salida o Ajuste")
+    tipomovimiento: Optional[str] = Field(None, description="Tipo: Entrada, Salida o Ajuste")
+    tipo_movimiento: Optional[str] = Field(None, description="Alias: Entrada, Salida o Ajuste")
     cantidad: int = Field(..., ge=1, description="Cantidad de unidades del movimiento")
     motivo: Optional[str] = Field(None, max_length=200, description="Motivo de la operación")
     referencia: Optional[str] = Field(None, max_length=100, description="Nro de factura, guía o código de orden")
+
+    @property
+    def tipo_normalizado(self) -> str:
+        return (self.tipomovimiento or self.tipo_movimiento or "Entrada").strip().capitalize()
 
 
 class StockMinimoUpdate(BaseModel):
