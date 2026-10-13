@@ -12,7 +12,7 @@ class ApiConfig {
   static const bool useCloud = true;
 
   /// URL de producción en Railway
-  static const String cloudBaseUrl = 'https://tienda-production-2a7a.up.railway.app/api/v1';
+  static const String cloudBaseUrl = 'https://tienda-production-3fc5.up.railway.app/api/v1';
 
   /// Dirección IP de tu PC en la red local Wi-Fi para desarrollo local
   static const String pcLocalIp = '192.168.0.106';
