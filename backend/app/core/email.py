@@ -89,7 +89,7 @@ Este código caducará en 15 minutos.
         
         msg.add_alternative(html_content, subtype='html')
         
-        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as smtp:
             smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             smtp.send_message(msg)
             
@@ -176,7 +176,7 @@ Nota: Este enlace caducará en 15 minutos. Si no realizaste esta solicitud, pued
         
         msg.add_alternative(html_content, subtype='html')
         
-        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as smtp:
             smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             smtp.send_message(msg)
             
