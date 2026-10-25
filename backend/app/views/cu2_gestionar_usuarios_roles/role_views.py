@@ -9,9 +9,9 @@ from typing import List
 
 from app.core.database import get_db
 from app.schemas.schemas import RolResponse, RolCreate, PermisosUpdate
-from app.controllers.cu2_gestionar_usuarios_roles.role_controller import RoleController
+from app.controllers.cu2_gestionar_usuarios_roles.role_controller import RolController, RoleController
 from app.core.dependencies import get_current_active_user, require_admin
-from app.models.models import UsuarioModel
+from app.models.models import Usuario, UsuarioModel
 
 router = APIRouter(
     prefix="/roles",
@@ -24,56 +24,65 @@ router = APIRouter(
 @router.get("/", response_model=List[RolResponse], include_in_schema=False)
 def listar_roles(
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Obtener listado completo de roles con sus permisos"""
-    return RoleController.get_all(db=db)
+    return RolController.listar_roles(db=db)
+
 
 @router.get("/{rol_id}", response_model=RolResponse, summary="Obtener rol por ID")
 def obtener_rol(
     rol_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Obtener detalle de un rol específico por ID"""
-    return RoleController.get_by_id(db=db, rol_id=rol_id)
+    return RolController.obtener_rol_por_id(db=db, rol_id=rol_id)
+
 
 @router.post("", response_model=RolResponse, status_code=status.HTTP_201_CREATED, summary="Crear rol")
 @router.post("/", response_model=RolResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def crear_rol(
     rol_data: RolCreate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Crear un nuevo rol de usuario"""
-    return RoleController.create(db=db, rol_data=rol_data)
+    return RolController.crear_rol(db=db, rol_data=rol_data, operador_id=current_user.id)
+
 
 @router.put("/{rol_id}", response_model=RolResponse, summary="Editar rol")
 def editar_rol(
     rol_id: int,
     rol_data: RolCreate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Editar nombre y descripción de un rol"""
-    return RoleController.update(db=db, rol_id=rol_id, rol_data=rol_data)
+    return RolController.actualizar_rol(db=db, rol_id=rol_id, rol_data=rol_data, operador_id=current_user.id)
+
 
 @router.put("/{rol_id}/permisos", response_model=RolResponse, summary="Gestionar permisos del rol")
 def actualizar_permisos(
     rol_id: int,
     permisos_data: PermisosUpdate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Actualizar el conjunto de permisos asignados a un rol"""
-    return RoleController.update_permissions(db=db, rol_id=rol_id, permisos=permisos_data.permisos)
+    return RolController.actualizar_permisos_rol(
+        db=db,
+        rol_id=rol_id,
+        permisos=permisos_data.permisos,
+        operador_id=current_user.id
+    )
+
 
 @router.delete("/{rol_id}", summary="Eliminar rol")
 def eliminar_rol(
     rol_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Eliminar un rol de la base de datos"""
-    return RoleController.delete(db=db, rol_id=rol_id)
-
+    return RolController.eliminar_rol(db=db, rol_id=rol_id, operador_id=current_user.id)

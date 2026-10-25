@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthController } from '../../controllers/cu1_gestionar_autenticacion/auth.controller';
 
 function passwordComplexityValidator(control: AbstractControl): ValidationErrors | null {
   const v = control.value || '';
@@ -124,7 +124,7 @@ export class ResetPasswordComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder, 
-    private authService: AuthService,
+    private authController: AuthController,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -154,7 +154,7 @@ export class ResetPasswordComponent implements OnInit {
 
     const { token, newPassword } = this.resetForm.value;
 
-    this.authService.resetPassword(token, newPassword).subscribe({
+    this.authController.restablecerContrasenia(token, newPassword).subscribe({
       next: (res: any) => {
         this.isLoading = false;
         this.successMessage = res.mensaje || '¡Contraseña restablecida exitosamente!';

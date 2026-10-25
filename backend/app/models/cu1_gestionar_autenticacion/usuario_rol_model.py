@@ -9,7 +9,7 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class RolModel(Base):
+class Rol(Base):
     __tablename__ = "rol"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -17,16 +17,17 @@ class RolModel(Base):
     descripcion = Column(Text, nullable=True)
     activo = Column(Boolean, default=True)
 
-    usuarios = relationship("UsuarioModel", back_populates="rol")
+    usuarios = relationship("Usuario", back_populates="rol")
 
 
-class UsuarioModel(Base):
+class Usuario(Base):
     __tablename__ = "usuario"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(100), nullable=False)
     apellido = Column(String(100), nullable=True)
-    email = Column(String(150), unique=True, index=True, nullable=False)
+    email = Column(String(150), index=True, nullable=False)
     passwordhash = Column(String(255), nullable=False)
     telefono = Column(String(20), nullable=True)
     rolid = Column(Integer, ForeignKey("rol.id"), nullable=True)
@@ -37,8 +38,9 @@ class UsuarioModel(Base):
     codigoexpiracion = Column(DateTime, nullable=True)
     fechacreacion = Column(DateTime, default=datetime.utcnow)
 
-    rol = relationship("RolModel", back_populates="usuarios")
-    sucursal = relationship("SucursalModel", back_populates="usuarios")
+    rol = relationship("Rol", back_populates="usuarios")
+    sucursal = relationship("Sucursal", back_populates="usuarios")
+    tenant = relationship("Tenant", foreign_keys=[tenant_id])
 
     @property
     def created_at(self):
@@ -47,3 +49,12 @@ class UsuarioModel(Base):
     @property
     def rol_id(self):
         return self.rolid
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+RolModel = Rol
+UsuarioModel = Usuario
+rol = Rol
+usuario = Usuario

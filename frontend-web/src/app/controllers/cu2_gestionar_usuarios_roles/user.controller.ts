@@ -7,47 +7,55 @@ import { UserService } from '../../services/cu2_gestionar_usuarios_roles/user.se
   providedIn: 'root'
 })
 export class UserController {
-  private usersSubject = new BehaviorSubject<Usuario[]>([]);
-  public users$: Observable<Usuario[]> = this.usersSubject.asObservable();
+  private usuariosSubject = new BehaviorSubject<Usuario[]>([]);
+  public usuarios$: Observable<Usuario[]> = this.usuariosSubject.asObservable();
+  public users$: Observable<Usuario[]> = this.usuarios$;
 
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$: Observable<boolean> = this.loadingSubject.asObservable();
+  private cargandoSubject = new BehaviorSubject<boolean>(false);
+  public cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+  public loading$: Observable<boolean> = this.cargando$;
 
   private errorSubject = new BehaviorSubject<string | null>(null);
   public error$: Observable<string | null> = this.errorSubject.asObservable();
 
   constructor(private userService: UserService) {}
 
-  loadUsers(search?: string, rolId?: number, activo?: boolean): void {
-    this.loadingSubject.next(true);
+  /**
+   * Carga los usuarios desde el servicio filtrando por criterios opcionales.
+   */
+  cargarUsuarios(search?: string, rolId?: number, activo?: boolean): void {
+    this.cargandoSubject.next(true);
     this.errorSubject.next(null);
 
-    this.userService.getUsers(search, rolId, activo).subscribe({
-      next: (users) => {
-        this.usersSubject.next(users);
-        this.loadingSubject.next(false);
+    this.userService.obtenerUsuarios(search, rolId, activo).subscribe({
+      next: (usuarios) => {
+        this.usuariosSubject.next(usuarios);
+        this.cargandoSubject.next(false);
       },
       error: (err) => {
         console.error('Error al cargar usuarios:', err);
         this.errorSubject.next(err?.error?.detail || 'No se pudieron cargar los usuarios');
-        this.loadingSubject.next(false);
+        this.cargandoSubject.next(false);
       }
     });
   }
 
-  createUser(userData: UsuarioCreateDTO): Observable<Usuario> {
-    this.loadingSubject.next(true);
+  /**
+   * Registra un nuevo usuario en la lista del controlador.
+   */
+  crearUsuario(userData: UsuarioCreateDTO): Observable<Usuario> {
+    this.cargandoSubject.next(true);
     return new Observable((subscriber) => {
-      this.userService.createUser(userData).subscribe({
-        next: (newUser) => {
-          const currentUsers = this.usersSubject.value;
-          this.usersSubject.next([newUser, ...currentUsers]);
-          this.loadingSubject.next(false);
-          subscriber.next(newUser);
+      this.userService.crearUsuario(userData).subscribe({
+        next: (nuevoUsuario) => {
+          const actuales = this.usuariosSubject.value;
+          this.usuariosSubject.next([nuevoUsuario, ...actuales]);
+          this.cargandoSubject.next(false);
+          subscriber.next(nuevoUsuario);
           subscriber.complete();
         },
         error: (err) => {
-          this.loadingSubject.next(false);
+          this.cargandoSubject.next(false);
           const errorMsg = err?.error?.detail || 'Error al crear el usuario';
           subscriber.error(errorMsg);
         }
@@ -55,19 +63,24 @@ export class UserController {
     });
   }
 
-  updateUser(id: number, userData: UsuarioUpdateDTO): Observable<Usuario> {
-    this.loadingSubject.next(true);
+  /**
+   * Actualiza los datos de un usuario en el estado observable.
+   */
+  actualizarUsuario(id: number, userData: UsuarioUpdateDTO): Observable<Usuario> {
+    this.cargandoSubject.next(true);
     return new Observable((subscriber) => {
-      this.userService.updateUser(id, userData).subscribe({
-        next: (updatedUser) => {
-          const updatedList = this.usersSubject.value.map(u => u.id === id ? { ...u, ...updatedUser } : u);
-          this.usersSubject.next(updatedList);
-          this.loadingSubject.next(false);
-          subscriber.next(updatedUser);
+      this.userService.actualizarUsuario(id, userData).subscribe({
+        next: (usuarioActualizado) => {
+          const listaActualizada = this.usuariosSubject.value.map(u => 
+            u.id === id ? { ...u, ...usuarioActualizado } : u
+          );
+          this.usuariosSubject.next(listaActualizada);
+          this.cargandoSubject.next(false);
+          subscriber.next(usuarioActualizado);
           subscriber.complete();
         },
         error: (err) => {
-          this.loadingSubject.next(false);
+          this.cargandoSubject.next(false);
           const errorMsg = err?.error?.detail || 'Error al actualizar el usuario';
           subscriber.error(errorMsg);
         }
@@ -75,14 +88,19 @@ export class UserController {
     });
   }
 
-  toggleStatus(id: number, currentStatus: boolean): Observable<Usuario> {
-    const nextStatus = !currentStatus;
+  /**
+   * Cambia el estado activo/suspendido de un usuario.
+   */
+  cambiarEstado(id: number, estadoActual: boolean): Observable<Usuario> {
+    const nuevoEstado = !estadoActual;
     return new Observable((subscriber) => {
-      this.userService.toggleUserStatus(id, nextStatus).subscribe({
-        next: (updatedUser) => {
-          const updatedList = this.usersSubject.value.map(u => u.id === id ? { ...u, activo: nextStatus } : u);
-          this.usersSubject.next(updatedList);
-          subscriber.next(updatedUser);
+      this.userService.cambiarEstadoUsuario(id, nuevoEstado).subscribe({
+        next: (usuarioActualizado) => {
+          const listaActualizada = this.usuariosSubject.value.map(u => 
+            u.id === id ? { ...u, activo: nuevoEstado } : u
+          );
+          this.usuariosSubject.next(listaActualizada);
+          subscriber.next(usuarioActualizado);
           subscriber.complete();
         },
         error: (err) => {
@@ -93,13 +111,18 @@ export class UserController {
     });
   }
 
-  assignRole(id: number, rolId: number): Observable<Usuario> {
+  /**
+   * Asigna un nuevo rol al usuario en el estado local.
+   */
+  asignarRol(id: number, rolId: number): Observable<Usuario> {
     return new Observable((subscriber) => {
-      this.userService.assignUserRole(id, rolId).subscribe({
-        next: (updatedUser) => {
-          const updatedList = this.usersSubject.value.map(u => u.id === id ? { ...u, rol_id: rolId, rolid: rolId } : u);
-          this.usersSubject.next(updatedList);
-          subscriber.next(updatedUser);
+      this.userService.asignarRolUsuario(id, rolId).subscribe({
+        next: (usuarioActualizado) => {
+          const listaActualizada = this.usuariosSubject.value.map(u => 
+            u.id === id ? { ...u, rol_id: rolId, rolid: rolId } : u
+          );
+          this.usuariosSubject.next(listaActualizada);
+          subscriber.next(usuarioActualizado);
           subscriber.complete();
         },
         error: (err) => {
@@ -110,23 +133,55 @@ export class UserController {
     });
   }
 
-  deleteUser(id: number): Observable<void> {
-    this.loadingSubject.next(true);
+  /**
+   * Elimina un usuario del estado local tras confirmación de la API.
+   */
+  eliminarUsuario(id: number): Observable<void> {
+    this.cargandoSubject.next(true);
     return new Observable((subscriber) => {
-      this.userService.deleteUser(id).subscribe({
+      this.userService.eliminarUsuario(id).subscribe({
         next: () => {
-          const updatedList = this.usersSubject.value.filter(u => u.id !== id);
-          this.usersSubject.next(updatedList);
-          this.loadingSubject.next(false);
+          const listaActualizada = this.usuariosSubject.value.filter(u => u.id !== id);
+          this.usuariosSubject.next(listaActualizada);
+          this.cargandoSubject.next(false);
           subscriber.next();
           subscriber.complete();
         },
         error: (err) => {
-          this.loadingSubject.next(false);
+          this.cargandoSubject.next(false);
           const errorMsg = err?.error?.detail || 'Error al eliminar el usuario';
           subscriber.error(errorMsg);
         }
       });
     });
   }
+
+  // ============================================================================
+  // ALIASES DE RETROCOMPATIBILIDAD
+  // ============================================================================
+  loadUsers(search?: string, rolId?: number, activo?: boolean): void {
+    this.cargarUsuarios(search, rolId, activo);
+  }
+
+  createUser(userData: UsuarioCreateDTO): Observable<Usuario> {
+    return this.crearUsuario(userData);
+  }
+
+  updateUser(id: number, userData: UsuarioUpdateDTO): Observable<Usuario> {
+    return this.actualizarUsuario(id, userData);
+  }
+
+  toggleStatus(id: number, currentStatus: boolean): Observable<Usuario> {
+    return this.cambiarEstado(id, currentStatus);
+  }
+
+  assignRole(id: number, rolId: number): Observable<Usuario> {
+    return this.asignarRol(id, rolId);
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.eliminarUsuario(id);
+  }
 }
+
+export { UserController as UsuarioController };

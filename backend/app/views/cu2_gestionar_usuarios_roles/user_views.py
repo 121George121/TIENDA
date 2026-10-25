@@ -3,15 +3,15 @@
 # Router de Gestión de Usuarios
 # ==============================================================================
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.schemas import UsuarioResponse, UsuarioAdminCreate, UsuarioUpdate, UsuarioEstadoUpdate, UsuarioRolUpdate
-from app.controllers.cu2_gestionar_usuarios_roles.user_controller import UserController
+from app.controllers.cu2_gestionar_usuarios_roles.user_controller import UsuarioController, UserController
 from app.core.dependencies import get_current_active_user, require_admin
-from app.models.models import UsuarioModel
+from app.models.models import Usuario, UsuarioModel
 
 router = APIRouter(
     prefix="/usuarios",
@@ -29,70 +29,114 @@ def listar_usuarios(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Listar usuarios con opciones de búsqueda y filtrado"""
-    return UserController.get_all(db=db, search=search, rol_id=rol_id, activo=activo, skip=skip, limit=limit)
+    """Listar usuarios con opciones de búsqueda, filtrado y aislamiento por Tenant"""
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.listar_usuarios(
+        db=db,
+        tenant_id=tenant_id,
+        search=search,
+        rol_id=rol_id,
+        activo=activo,
+        skip=skip,
+        limit=limit
+    )
+
 
 @router.get("/{user_id}", response_model=UsuarioResponse, summary="Obtener usuario por ID")
 def obtener_usuario(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Obtener detalle de usuario por ID"""
-    return UserController.get_by_id(db=db, user_id=user_id)
+    """Obtener detalle de usuario por ID verificando el tenant"""
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.obtener_usuario_por_id(db=db, user_id=user_id, tenant_id=tenant_id)
+
 
 @router.post("", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, summary="Crear usuario")
 @router.post("/", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
 def crear_usuario(
     user_data: UsuarioAdminCreate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
-    """Crear un nuevo usuario desde el panel administrativo"""
-    return UserController.create(db=db, user_data=user_data, operador_id=current_user.id)
+    """Crear un nuevo usuario validando límites de suscripción del Tenant"""
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.crear_usuario(
+        db=db,
+        user_data=user_data,
+        tenant_id=tenant_id,
+        operador_id=current_user.id
+    )
+
 
 @router.put("/{user_id}", response_model=UsuarioResponse, summary="Editar usuario")
 def editar_usuario(
     user_id: int,
     user_data: UsuarioUpdate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Editar información de un usuario existente"""
-    return UserController.update(db=db, user_id=user_id, user_data=user_data, operador_id=current_user.id)
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.actualizar_usuario(
+        db=db,
+        user_id=user_id,
+        user_data=user_data,
+        tenant_id=tenant_id,
+        operador_id=current_user.id
+    )
+
 
 @router.patch("/{user_id}/estado", response_model=UsuarioResponse, summary="Activar/Desactivar usuario")
 def cambiar_estado_usuario(
     user_id: int,
     estado_data: UsuarioEstadoUpdate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Activar o desactivar el acceso de un usuario"""
-    return UserController.toggle_status(db=db, user_id=user_id, activo=estado_data.activo, operador_id=current_user.id)
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.cambiar_estado_usuario(
+        db=db,
+        user_id=user_id,
+        activo=estado_data.activo,
+        tenant_id=tenant_id,
+        operador_id=current_user.id
+    )
+
 
 @router.patch("/{user_id}/rol", response_model=UsuarioResponse, summary="Asignar rol a usuario")
 def asignar_rol_usuario(
     user_id: int,
     rol_data: UsuarioRolUpdate,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Asignar o cambiar el rol de un usuario"""
-    return UserController.assign_role(db=db, user_id=user_id, rol_id=rol_data.rol_id, operador_id=current_user.id)
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.asignar_rol_usuario(
+        db=db,
+        user_id=user_id,
+        rol_id=rol_data.rol_id,
+        tenant_id=tenant_id,
+        operador_id=current_user.id
+    )
+
 
 @router.delete("/{user_id}", summary="Eliminar usuario")
 def eliminar_usuario(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: Usuario = Depends(get_current_active_user)
 ):
     """Eliminar definitivamente un usuario de la base de datos"""
-    if current_user.id == user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes eliminar tu propia cuenta de usuario mientras estás conectado."
-        )
-    return UserController.delete(db=db, user_id=user_id, operador_id=current_user.id)
+    tenant_id = getattr(current_user, "tenant_id", None) or 1
+    return UsuarioController.eliminar_usuario(
+        db=db,
+        user_id=user_id,
+        tenant_id=tenant_id,
+        operador_id=current_user.id
+    )

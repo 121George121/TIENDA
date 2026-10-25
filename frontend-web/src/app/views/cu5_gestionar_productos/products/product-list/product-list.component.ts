@@ -142,7 +142,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
       if (res) {
         this.productController.createProducto(res).subscribe({
           next: () => this.snackBar.open('Producto registrado exitosamente en PostgreSQL', 'Cerrar', { duration: 3000 }),
-          error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+          error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
         });
       }
     });
@@ -158,7 +158,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
       if (res) {
         this.productController.updateProducto(producto.id, res).subscribe({
           next: () => this.snackBar.open('Producto actualizado correctamente', 'Cerrar', { duration: 3000 }),
-          error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+          error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
         });
       }
     });
@@ -170,7 +170,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
         const statusText = !producto.activo ? 'activado' : 'desactivado (baja lógica)';
         this.snackBar.open(`Producto ${producto.nombre} ${statusText} correctamente`, 'Cerrar', { duration: 3000 });
       },
-      error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+      error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
     });
   }
 
@@ -191,7 +191,7 @@ export class ProductListComponent implements OnInit, OnDestroy {
       if (confirmed) {
         this.productController.deleteProducto(producto.id).subscribe({
           next: () => this.snackBar.open(`Producto "${producto.nombre}" eliminado definitivamente de la base de datos`, 'Cerrar', { duration: 3000 }),
-          error: (err) => {
+          error: (err: any) => {
             const errorMsg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al eliminar');
             this.snackBar.open(`Error al eliminar: ${errorMsg}`, 'Cerrar', { duration: 5000 });
           }

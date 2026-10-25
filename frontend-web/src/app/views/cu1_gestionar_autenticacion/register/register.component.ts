@@ -1,8 +1,14 @@
+// ==============================================================================
+// CAPA VISTA (MVC - VIEW COMPONENT)
+// Módulo: CU1 - Gestionar Autenticación
+// Ubicación: frontend-web/src/app/views/cu1_gestionar_autenticacion/register/register.component.ts
+// ==============================================================================
+
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../services/cu1_gestionar_autenticacion/auth.service';
+import { AuthController } from '../../../controllers/cu1_gestionar_autenticacion/auth.controller';
 
 @Component({
   selector: 'app-register',
@@ -25,7 +31,7 @@ export class RegisterComponent {
 
   constructor(
     private fb: FormBuilder,
-    private authService: AuthService,
+    private authController: AuthController,
     private router: Router
   ) {
     this.registerForm = this.fb.group({
@@ -67,13 +73,13 @@ export class RegisterComponent {
       password: val.password
     };
 
-    this.authService.registro(payload).subscribe({
+    this.authController.registrarUsuario(payload).subscribe({
       next: (res: any) => {
         this.isLoading = false;
         this.registeredEmail = payload.email;
         this.demoOtpCode = res.codigo_demo || '';
         this.step = 'OTP';
-        this.successMessage = '¡Código de verificación enviado! Revisa tu correo o usa el código de prueba.';
+        this.successMessage = res.mensaje || '¡Registro exitoso! Revisa tu correo para verificar tu cuenta.';
       },
       error: (err: any) => {
         this.isLoading = false;
@@ -93,12 +99,9 @@ export class RegisterComponent {
 
     const codigo = this.otpForm.get('codigo')?.value.trim();
 
-    this.authService.verificarCodigo(this.registeredEmail, codigo).subscribe({
+    this.authController.verificarCodigoOtp(this.registeredEmail, codigo).subscribe({
       next: (res: any) => {
         this.isLoading = false;
-        if (res.access_token) {
-          localStorage.setItem('access_token', res.access_token);
-        }
         alert('¡Cuenta verificada con éxito! Bienvenido a la plataforma.');
         this.router.navigate(['/catalogo']);
       },

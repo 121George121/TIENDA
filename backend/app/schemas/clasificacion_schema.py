@@ -24,6 +24,7 @@ class CategoriaUpdate(BaseModel):
 
 class CategoriaResponse(CategoriaBase):
     id: int
+    tenant_id: Optional[int] = 1
 
     class Config:
         from_attributes = True
@@ -48,6 +49,7 @@ class TemporadaUpdate(BaseModel):
 
 class TemporadaResponse(TemporadaBase):
     id: int
+    tenant_id: Optional[int] = 1
 
     class Config:
         from_attributes = True
@@ -72,6 +74,7 @@ class ColeccionUpdate(BaseModel):
 
 class ColeccionResponse(ColeccionBase):
     id: int
+    tenant_id: Optional[int] = 1
     temporada: Optional[TemporadaResponse] = None
 
     class Config:

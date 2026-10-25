@@ -9,10 +9,11 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class ReservaModel(Base):
+class Reserva(Base):
     __tablename__ = "reserva"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     codigoreserva = Column(String(100), unique=True, nullable=False, index=True)
     fechareserva = Column(DateTime, default=datetime.utcnow, nullable=False)
     estado = Column(String(50), default="PENDIENTE", nullable=False)  # PENDIENTE, CONFIRMADA, ENTREGADA, CANCELADA, EXPIRADA
@@ -20,17 +21,27 @@ class ReservaModel(Base):
     sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="RESTRICT"), nullable=False, index=True)
     clienteid = Column(Integer, ForeignKey("cliente.id", ondelete="RESTRICT"), nullable=False, index=True)
 
-    sucursal = relationship("SucursalModel", backref="reservas")
-    cliente = relationship("ClienteModel", backref="reservas")
-    detalles = relationship("ReservaDetalleModel", back_populates="reserva", cascade="all, delete-orphan")
+    sucursal = relationship("Sucursal", backref="reservas")
+    cliente = relationship("Cliente", backref="reservas")
+    detalles = relationship("ReservaDetalle", back_populates="reserva", cascade="all, delete-orphan")
 
 
-class ReservaDetalleModel(Base):
+class ReservaDetalle(Base):
     __tablename__ = "reserva_detalle"
 
     varianteid = Column(Integer, ForeignKey("variante_producto.id", ondelete="RESTRICT"), primary_key=True)
     reservaid = Column(Integer, ForeignKey("reserva.id", ondelete="CASCADE"), primary_key=True)
     cantidad = Column(Integer, nullable=False)
 
-    reserva = relationship("ReservaModel", back_populates="detalles")
-    variante = relationship("VarianteProductoModel")
+    reserva = relationship("Reserva", back_populates="detalles")
+    variante = relationship("VarianteProducto")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+ReservaModel = Reserva
+ReservaDetalleModel = ReservaDetalle
+
+reserva = Reserva
+reserva_detalle = ReservaDetalle

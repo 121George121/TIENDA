@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
+import { AuthController } from '../../controllers/cu1_gestionar_autenticacion/auth.controller';
 
 @Component({
   selector: 'app-recover-password',
@@ -66,7 +66,7 @@ export class RecoverPasswordComponent {
   successMessage = '';
   errorMessage = '';
 
-  constructor(private fb: FormBuilder, private authService: AuthService) {
+  constructor(private fb: FormBuilder, private authController: AuthController) {
     this.recoverForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]]
     });
@@ -77,7 +77,7 @@ export class RecoverPasswordComponent {
     this.isLoading = true;
     this.errorMessage = '';
     
-    this.authService.requestPasswordRecovery(this.recoverForm.value.email).subscribe({
+    this.authController.solicitarRecuperacionContrasenia(this.recoverForm.value.email).subscribe({
       next: (res: any) => {
         this.isLoading = false;
         this.successMessage = res.mensaje;

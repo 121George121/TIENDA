@@ -30,6 +30,8 @@ class UsuarioCreate(UsuarioBase):
     password: str
     apellido: Optional[str] = None
     telefono: Optional[str] = None
+    tenant_id: Optional[int] = 1
+    tenant_slug: Optional[str] = None
 
     @field_validator('password')
     @classmethod
@@ -89,6 +91,9 @@ class UsuarioResponse(UsuarioBase):
     activo: bool
     apellido: Optional[str] = None
     telefono: Optional[str] = None
+    tenant_id: Optional[int] = 1
+    tenant_slug: Optional[str] = None
+    tenant_nombre: Optional[str] = None
     created_at: Optional[datetime] = Field(default=None, validation_alias=AliasChoices('created_at', 'fechacreacion'))
     fechacreacion: Optional[datetime] = Field(default=None, validation_alias=AliasChoices('fechacreacion', 'created_at'))
     rol_id: Optional[int] = Field(default=None, validation_alias=AliasChoices('rol_id', 'rolid'))
@@ -103,10 +108,14 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     usuario: UsuarioResponse
     rol: Optional[str] = None
+    tenant_id: Optional[int] = None
+    tenant_slug: Optional[str] = None
+    tenant_nombre: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    tenant_slug: Optional[str] = None
 
 class PasswordRecoveryRequest(BaseModel):
     email: EmailStr

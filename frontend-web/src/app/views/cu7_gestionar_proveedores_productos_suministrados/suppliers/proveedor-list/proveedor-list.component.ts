@@ -94,7 +94,7 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
       if (res) {
         this.controller.createProveedor(res).subscribe({
           next: () => this.snackBar.open('Proveedor registrado exitosamente en PostgreSQL', 'Cerrar', { duration: 3000 }),
-          error: (err) => {
+          error: (err: any) => {
             const msg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al registrar proveedor');
             this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
           }
@@ -113,7 +113,7 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
       if (res) {
         this.controller.updateProveedor(proveedor.id, res).subscribe({
           next: () => this.snackBar.open('Proveedor actualizado correctamente', 'Cerrar', { duration: 3000 }),
-          error: (err) => {
+          error: (err: any) => {
             const msg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al actualizar');
             this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
           }
@@ -127,7 +127,7 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
     const accion = nuevoEstado ? 'activado' : 'desactivado';
     this.controller.updateProveedor(proveedor.id, { activo: nuevoEstado }).subscribe({
       next: () => this.snackBar.open(`Proveedor ${proveedor.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
-      error: (err) => {
+      error: (err: any) => {
         const msg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al cambiar estado');
         this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
       }
@@ -151,7 +151,7 @@ export class ProveedorListComponent implements OnInit, OnDestroy {
       if (confirmed) {
         this.controller.deleteProveedor(proveedor.id).subscribe({
           next: () => this.snackBar.open(`Proveedor "${proveedor.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 }),
-          error: (err) => {
+          error: (err: any) => {
             const msg = typeof err === 'string' ? err : (err?.error?.detail || err?.message || 'Error al eliminar');
             this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
           }

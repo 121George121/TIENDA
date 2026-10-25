@@ -9,36 +9,53 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
-class CategoriaModel(Base):
+class Categoria(Base):
     __tablename__ = "categoria"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text, nullable=True)
     activo = Column(Boolean, default=True)
 
-    productos = relationship("ProductoModel", back_populates="categoria")
+    productos = relationship("Producto", back_populates="categoria")
 
-class TemporadaModel(Base):
+
+class Temporada(Base):
     __tablename__ = "temporada"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text, nullable=True)
     fechainicio = Column(Date, nullable=True)
     fechafin = Column(Date, nullable=True)
     activo = Column(Boolean, default=True)
 
-    colecciones = relationship("ColeccionModel", back_populates="temporada")
+    colecciones = relationship("Coleccion", back_populates="temporada")
 
-class ColeccionModel(Base):
+
+class Coleccion(Base):
     __tablename__ = "coleccion"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text, nullable=True)
     imagenurl = Column(Text, nullable=True)
     activo = Column(Boolean, default=True)
     temporadaid = Column(Integer, ForeignKey("temporada.id"), nullable=True)
 
-    temporada = relationship("TemporadaModel", back_populates="colecciones")
+    temporada = relationship("Temporada", back_populates="colecciones")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+CategoriaModel = Categoria
+TemporadaModel = Temporada
+ColeccionModel = Coleccion
+
+categoria = Categoria
+temporada = Temporada
+coleccion = Coleccion

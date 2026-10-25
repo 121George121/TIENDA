@@ -1,3 +1,9 @@
+// ==============================================================================
+// MODELO (MVC - MODEL)
+// Módulo: CU7 - Proveedores y Productos Suministrados
+// Ubicación: frontend-web/src/app/models/cu7_gestionar_proveedores_productos_suministrados/proveedor.model.ts
+// ==============================================================================
+
 import { Producto } from '../cu5_gestionar_productos/product.model';
 
 export interface ProductoProveedor {
@@ -10,6 +16,7 @@ export interface ProductoProveedor {
 
 export interface Proveedor {
   id: number;
+  tenant_id?: number;
   nombre: string;
   razonsocial?: string;
   nit?: string;
@@ -43,3 +50,8 @@ export interface ProveedorUpdateDTO {
   direccion?: string;
   activo?: boolean;
 }
+
+// Aliases de compatibilidad
+export type Supplier = Proveedor;
+export type SupplierCreateDTO = ProveedorCreateDTO;
+export type SupplierUpdateDTO = ProveedorUpdateDTO;

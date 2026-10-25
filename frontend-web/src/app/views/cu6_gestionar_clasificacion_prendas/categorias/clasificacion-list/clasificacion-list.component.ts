@@ -124,17 +124,17 @@ export class ClasificacionListComponent implements OnInit, OnDestroy {
         if (type === 'categoria') {
           this.controller.createCategoria(res).subscribe({
             next: () => this.snackBar.open('Categoría creada en PostgreSQL', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'temporada') {
           this.controller.createTemporada(res).subscribe({
             next: () => this.snackBar.open('Temporada creada en PostgreSQL', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'coleccion') {
           this.controller.createColeccion(res).subscribe({
             next: () => this.snackBar.open('Colección creada en PostgreSQL', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         }
       }
@@ -152,17 +152,17 @@ export class ClasificacionListComponent implements OnInit, OnDestroy {
         if (type === 'categoria') {
           this.controller.updateCategoria(item.id, res).subscribe({
             next: () => this.snackBar.open('Categoría actualizada', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'temporada') {
           this.controller.updateTemporada(item.id, res).subscribe({
             next: () => this.snackBar.open('Temporada actualizada', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         } else if (type === 'coleccion') {
           this.controller.updateColeccion(item.id, res).subscribe({
             next: () => this.snackBar.open('Colección actualizada', 'Cerrar', { duration: 3000 }),
-            error: (err) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
+            error: (err: any) => this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 })
           });
         }
       }
@@ -175,17 +175,17 @@ export class ClasificacionListComponent implements OnInit, OnDestroy {
     if (type === 'categoria') {
       this.controller.updateCategoria(item.id, { activo: nuevoEstado }).subscribe({
         next: () => this.snackBar.open(`Categoría ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
-        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+        error: (err: any) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
       });
     } else if (type === 'temporada') {
       this.controller.updateTemporada(item.id, { activo: nuevoEstado }).subscribe({
         next: () => this.snackBar.open(`Temporada ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
-        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+        error: (err: any) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
       });
     } else if (type === 'coleccion') {
       this.controller.updateColeccion(item.id, { activo: nuevoEstado }).subscribe({
         next: () => this.snackBar.open(`Colección ${item.nombre} ${accion} correctamente`, 'Cerrar', { duration: 3000 }),
-        error: (err) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
+        error: (err: any) => this.snackBar.open(`Error al cambiar estado: ${err}`, 'Cerrar', { duration: 4000 })
       });
     }
   }

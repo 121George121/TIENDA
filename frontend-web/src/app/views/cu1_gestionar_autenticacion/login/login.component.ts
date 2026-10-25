@@ -1,8 +1,14 @@
+// ==============================================================================
+// CAPA VISTA (MVC - VIEW COMPONENT)
+// Módulo: CU1 - Gestionar Autenticación
+// Ubicación: frontend-web/src/app/views/cu1_gestionar_autenticacion/login/login.component.ts
+// ==============================================================================
+
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthController } from '../../../controllers/cu1_gestionar_autenticacion/auth.controller';
 
 @Component({
   selector: 'app-login',
@@ -20,7 +26,7 @@ export class LoginComponent {
   constructor(
     private fb: FormBuilder, 
     private router: Router,
-    private authService: AuthService
+    private authController: AuthController
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -38,25 +44,14 @@ export class LoginComponent {
     
     const { email, password } = this.loginForm.value;
 
-    this.authService.login(email, password).subscribe({
+    this.authController.iniciarSesion(email, password).subscribe({
       next: (response) => {
         this.isLoading = false;
         
-        const token = response.access_token;
-        const userStr = JSON.stringify(response.usuario);
-        const rol = response.rol || (response.usuario && response.usuario.rol ? response.usuario.rol.nombre : 'CLIENTE');
-
-        // Guardar todas las llaves posibles para compatibilidad
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('token', token);
-        localStorage.setItem('usuario', userStr);
-        localStorage.setItem('user', userStr);
-        localStorage.setItem('rol', rol);
-        localStorage.setItem('user_role', rol);
+        const rol = (response.rol || 'CLIENTE').toUpperCase();
         
-        // Redirigir según el rol
-        const rolUpper = (rol || '').toUpperCase();
-        if (rolUpper === 'ADMIN' || rolUpper === 'ADMINISTRADOR') {
+        // Redirigir según el rol del usuario
+        if (rol === 'ADMIN' || rol === 'ADMINISTRADOR' || rol === 'SUPERVISOR') {
           this.router.navigate(['/admin/users']);
         } else {
           this.router.navigate(['/catalogo']);

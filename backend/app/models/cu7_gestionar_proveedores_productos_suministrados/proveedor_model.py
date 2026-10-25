@@ -9,10 +9,11 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class ProveedorModel(Base):
+class Proveedor(Base):
     __tablename__ = "proveedor"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(150), nullable=False)
     razonsocial = Column(String(150), nullable=True)
     nit = Column(String(50), nullable=True)
@@ -23,9 +24,10 @@ class ProveedorModel(Base):
     activo = Column(Boolean, default=True)
     fechacreacion = Column(DateTime, default=datetime.utcnow)
 
-    productos_suministrados = relationship("ProductoProveedorModel", back_populates="proveedor")
+    productos_suministrados = relationship("ProductoProveedor", back_populates="proveedor")
 
-class ProductoProveedorModel(Base):
+
+class ProductoProveedor(Base):
     __tablename__ = "producto_proveedor"
 
     idproducto = Column(Integer, ForeignKey("producto.id"), primary_key=True)
@@ -33,5 +35,15 @@ class ProductoProveedorModel(Base):
     costocompra = Column(Numeric(10, 2), nullable=True)
     cantidad = Column(Integer, default=0)
 
-    proveedor = relationship("ProveedorModel", back_populates="productos_suministrados")
-    producto = relationship("ProductoModel")
+    proveedor = relationship("Proveedor", back_populates="productos_suministrados")
+    producto = relationship("Producto")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+ProveedorModel = Proveedor
+ProductoProveedorModel = ProductoProveedor
+
+proveedor = Proveedor
+producto_proveedor = ProductoProveedor

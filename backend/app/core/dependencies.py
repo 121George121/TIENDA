@@ -54,6 +54,32 @@ def require_roles(*allowed_roles: str):
         return current_user
     return role_checker
 
+obtener_usuario_actual = get_current_user
+obtener_usuario_activo = get_current_active_user
+
+def obtener_tenant_actual(
+    current_user: UsuarioModel = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Obtiene y valida el Tenant asignado al usuario activo actual"""
+    from app.models.models import TenantModel
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    tenant = db.query(TenantModel).filter(TenantModel.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="La organización o tenant asignada no existe"
+        )
+    if not tenant.activo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="La organización o tenant se encuentra suspendida o inactiva"
+        )
+    return tenant
+
+get_current_tenant = obtener_tenant_actual
+
 require_admin = require_roles("Administrador", "Admin", "Supervisor", "Gerente")
 require_staff = require_roles("Administrador", "Supervisor", "Cajero", "Admin", "Gerente")
+
 

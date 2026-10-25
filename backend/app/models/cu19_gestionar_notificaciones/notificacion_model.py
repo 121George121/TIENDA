@@ -8,10 +8,11 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class NotificacionModel(Base):
+class Notificacion(Base):
     __tablename__ = "notificacion"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     usuario_id = Column(Integer, ForeignKey("usuario.id", ondelete="CASCADE"), nullable=True, index=True)
     titulo = Column(String(150), nullable=False)
     mensaje = Column(Text, nullable=False)
@@ -19,3 +20,10 @@ class NotificacionModel(Base):
     leido = Column(Boolean, default=False)
     enlace = Column(String(255), nullable=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+NotificacionModel = Notificacion
+notificacion = Notificacion

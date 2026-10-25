@@ -10,8 +10,12 @@ export class ProductController {
   private productosSubject = new BehaviorSubject<Producto[]>([]);
   public productos$: Observable<Producto[]> = this.productosSubject.asObservable();
 
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$: Observable<boolean> = this.loadingSubject.asObservable();
+  private cargandoSubject = new BehaviorSubject<boolean>(false);
+  public cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+  public loading$: Observable<boolean> = this.cargando$;
+
+  private errorSubject = new BehaviorSubject<string | null>(null);
+  public error$: Observable<string | null> = this.errorSubject.asObservable();
 
   constructor(private productService: ProductService) {}
 
@@ -19,30 +23,44 @@ export class ProductController {
     return this.productosSubject.value;
   }
 
-  loadProductos(search?: string, categoria_id?: number, genero?: string, activo?: boolean): void {
-    this.loadingSubject.next(true);
-    this.productService.getProductos(search, categoria_id, genero, activo)
-      .pipe(finalize(() => this.loadingSubject.next(false)))
+  /**
+   * Carga el catálogo de productos con filtros y paginación.
+   */
+  cargarProductos(search?: string, categoria_id?: number, genero?: string, activo?: boolean): void {
+    this.cargandoSubject.next(true);
+    this.errorSubject.next(null);
+
+    this.productService.obtenerProductos(search, categoria_id, genero, activo)
+      .pipe(finalize(() => this.cargandoSubject.next(false)))
       .subscribe({
         next: (res) => this.productosSubject.next(res),
-        error: (err) => console.error('Error al cargar productos:', err)
+        error: (err) => {
+          console.error('Error al cargar productos:', err);
+          this.errorSubject.next(err?.error?.detail || 'No se pudieron cargar los productos');
+        }
       });
   }
 
-  createProducto(data: ProductoCreateDTO): Observable<Producto> {
-    this.loadingSubject.next(true);
-    return this.productService.createProducto(data).pipe(
+  /**
+   * Registra un nuevo producto en el catálogo.
+   */
+  crearProducto(data: ProductoCreateDTO): Observable<Producto> {
+    this.cargandoSubject.next(true);
+    return this.productService.crearProducto(data).pipe(
       tap((newProd) => {
         const current = this.productosSubject.value;
         this.productosSubject.next([newProd, ...current]);
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
 
-  updateProducto(id: number, data: ProductoUpdateDTO): Observable<Producto> {
-    this.loadingSubject.next(true);
-    return this.productService.updateProducto(id, data).pipe(
+  /**
+   * Actualiza los datos de un producto en el estado observable.
+   */
+  actualizarProducto(id: number, data: ProductoUpdateDTO): Observable<Producto> {
+    this.cargandoSubject.next(true);
+    return this.productService.actualizarProducto(id, data).pipe(
       tap((updated) => {
         const current = this.productosSubject.value;
         const index = current.findIndex(p => p.id === id);
@@ -52,13 +70,16 @@ export class ProductController {
           this.productosSubject.next(list);
         }
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
 
-  toggleStatus(id: number, currentStatus: boolean): Observable<Producto> {
+  /**
+   * Activa o suspende un producto del catálogo.
+   */
+  cambiarEstado(id: number, currentStatus: boolean): Observable<Producto> {
     const newStatus = !currentStatus;
-    return this.productService.toggleStatus(id, newStatus).pipe(
+    return this.productService.cambiarEstadoProducto(id, newStatus).pipe(
       tap((updated) => {
         const current = this.productosSubject.value;
         const index = current.findIndex(p => p.id === id);
@@ -71,15 +92,43 @@ export class ProductController {
     );
   }
 
-  deleteProducto(id: number): Observable<{ message: string; id: number }> {
-    this.loadingSubject.next(true);
-    return this.productService.deleteProducto(id).pipe(
+  /**
+   * Elimina un producto de la base de datos o lo desactiva.
+   */
+  eliminarProducto(id: number): Observable<{ message: string; id: number }> {
+    this.cargandoSubject.next(true);
+    return this.productService.eliminarProducto(id).pipe(
       tap(() => {
         const current = this.productosSubject.value;
         const updatedList = current.filter(p => p.id !== id);
         this.productosSubject.next(updatedList);
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
+
+  // ============================================================================
+  // ALIASES DE RETROCOMPATIBILIDAD
+  // ============================================================================
+  loadProductos(search?: string, categoria_id?: number, genero?: string, activo?: boolean): void {
+    this.cargarProductos(search, categoria_id, genero, activo);
+  }
+
+  createProducto(data: ProductoCreateDTO): Observable<Producto> {
+    return this.crearProducto(data);
+  }
+
+  updateProducto(id: number, data: ProductoUpdateDTO): Observable<Producto> {
+    return this.actualizarProducto(id, data);
+  }
+
+  toggleStatus(id: number, currentStatus: boolean): Observable<Producto> {
+    return this.cambiarEstado(id, currentStatus);
+  }
+
+  deleteProducto(id: number): Observable<{ message: string; id: number }> {
+    return this.eliminarProducto(id);
+  }
 }
+
+export { ProductController as ProductoController };

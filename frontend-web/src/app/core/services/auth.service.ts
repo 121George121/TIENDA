@@ -1,8 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
 import { environment } from '../../../environments/environment';
+
+export interface TenantInfo {
+  id: number;
+  slug: string;
+  nombre: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,38 +17,40 @@ export class AuthService {
 
   constructor(private http: HttpClient) {}
 
-  login(email: string, password: string): Observable<any> {
-    const body = new URLSearchParams();
-    body.set('username', email); // OAuth2 form uses 'username' instead of 'email'
-    body.set('password', password);
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/x-www-form-urlencoded'
-    });
-
-    return this.http.post(`${this.apiUrl}/login`, body.toString(), { headers });
+  /**
+   * Inicia sesión vía OAuth2 Form o JSON
+   */
+  iniciarSesion(email: string, password: string, tenantSlug?: string): Observable<any> {
+    const payload = {
+      email: email.trim().toLowerCase(),
+      password: password,
+      tenant_slug: tenantSlug
+    };
+    return this.http.post(`${this.apiUrl}/login/json`, payload);
   }
 
-  requestPasswordRecovery(email: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/recuperar-password`, { email });
+  solicitarRecuperacionContrasenia(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/recuperar-password`, { email: email.trim().toLowerCase() });
   }
 
-  resetPassword(token: string, newPassword: string): Observable<any> {
+  restablecerContrasenia(token: string, newPassword: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/reset-password`, {
-      token: token,
+      token: token.trim(),
       new_password: newPassword
     });
   }
 
-  getToken(): string | null {
+  obtenerToken(): string | null {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('access_token') || localStorage.getItem('token');
   }
 
-  isAuthenticated(): boolean {
-    return !!this.getToken();
+  estaAutenticado(): boolean {
+    return !!this.obtenerToken();
   }
 
-  getCurrentUser(): any {
+  obtenerUsuarioActual(): any {
+    if (typeof window === 'undefined') return null;
     const userStr = localStorage.getItem('usuario') || localStorage.getItem('user');
     if (!userStr) return null;
     try {
@@ -53,11 +60,25 @@ export class AuthService {
     }
   }
 
-  getUserRole(): string {
+  obtenerTenantActual(): TenantInfo | null {
+    if (typeof window === 'undefined') return null;
+    const tenantIdStr = localStorage.getItem('tenant_id');
+    const tenantSlug = localStorage.getItem('tenant_slug') || 'goldenstore';
+    const tenantNombre = localStorage.getItem('tenant_nombre') || 'Shopyn Golden Store';
+    if (!tenantIdStr) return null;
+    return {
+      id: parseInt(tenantIdStr, 10),
+      slug: tenantSlug,
+      nombre: tenantNombre
+    };
+  }
+
+  obtenerRolUsuario(): string {
+    if (typeof window === 'undefined') return '';
     const directRol = localStorage.getItem('rol') || localStorage.getItem('user_role');
     if (directRol) return directRol.toUpperCase();
 
-    const user = this.getCurrentUser();
+    const user = this.obtenerUsuarioActual();
     if (user) {
       if (typeof user.rol === 'string') return user.rol.toUpperCase();
       if (user.rol && typeof user.rol.nombre === 'string') return user.rol.nombre.toUpperCase();
@@ -67,23 +88,69 @@ export class AuthService {
     return '';
   }
 
-  isAdmin(): boolean {
-    const role = this.getUserRole();
+  esAdministrador(): boolean {
+    const role = this.obtenerRolUsuario();
     return role === 'ADMIN' || role === 'ADMINISTRADOR' || role === 'SUPERVISOR';
   }
 
-  isCliente(): boolean {
-    const role = this.getUserRole();
-    return role === 'CLIENTE' || (!this.isAdmin() && this.isAuthenticated());
+  esCliente(): boolean {
+    const role = this.obtenerRolUsuario();
+    return role === 'CLIENTE' || (!this.esAdministrador() && this.estaAutenticado());
   }
 
-  logout(): void {
+  cerrarSesion(): void {
+    if (typeof window === 'undefined') return;
     localStorage.removeItem('access_token');
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     localStorage.removeItem('user');
     localStorage.removeItem('rol');
     localStorage.removeItem('user_role');
+    localStorage.removeItem('tenant_id');
+    localStorage.removeItem('tenant_slug');
+    localStorage.removeItem('tenant_nombre');
+  }
+
+  // ============================================================================
+  // ALIASES DE COMPATIBILIDAD
+  // ============================================================================
+  login(email: string, password: string): Observable<any> {
+    return this.iniciarSesion(email, password);
+  }
+
+  requestPasswordRecovery(email: string): Observable<any> {
+    return this.solicitarRecuperacionContrasenia(email);
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    return this.restablecerContrasenia(token, newPassword);
+  }
+
+  getToken(): string | null {
+    return this.obtenerToken();
+  }
+
+  isAuthenticated(): boolean {
+    return this.estaAutenticado();
+  }
+
+  getCurrentUser(): any {
+    return this.obtenerUsuarioActual();
+  }
+
+  getUserRole(): string {
+    return this.obtenerRolUsuario();
+  }
+
+  isAdmin(): boolean {
+    return this.esAdministrador();
+  }
+
+  isCliente(): boolean {
+    return this.esCliente();
+  }
+
+  logout(): void {
+    this.cerrarSesion();
   }
 }
-

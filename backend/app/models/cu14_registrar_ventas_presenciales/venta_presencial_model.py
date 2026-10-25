@@ -9,10 +9,11 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class VentaModel(Base):
+class Venta(Base):
     __tablename__ = "venta"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     codigoventa = Column(String(100), nullable=False, unique=True)
     tipoventa = Column(String(50), nullable=False, default="Presencial")
     estado = Column(String(50), nullable=False, default="Completada")
@@ -24,14 +25,14 @@ class VentaModel(Base):
     clienteid = Column(Integer, ForeignKey("cliente.id"), nullable=False)
     usuarioid = Column(Integer, ForeignKey("usuario.id"), nullable=False)
 
-    detalles = relationship("DetalleVentaModel", back_populates="venta", cascade="all, delete-orphan")
-    pagos = relationship("PagoModel", back_populates="venta", cascade="all, delete-orphan")
-    sucursal = relationship("app.models.cu4_gestionar_sucursales.sucursal_model.SucursalModel")
-    cliente = relationship("app.models.cu3_gestionar_clientes.cliente_model.ClienteModel")
-    usuario = relationship("app.models.cu1_gestionar_autenticacion.usuario_rol_model.UsuarioModel")
+    detalles = relationship("DetalleVenta", back_populates="venta", cascade="all, delete-orphan")
+    pagos = relationship("Pago", back_populates="venta", cascade="all, delete-orphan")
+    sucursal = relationship("Sucursal")
+    cliente = relationship("Cliente")
+    usuario = relationship("Usuario")
 
 
-class DetalleVentaModel(Base):
+class DetalleVenta(Base):
     __tablename__ = "detalle_venta"
 
     ventaid = Column(Integer, ForeignKey("venta.id"), primary_key=True)
@@ -41,11 +42,11 @@ class DetalleVentaModel(Base):
     descuento = Column(Numeric(12, 2), default=0)
     subtotal = Column(Numeric(12, 2), nullable=False)
 
-    venta = relationship("VentaModel", back_populates="detalles")
-    variante = relationship("app.models.cu5_gestionar_productos.producto_model.VarianteProductoModel")
+    venta = relationship("Venta", back_populates="detalles")
+    variante = relationship("VarianteProducto")
 
 
-class MetodoPagoModel(Base):
+class MetodoPago(Base):
     __tablename__ = "metodo_pago"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -53,18 +54,20 @@ class MetodoPagoModel(Base):
     estado = Column(Boolean, default=True)
 
 
-class ReciboModel(Base):
+class Recibo(Base):
     __tablename__ = "recibo"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     estado = Column(String(50), nullable=False, default="Emitido")
     fecha = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-class PagoModel(Base):
+class Pago(Base):
     __tablename__ = "pago"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     monto = Column(Numeric(12, 2), nullable=False)
     estado = Column(String(50), nullable=False, default="Aprobado")
     referencia = Column(String(150), nullable=True)
@@ -73,5 +76,21 @@ class PagoModel(Base):
     reciboid = Column(Integer, ForeignKey("recibo.id"), nullable=True)
     metodoid = Column(Integer, ForeignKey("metodo_pago.id"), nullable=False)
 
-    venta = relationship("VentaModel", back_populates="pagos")
-    metodo = relationship("MetodoPagoModel")
+    venta = relationship("Venta", back_populates="pagos")
+    metodo = relationship("MetodoPago")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+VentaModel = Venta
+DetalleVentaModel = DetalleVenta
+MetodoPagoModel = MetodoPago
+ReciboModel = Recibo
+PagoModel = Pago
+
+venta = Venta
+detalle_venta = DetalleVenta
+metodo_pago = MetodoPago
+recibo = Recibo
+pago = Pago

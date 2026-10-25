@@ -10,10 +10,11 @@ from datetime import datetime
 from app.core.database import Base
 
 
-class ProductoModel(Base):
+class Producto(Base):
     __tablename__ = "producto"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(150), nullable=False)
     descripcion = Column(Text, nullable=True)
     marca = Column(String(100), nullable=True)
@@ -26,8 +27,8 @@ class ProductoModel(Base):
     fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     categoriaid = Column(Integer, ForeignKey("categoria.id"), nullable=True)
 
-    categoria = relationship("CategoriaModel", back_populates="productos")
-    variantes = relationship("VarianteProductoModel", back_populates="producto")
+    categoria = relationship("Categoria", back_populates="productos")
+    variantes = relationship("VarianteProducto", back_populates="producto")
 
     @property
     def precio(self):
@@ -45,7 +46,8 @@ class ProductoModel(Base):
     def stock(self):
         return 20
 
-class ColorModel(Base):
+
+class Color(Base):
     __tablename__ = "color"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -53,7 +55,8 @@ class ColorModel(Base):
     codigohex = Column(String(10), nullable=True)
     activo = Column(Boolean, default=True)
 
-class TallaModel(Base):
+
+class Talla(Base):
     __tablename__ = "talla"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -62,7 +65,8 @@ class TallaModel(Base):
     orden = Column(Integer, default=0)
     activo = Column(Boolean, default=True)
 
-class VarianteProductoModel(Base):
+
+class VarianteProducto(Base):
     __tablename__ = "variante_producto"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -76,6 +80,20 @@ class VarianteProductoModel(Base):
     activo = Column(Boolean, default=True)
     fechacreacion = Column(DateTime, default=datetime.utcnow)
 
-    producto = relationship("ProductoModel", back_populates="variantes")
-    color = relationship("ColorModel")
-    talla = relationship("TallaModel")
+    producto = relationship("Producto", back_populates="variantes")
+    color = relationship("Color")
+    talla = relationship("Talla")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+ProductoModel = Producto
+ColorModel = Color
+TallaModel = Talla
+VarianteProductoModel = VarianteProducto
+
+producto = Producto
+color = Color
+talla = Talla
+variante_producto = VarianteProducto

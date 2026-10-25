@@ -3,16 +3,17 @@
 # Ubicacion: backend/app/models/cu4_gestionar_sucursales/sucursal_model.py
 # ==============================================================================
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
 
 
-class SucursalModel(Base):
+class Sucursal(Base):
     __tablename__ = "sucursal"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     nombre = Column(String(100), nullable=False)
     ciudad = Column(String(100), nullable=True)
     direccion = Column(String(255), nullable=True)
@@ -22,4 +23,11 @@ class SucursalModel(Base):
     activo = Column(Boolean, default=True)
     fechacreacion = Column(DateTime, default=datetime.utcnow)
 
-    usuarios = relationship("UsuarioModel", back_populates="sucursal")
+    usuarios = relationship("Usuario", back_populates="sucursal")
+
+
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (DIAGRAMAS Y CODIGO EXISTENTE)
+# ==============================================================================
+SucursalModel = Sucursal
+sucursal = Sucursal

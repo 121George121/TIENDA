@@ -120,11 +120,11 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.customerController.createCliente(result).subscribe({
+        this.customerController.crearCliente(result).subscribe({
           next: () => {
             this.snackBar.open('Cliente registrado exitosamente', 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
@@ -140,11 +140,11 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        this.customerController.updateCliente(cliente.id, result).subscribe({
+        this.customerController.actualizarCliente(cliente.id, result).subscribe({
           next: () => {
             this.snackBar.open('Cliente actualizado correctamente', 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
@@ -160,12 +160,12 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   }
 
   onToggleStatus(cliente: Cliente): void {
-    this.customerController.toggleStatus(cliente.id, cliente.activo).subscribe({
+    this.customerController.cambiarEstado(cliente.id, cliente.activo).subscribe({
       next: () => {
         const action = !cliente.activo ? 'activado' : 'desactivado (baja lógica)';
         this.snackBar.open(`Cliente ${cliente.nombre} ${action} correctamente`, 'Cerrar', { duration: 3000 });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
       }
     });
@@ -186,11 +186,11 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
-        this.customerController.deleteCliente(cliente.id).subscribe({
+        this.customerController.eliminarCliente(cliente.id).subscribe({
           next: () => {
             this.snackBar.open(`Cliente "${cliente.nombre}" eliminado correctamente`, 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });

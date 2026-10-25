@@ -129,7 +129,7 @@ export class SucursalListComponent implements OnInit, OnDestroy {
           next: () => {
             this.snackBar.open('Sucursal registrada exitosamente en PostgreSQL', 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
@@ -149,7 +149,7 @@ export class SucursalListComponent implements OnInit, OnDestroy {
           next: () => {
             this.snackBar.open('Sucursal actualizada correctamente', 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });
@@ -163,7 +163,7 @@ export class SucursalListComponent implements OnInit, OnDestroy {
         const action = !sucursal.activo ? 'activada' : 'desactivada (baja lógica)';
         this.snackBar.open(`Sucursal ${sucursal.nombre} ${action} correctamente`, 'Cerrar', { duration: 3000 });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.snackBar.open(`Error: ${err}`, 'Cerrar', { duration: 4000 });
       }
     });
@@ -188,7 +188,7 @@ export class SucursalListComponent implements OnInit, OnDestroy {
           next: () => {
             this.snackBar.open(`Sucursal "${sucursal.nombre}" eliminada correctamente`, 'Cerrar', { duration: 3000 });
           },
-          error: (err) => {
+          error: (err: any) => {
             this.snackBar.open(`Error al eliminar: ${err}`, 'Cerrar', { duration: 4000 });
           }
         });

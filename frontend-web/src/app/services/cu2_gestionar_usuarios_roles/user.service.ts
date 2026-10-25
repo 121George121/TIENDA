@@ -12,7 +12,10 @@ export class UserService {
 
   constructor(private http: HttpClient) {}
 
-  getUsers(search?: string, rolId?: number, activo?: boolean): Observable<Usuario[]> {
+  /**
+   * Obtiene la lista de usuarios filtrando opcionalmente por término, rol o estado.
+   */
+  obtenerUsuarios(search?: string, rolId?: number, activo?: boolean): Observable<Usuario[]> {
     let params = new HttpParams();
     if (search) {
       params = params.set('search', search);
@@ -27,27 +30,78 @@ export class UserService {
     return this.http.get<Usuario[]>(this.apiUrl, { params });
   }
 
-  getUserById(id: number): Observable<Usuario> {
+  /**
+   * Obtiene un usuario por su identificador único.
+   */
+  obtenerUsuarioPorId(id: number): Observable<Usuario> {
     return this.http.get<Usuario>(`${this.apiUrl}/${id}`);
   }
 
-  createUser(user: UsuarioCreateDTO): Observable<Usuario> {
+  /**
+   * Registra un nuevo usuario en la base de datos para el tenant activo.
+   */
+  crearUsuario(user: UsuarioCreateDTO): Observable<Usuario> {
     return this.http.post<Usuario>(this.apiUrl, user);
   }
 
-  updateUser(id: number, user: UsuarioUpdateDTO): Observable<Usuario> {
+  /**
+   * Actualiza los datos de un usuario existente.
+   */
+  actualizarUsuario(id: number, user: UsuarioUpdateDTO): Observable<Usuario> {
     return this.http.put<Usuario>(`${this.apiUrl}/${id}`, user);
   }
 
-  toggleUserStatus(id: number, activo: boolean): Observable<Usuario> {
+  /**
+   * Activa o desactiva el acceso del usuario al sistema.
+   */
+  cambiarEstadoUsuario(id: number, activo: boolean): Observable<Usuario> {
     return this.http.patch<Usuario>(`${this.apiUrl}/${id}/estado`, { activo });
   }
 
-  assignUserRole(id: number, rolId: number): Observable<Usuario> {
+  /**
+   * Asigna un rol específico al usuario.
+   */
+  asignarRolUsuario(id: number, rolId: number): Observable<Usuario> {
     return this.http.patch<Usuario>(`${this.apiUrl}/${id}/rol`, { rol_id: rolId });
   }
 
-  deleteUser(id: number): Observable<any> {
+  /**
+   * Elimina permanentemente un usuario si no tiene operaciones asociadas.
+   */
+  eliminarUsuario(id: number): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
+
+  // ============================================================================
+  // ALIASES DE RETROCOMPATIBILIDAD (EVITA REGRESIONES)
+  // ============================================================================
+  getUsers(search?: string, rolId?: number, activo?: boolean): Observable<Usuario[]> {
+    return this.obtenerUsuarios(search, rolId, activo);
+  }
+
+  getUserById(id: number): Observable<Usuario> {
+    return this.obtenerUsuarioPorId(id);
+  }
+
+  createUser(user: UsuarioCreateDTO): Observable<Usuario> {
+    return this.crearUsuario(user);
+  }
+
+  updateUser(id: number, user: UsuarioUpdateDTO): Observable<Usuario> {
+    return this.actualizarUsuario(id, user);
+  }
+
+  toggleUserStatus(id: number, activo: boolean): Observable<Usuario> {
+    return this.cambiarEstadoUsuario(id, activo);
+  }
+
+  assignUserRole(id: number, rolId: number): Observable<Usuario> {
+    return this.asignarRolUsuario(id, rolId);
+  }
+
+  deleteUser(id: number): Observable<any> {
+    return this.eliminarUsuario(id);
+  }
 }
+
+export { UserService as UsuarioService };

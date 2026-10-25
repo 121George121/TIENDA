@@ -10,8 +10,12 @@ export class SucursalController {
   private sucursalesSubject = new BehaviorSubject<Sucursal[]>([]);
   public sucursales$: Observable<Sucursal[]> = this.sucursalesSubject.asObservable();
 
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$: Observable<boolean> = this.loadingSubject.asObservable();
+  private cargandoSubject = new BehaviorSubject<boolean>(false);
+  public cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+  public loading$: Observable<boolean> = this.cargando$;
+
+  private errorSubject = new BehaviorSubject<string | null>(null);
+  public error$: Observable<string | null> = this.errorSubject.asObservable();
 
   constructor(private sucursalService: SucursalService) {}
 
@@ -19,30 +23,44 @@ export class SucursalController {
     return this.sucursalesSubject.value;
   }
 
-  loadSucursales(search?: string, ciudad?: string, activo?: boolean): void {
-    this.loadingSubject.next(true);
-    this.sucursalService.getSucursales(search, ciudad, activo)
-      .pipe(finalize(() => this.loadingSubject.next(false)))
+  /**
+   * Carga las sucursales desde el servicio filtrando por criterios opcionales.
+   */
+  cargarSucursales(search?: string, ciudad?: string, activo?: boolean): void {
+    this.cargandoSubject.next(true);
+    this.errorSubject.next(null);
+
+    this.sucursalService.obtenerSucursales(search, ciudad, activo)
+      .pipe(finalize(() => this.cargandoSubject.next(false)))
       .subscribe({
         next: (sucursales) => this.sucursalesSubject.next(sucursales),
-        error: (err) => console.error('Error al cargar sucursales:', err)
+        error: (err) => {
+          console.error('Error al cargar sucursales:', err);
+          this.errorSubject.next(err?.error?.detail || 'No se pudieron cargar las sucursales');
+        }
       });
   }
 
-  createSucursal(data: SucursalCreateDTO): Observable<Sucursal> {
-    this.loadingSubject.next(true);
-    return this.sucursalService.createSucursal(data).pipe(
+  /**
+   * Registra una nueva sucursal en el estado local tras confirmación de la API.
+   */
+  crearSucursal(data: SucursalCreateDTO): Observable<Sucursal> {
+    this.cargandoSubject.next(true);
+    return this.sucursalService.crearSucursal(data).pipe(
       tap((newSucursal) => {
         const current = this.sucursalesSubject.value;
         this.sucursalesSubject.next([newSucursal, ...current]);
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
 
-  updateSucursal(id: number, data: SucursalUpdateDTO): Observable<Sucursal> {
-    this.loadingSubject.next(true);
-    return this.sucursalService.updateSucursal(id, data).pipe(
+  /**
+   * Actualiza una sucursal física en el estado reactivo.
+   */
+  actualizarSucursal(id: number, data: SucursalUpdateDTO): Observable<Sucursal> {
+    this.cargandoSubject.next(true);
+    return this.sucursalService.actualizarSucursal(id, data).pipe(
       tap((updated) => {
         const current = this.sucursalesSubject.value;
         const index = current.findIndex(s => s.id === id);
@@ -52,13 +70,16 @@ export class SucursalController {
           this.sucursalesSubject.next(updatedList);
         }
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
 
-  toggleStatus(id: number, currentStatus: boolean): Observable<Sucursal> {
+  /**
+   * Cambia el estado activo o suspendido de una sucursal.
+   */
+  cambiarEstado(id: number, currentStatus: boolean): Observable<Sucursal> {
     const newStatus = !currentStatus;
-    return this.sucursalService.toggleStatus(id, newStatus).pipe(
+    return this.sucursalService.cambiarEstadoSucursal(id, newStatus).pipe(
       tap((updated) => {
         const current = this.sucursalesSubject.value;
         const index = current.findIndex(s => s.id === id);
@@ -71,9 +92,12 @@ export class SucursalController {
     );
   }
 
-  deleteSucursal(id: number): Observable<{ message: string; id: number }> {
-    this.loadingSubject.next(true);
-    return this.sucursalService.deleteSucursal(id).pipe(
+  /**
+   * Aplica baja lógica a una sucursal actualizando su estado a inactiva.
+   */
+  eliminarSucursal(id: number): Observable<{ message: string; id: number }> {
+    this.cargandoSubject.next(true);
+    return this.sucursalService.eliminarSucursal(id).pipe(
       tap(() => {
         const current = this.sucursalesSubject.value;
         const index = current.findIndex(s => s.id === id);
@@ -83,7 +107,32 @@ export class SucursalController {
           this.sucursalesSubject.next(updatedList);
         }
       }),
-      finalize(() => this.loadingSubject.next(false))
+      finalize(() => this.cargandoSubject.next(false))
     );
   }
+
+  // ============================================================================
+  // ALIASES DE RETROCOMPATIBILIDAD
+  // ============================================================================
+  loadSucursales(search?: string, ciudad?: string, activo?: boolean): void {
+    this.cargarSucursales(search, ciudad, activo);
+  }
+
+  createSucursal(data: SucursalCreateDTO): Observable<Sucursal> {
+    return this.crearSucursal(data);
+  }
+
+  updateSucursal(id: number, data: SucursalUpdateDTO): Observable<Sucursal> {
+    return this.actualizarSucursal(id, data);
+  }
+
+  toggleStatus(id: number, currentStatus: boolean): Observable<Sucursal> {
+    return this.cambiarEstado(id, currentStatus);
+  }
+
+  deleteSucursal(id: number): Observable<{ message: string; id: number }> {
+    return this.eliminarSucursal(id);
+  }
 }
+
+export { SucursalController as BranchController };

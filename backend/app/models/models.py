@@ -1,45 +1,136 @@
 # ==============================================================================
 # CAPA MODELO (MVC - MODEL)
 # Punto único de importación de todas las entidades del backend.
-# Cada entidad vive modularmente en la carpeta de su caso de uso.
+# Los modelos llevan el nombre exacto de las tablas de la Base de Datos para
+# que coincidan 1 a 1 con los diagramas de clases, DER y UML.
 # ==============================================================================
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship
-from datetime import datetime
 from app.core.database import Base
 
-from app.models.cu1_gestionar_autenticacion.usuario_rol_model import RolModel, UsuarioModel
-from app.models.cu3_gestionar_clientes.cliente_model import ClienteModel
-from app.models.cu4_gestionar_sucursales.sucursal_model import SucursalModel
+# CU01 - Autenticación
+from app.models.cu1_gestionar_autenticacion.usuario_rol_model import (
+    Rol, Usuario, RolModel, UsuarioModel, rol, usuario
+)
+
+# CU03 - Clientes
+from app.models.cu3_gestionar_clientes.cliente_model import (
+    Cliente, ClienteModel, cliente
+)
+
+# CU04 - Sucursales
+from app.models.cu4_gestionar_sucursales.sucursal_model import (
+    Sucursal, SucursalModel, sucursal
+)
+
+# CU05 - Productos, Colores, Tallas y Variantes
 from app.models.cu5_gestionar_productos.producto_model import (
-    ProductoModel, ColorModel, TallaModel, VarianteProductoModel
+    Producto, Color, Talla, VarianteProducto,
+    ProductoModel, ColorModel, TallaModel, VarianteProductoModel,
+    producto, color, talla, variante_producto
 )
+
+# CU06 - Clasificación de Prendas
 from app.models.cu6_gestionar_clasificacion_prendas.clasificacion_model import (
-    CategoriaModel, TemporadaModel, ColeccionModel
+    Categoria, Temporada, Coleccion,
+    CategoriaModel, TemporadaModel, ColeccionModel,
+    categoria, temporada, coleccion
 )
+
+# CU07 - Proveedores y Suministro
 from app.models.cu7_gestionar_proveedores_productos_suministrados.proveedor_model import (
-    ProveedorModel, ProductoProveedorModel
+    Proveedor, ProductoProveedor,
+    ProveedorModel, ProductoProveedorModel,
+    proveedor, producto_proveedor
 )
-from app.models.cu14_registrar_ventas_presenciales.venta_presencial_model import (
-    VentaModel, DetalleVentaModel, MetodoPagoModel, PagoModel, ReciboModel
-)
-from app.models.cu15_realizar_compras_digitales.compra_digital_model import (
-    CarritoModel, CarritoItemModel
-)
+
+# CU13 - Inventario y Movimientos
 from app.models.cu13_gestionar_inventario_movimientos.inventario_model import (
-    InventarioModel, MovimientoInventarioModel
+    Inventario, MovimientoInventario,
+    InventarioModel, MovimientoInventarioModel, InventarioSucursalModel,
+    inventario, movimiento_inventario, inventario_sucursal
 )
 
-# Alias de compatibilidad: CU08-CU11 usan InventarioSucursalModel mapeado a la tabla inventario
-InventarioSucursalModel = InventarioModel
+# CU14 - Ventas Presenciales, Pagos y Recibos
+from app.models.cu14_registrar_ventas_presenciales.venta_presencial_model import (
+    Venta, DetalleVenta, MetodoPago, Pago, Recibo,
+    VentaModel, DetalleVentaModel, MetodoPagoModel, PagoModel, ReciboModel,
+    venta, detalle_venta, metodo_pago, pago, recibo
+)
 
+# CU15 - Compras Digitales y Carrito
+from app.models.cu15_realizar_compras_digitales.compra_digital_model import (
+    Carrito, CarritoItem,
+    CarritoModel, CarritoItemModel,
+    carrito, carrito_item
+)
 
-# CU10 & CU11 - Modelos de Reserva de Prendas (modularizados)
+# CU10 & CU11 - Reservas de Prendas
 from app.models.cu10_gestionar_reservas_prendas.reserva_model import (
-    ReservaModel,
-    ReservaDetalleModel,
+    Reserva, ReservaDetalle,
+    ReservaModel, ReservaDetalleModel,
+    reserva, reserva_detalle
 )
-from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
-from app.models.cu20_gestionar_bitacora.bitacora_model import BitacoraModel
 
+# CU19 - Notificaciones
+from app.models.cu19_gestionar_notificaciones.notificacion_model import (
+    Notificacion, NotificacionModel, notificacion
+)
+
+# CU20 - Bitácora y Auditoría
+from app.models.cu20_gestionar_bitacora.bitacora_model import (
+    Bitacora, BitacoraModel, bitacora
+)
+
+# SaaS Multi-Tenant & Diagrama UML
+from app.models.saas_tenant.tenant_model import (
+    PlanSuscripcion, Tenant, TenantConfiguracion, TenantSuscripcion,
+    DireccionCliente, EventoCliente, PruebaVirtual, ProductoColeccion,
+    PlanSuscripcionModel, TenantModel, TenantConfiguracionModel, TenantSuscripcionModel,
+    DireccionClienteModel, EventoClienteModel, PruebaVirtualModel, ProductoColeccionModel,
+    plan_suscripcion, tenant, tenant_configuracion, tenant_suscripcion,
+    direccioncliente, evento_cliente, prueba_virtual, producto_coleccion
+)
+
+# Registro de retrocompatibilidad en SQLAlchemy _class_registry para que tanto
+# 'Usuario' como 'UsuarioModel' resuelvan automáticamente en cualquier relación por cadena
+_MODEL_MAP = {
+    "RolModel": Rol,
+    "UsuarioModel": Usuario,
+    "ClienteModel": Cliente,
+    "SucursalModel": Sucursal,
+    "ProductoModel": Producto,
+    "ColorModel": Color,
+    "TallaModel": Talla,
+    "VarianteProductoModel": VarianteProducto,
+    "CategoriaModel": Categoria,
+    "TemporadaModel": Temporada,
+    "ColeccionModel": Coleccion,
+    "ProveedorModel": Proveedor,
+    "ProductoProveedorModel": ProductoProveedor,
+    "InventarioModel": Inventario,
+    "InventarioSucursalModel": Inventario,
+    "MovimientoInventarioModel": MovimientoInventario,
+    "VentaModel": Venta,
+    "DetalleVentaModel": DetalleVenta,
+    "MetodoPagoModel": MetodoPago,
+    "PagoModel": Pago,
+    "ReciboModel": Recibo,
+    "CarritoModel": Carrito,
+    "CarritoItemModel": CarritoItem,
+    "ReservaModel": Reserva,
+    "ReservaDetalleModel": ReservaDetalle,
+    "NotificacionModel": Notificacion,
+    "BitacoraModel": Bitacora,
+    "PlanSuscripcionModel": PlanSuscripcion,
+    "TenantModel": Tenant,
+    "TenantConfiguracionModel": TenantConfiguracion,
+    "TenantSuscripcionModel": TenantSuscripcion,
+    "DireccionClienteModel": DireccionCliente,
+    "EventoClienteModel": EventoCliente,
+    "PruebaVirtualModel": PruebaVirtual,
+    "ProductoColeccionModel": ProductoColeccion,
+}
+
+if hasattr(Base, "registry") and hasattr(Base.registry, "_class_registry"):
+    for alias_name, model_cls in _MODEL_MAP.items():
+        Base.registry._class_registry[alias_name] = model_cls
