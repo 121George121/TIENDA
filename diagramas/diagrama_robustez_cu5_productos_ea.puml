@@ -1,0 +1,127 @@
+@startuml Diagrama_Robustez_CU05_Gestionar_Productos_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU05
+' Caso de Uso: CU05 - Gestionar Catálogo de Prendas, Poleras y Variantes Talla/Color
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU05 Gestionar Productos y Variantes**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Administrador / Encargado\nde Catálogo de Moda" as ActAdmin
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES
+' ==============================================================================
+boundary "Page : Catalogo de Prendas" as B_ProdList
+boundary "Page : Modal Formulario Prenda" as B_ProdModal
+boundary "Page : Modal Matriz Variantes" as B_VarModal
+boundary "Page : Modal Galeria y Fotos" as B_MediaModal
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS
+' ==============================================================================
+control "Gestor : Productos\n(ProductoController)" as C_Prod
+control "Gestor : Variantes Talla Color\n(SKU & Variant Generator)" as C_Var
+control "Validador : Reglas de Precios\n(Pricing & Margin Rules)" as C_PriceVal
+control "Gestor : Archivos Multimedia\n(Image / Asset Storage)" as C_Media
+control "Gestor : Bitacora\n(BitacoraController)" as C_Bitacora
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES
+' ==============================================================================
+entity "Producto" as E_Producto
+entity "Variante Producto" as E_Variante
+entity "Categoria" as E_Categoria
+entity "Color" as E_Color
+entity "Talla" as E_Talla
+entity "Empresa / Tenant" as E_Tenant
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS ---
+ActAdmin -- B_ProdList : 1: Consultar Prendas(search, catId, activo) >\n8: Mostrar Grid de Prendas() <
+ActAdmin -- B_ProdModal : 9: Registrar Prenda Base(nombre, precio) >
+ActAdmin -- B_VarModal : 18: Generar Variantes(colores, tallas) >
+ActAdmin -- B_MediaModal : 28: Subir Fotos de la Prenda() >
+
+' --- VISTAS A CONTROLADORES ---
+B_ProdList -- C_Prod : 2: listar_productos(tenant_id, search) >\n7: ListaProductosResponse(items) <
+B_ProdModal -- C_Prod : 10: crear_producto(payload) >\n16: PrendaCreada(id, nombre) <
+B_ProdModal -- B_ProdList : 17: Actualizar Catalogo() >
+B_VarModal -- C_Var : 19: generar_matriz_variantes(prod_id, matriz) >\n26: VariantesCreadas() <
+B_MediaModal -- C_Media : 29: upload_imagenes(prod_id, files) >\n33: GaleriaActualizada() <
+
+' --- CONTROLADOR DE PRODUCTOS CON ENTIDADES ---
+C_Prod -- E_Tenant : 3: Validar Tenant Activo() >
+C_Prod -- E_Producto : 4: Buscar Prendas Filtradas() >\n5: Retornar Lista() <\n14: Guardar Nuevo ProductoModel() >
+C_Prod -- E_Categoria : 6: Cargar Categoria Asociada() >\n13: Validar Categoria Activa() >
+
+' --- ORQUESTACIÓN CON VALIDADOR DE PRECIOS ---
+C_Prod -- C_PriceVal : 11: validar_precios_margen(precio_base) >\n12: PrecioAprobado(bool) <
+
+' --- ORQUESTACIÓN DE VARIANTES TALLA Y COLOR ---
+C_Var -- E_Color : 20: Consultar Colores Disponibles() >
+C_Var -- E_Talla : 21: Consultar Tallas (S, M, L, XL) >
+C_Var -- C_PriceVal : 22: calcular_precio_variante() >\n23: PrecioVarianteConfirmado() <
+C_Var -- E_Variante : 24: Generar SKU Unico y Guardar() >\n25: Retornar Variantes() <
+
+' --- ORQUESTACIÓN DE SUBIDA DE IMÁGENES ---
+C_Media -- E_Producto : 30: Actualizar URL Imagen Principal() >\n31: Guardar Fotos en Galeria() >
+
+' --- AUDITORÍA EN BITÁCORA ---
+C_Prod -- C_Bitacora : 15: log_bitacora(CREAR_PRODUCTO) >
+C_Var -- C_Bitacora : 27: log_bitacora(CREAR_VARIANTES) >
+C_Media -- C_Bitacora : 32: log_bitacora(SUBIR_FOTO) >
+C_Bitacora -- E_Bitacora : Guardar Log Auditoria() >
+
+@enduml

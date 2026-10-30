@@ -10,13 +10,14 @@ import {
   ProductoCatalogoItem,
   SucursalItem,
   DisponibilidadProducto
-} from '../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
+} from '../../models/cu8_consultar_catalogo_disponibilidad/catalogo.model';
 import { InventoryService } from '../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class InventoryController {
+  // Observables reactivos de estado
   private productosSubject = new BehaviorSubject<ProductoCatalogoItem[]>([]);
   public productos$: Observable<ProductoCatalogoItem[]> = this.productosSubject.asObservable();
 
@@ -26,8 +27,14 @@ export class InventoryController {
   private disponibilidadSubject = new BehaviorSubject<DisponibilidadProducto | null>(null);
   public disponibilidad$: Observable<DisponibilidadProducto | null> = this.disponibilidadSubject.asObservable();
 
-  private loadingSubject = new BehaviorSubject<boolean>(false);
-  public loading$: Observable<boolean> = this.loadingSubject.asObservable();
+  private cargandoSubject = new BehaviorSubject<boolean>(false);
+  public cargando$: Observable<boolean> = this.cargandoSubject.asObservable();
+  public loading$: Observable<boolean> = this.cargando$; // Alias retrocompatible
+
+  // Observables para el soporte offline y aviso de datos desactualizados
+  public datosDesactualizados$: Observable<boolean> = this.inventoryService.datosDesactualizados$;
+  public offlineMode$: Observable<boolean> = this.inventoryService.offlineMode$;
+  public ultimaSincronizacion$: Observable<string | null> = this.inventoryService.ultimaSincronizacion$;
 
   constructor(private inventoryService: InventoryService) {}
 
@@ -39,11 +46,64 @@ export class InventoryController {
     return this.sucursalesSubject.value;
   }
 
-  loadSucursales(): void {
-    this.inventoryService.getSucursales().subscribe({
+  /**
+   * Carga la lista de sucursales activas en el estado reactivo
+   */
+  cargarSucursales(): void {
+    this.inventoryService.obtenerSucursales().subscribe({
       next: (sucursales) => this.sucursalesSubject.next(sucursales),
-      error: (err) => console.error('Error al cargar sucursales:', err)
+      error: (err: any) => console.error('[CU08 CONTROLLER] Error al cargar sucursales:', err)
     });
+  }
+
+  /**
+   * CU08: Consulta el catálogo aplicando filtros de sucursal, categoría, género y búsqueda
+   */
+  consultarCatalogo(
+    sucursalId?: number | null,
+    categoriaId?: number | null,
+    genero?: string | null,
+    search?: string | null,
+    soloDisponibles: boolean = false
+  ): void {
+    this.cargandoSubject.next(true);
+    this.inventoryService.consultarCatalogo(sucursalId, categoriaId, genero, search, soloDisponibles)
+      .pipe(finalize(() => this.cargandoSubject.next(false)))
+      .subscribe({
+        next: (items) => this.productosSubject.next(items),
+        error: (err: any) => console.error('[CU08 CONTROLLER] Error al consultar catálogo:', err)
+      });
+  }
+
+  /**
+   * CU08: Consulta la disponibilidad detallada de un producto en todas las sucursales
+   */
+  consultarDisponibilidad(productoId: number): Observable<DisponibilidadProducto> {
+    this.cargandoSubject.next(true);
+    const req = this.inventoryService.consultarDisponibilidad(productoId);
+    req.pipe(finalize(() => this.cargandoSubject.next(false)))
+      .subscribe({
+        next: (disp) => this.disponibilidadSubject.next(disp),
+        error: (err: any) => console.error('[CU08 CONTROLLER] Error al consultar disponibilidad:', err)
+      });
+    return req;
+  }
+
+  /**
+   * Actualiza existencias físicas en sucursal
+   */
+  actualizarStock(
+    varianteId: number,
+    sucursalId: number,
+    cantidad: number,
+    stockMinimo?: number
+  ): Observable<any> {
+    return this.inventoryService.actualizarStock(varianteId, sucursalId, cantidad, stockMinimo);
+  }
+
+  // --- ALIASES RETROCOMPATIBLES ---
+  loadSucursales(): void {
+    this.cargarSucursales();
   }
 
   loadCatalogo(
@@ -53,23 +113,10 @@ export class InventoryController {
     search?: string | null,
     soloDisponibles: boolean = false
   ): void {
-    this.loadingSubject.next(true);
-    this.inventoryService.getCatalogo(sucursalId, categoriaId, genero, search, soloDisponibles)
-      .pipe(finalize(() => this.loadingSubject.next(false)))
-      .subscribe({
-        next: (items) => this.productosSubject.next(items),
-        error: (err) => console.error('Error al cargar catálogo:', err)
-      });
+    this.consultarCatalogo(sucursalId, categoriaId, genero, search, soloDisponibles);
   }
 
   loadDisponibilidad(productoId: number): Observable<DisponibilidadProducto> {
-    this.loadingSubject.next(true);
-    const req = this.inventoryService.getDisponibilidadProducto(productoId);
-    req.pipe(finalize(() => this.loadingSubject.next(false)))
-      .subscribe({
-        next: (disp) => this.disponibilidadSubject.next(disp),
-        error: (err) => console.error('Error al consultar disponibilidad:', err)
-      });
-    return req;
+    return this.consultarDisponibilidad(productoId);
   }
 }

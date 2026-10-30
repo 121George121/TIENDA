@@ -1,0 +1,152 @@
+@startuml Diagrama_Robustez_CU01_Autenticacion
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ (ROBUSTNESS DIAGRAM - BCE)
+' Caso de Uso: CU01 - Gestionar Autenticación y Recuperación de Contraseña
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **Diagrama de Robustez (BCE) - CU01: Gestionar Autenticación**\n//Estilo Enterprise Architect - Notación de Ivar Jacobson//
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+skinparam shadowing true
+skinparam roundcorner 10
+skinparam arrowColor #2C3E50
+skinparam arrowFontSize 11
+skinparam arrowFontStyle italic
+
+skinparam actor {
+    BackgroundColor #F8F9FA
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontSize 12
+}
+
+skinparam boundary {
+    BackgroundColor #EBF5FB
+    BorderColor #2980B9
+    FontColor #1B4F72
+    FontSize 12
+}
+
+skinparam control {
+    BackgroundColor #E8F8F5
+    BorderColor #27AE60
+    FontColor #145A32
+    FontSize 12
+}
+
+skinparam entity {
+    BackgroundColor #FEFDE8
+    BorderColor #D4AC0D
+    FontColor #7D6608
+    FontSize 12
+}
+
+skinparam note {
+    BackgroundColor #FFF9C4
+    BorderColor #FBC02D
+    FontColor #333333
+    FontSize 11
+}
+
+' ==============================================================================
+' DEFINICIÓN DE ELEMENTOS (ACTORES, BOUNDARIES, CONTROLS, ENTITIES)
+' ==============================================================================
+
+' --- ACTORES ---
+actor "Usuario / Cliente" as ActorUsuario <<Actor>>
+
+' --- BOUNDARIES (Fronteras / Interfaces de Usuario y Sistemas Externos) ---
+package "Capa de Presentación / Fronteras <<Boundary>>" {
+    boundary "UI_LoginForm\n(Pantalla de Login)" as B_Login <<boundary>>
+    boundary "UI_RecoverForm\n(Solicitar Recuperación)" as B_Recover <<boundary>>
+    boundary "UI_ResetForm\n(Restablecer Contraseña)" as B_Reset <<boundary>>
+    boundary "UI_DashboardPrincipal\n(Home / Tienda)" as B_Dashboard <<boundary>>
+    boundary "Servidor_SMTP_Gmail\n(Sistema Externo Email)" as B_SMTP <<boundary>>
+}
+
+' --- CONTROLS (Controladores / Lógica de Negocio y Criptografía) ---
+package "Capa de Control / Lógica de Negocio <<Control>>" {
+    control "GestorAutenticacion\n(AuthController)" as C_Auth <<control>>
+    control "ValidadorCredenciales\n(Bcrypt & Reglas)" as C_Validator <<control>>
+    control "GeneradorTokensJWT\n(JWT Manager)" as C_JWT <<control>>
+    control "GestorRecuperacion\n(Password Recovery)" as C_Recovery <<control>>
+    control "GestorBitacora\n(BitacoraController)" as C_Bitacora <<control>>
+}
+
+' --- ENTITIES (Entidades del Dominio / Persistencia) ---
+package "Capa del Dominio / Datos <<Entity>>" {
+    entity "Usuario\n(UsuarioModel)" as E_Usuario <<entity>>
+    entity "Rol\n(RolModel)" as E_Rol <<entity>>
+    entity "Tenant\n(TenantModel)" as E_Tenant <<entity>>
+    entity "TokenSesion\n(Access & Refresh Token)" as E_Token <<entity>>
+    entity "RegistroBitacora\n(BitacoraModel)" as E_Bitacora <<entity>>
+}
+
+' ==============================================================================
+' NOTA DE ARQUITECTURA ENTERPRISE ARCHITECT
+' ==============================================================================
+note top of C_Auth
+  **Reglas de Robustez (ICONIX / Jacobson):**
+  1. Actores sólo interactúan con Boundaries.
+  2. Boundaries sólo se comunican con Actores y Controls.
+  3. Controls orquestan la lógica entre Boundaries y Entities.
+  4. Entities sólo son leídas o modificadas por Controls.
+end note
+
+' ==============================================================================
+' FLUJOS Y ASOCIACIONES (SUB-PROCESOS DEL CU01)
+' ==============================================================================
+
+' ------------------------------------------------------------------------------
+' 1. FLUJO PRINCIPAL: CU1.1 INICIAR SESIÓN (LOGIN)
+' ------------------------------------------------------------------------------
+ActorUsuario --> B_Login : 1. Ingresar email y password
+B_Login --> C_Auth : 2. POST /api/v1/auth/login\n(enviar credenciales)
+
+C_Auth --> E_Tenant : 3. Validar tenant activo\n(aislamiento SaaS)
+C_Auth --> E_Usuario : 4. Buscar usuario por email\n(verificar activo)
+C_Auth --> C_Validator : 5. Validar contraseña
+C_Validator --> E_Usuario : 6. Comparar passwordHash (Bcrypt)
+
+C_Auth --> E_Rol : 7. Obtener rol y permisos del usuario
+C_Auth --> C_JWT : 8. Solicitar emisión de tokens
+C_JWT --> E_Token : 9. Crear AccessToken (Claims SaaS) y RefreshToken
+
+C_Auth --> C_Bitacora : 10. Registrar evento LOGIN
+C_Bitacora --> E_Bitacora : 11. Guardar log de auditoría
+
+C_Auth --> B_Dashboard : 12. Redirigir con autorización y token
+B_Dashboard --> ActorUsuario : 13. Mostrar interfaz autorizada
+
+' ------------------------------------------------------------------------------
+' 2. FLUJO ALTERNATIVO: CU1.2 SOLICITAR RECUPERACIÓN DE CONTRASEÑA
+' ------------------------------------------------------------------------------
+ActorUsuario --> B_Recover : 1. Solicitar recuperación (ingresar email)
+B_Recover --> C_Recovery : 2. POST /api/v1/auth/recuperar-password
+C_Recovery --> E_Usuario : 3. Verificar si email existe
+C_Recovery --> C_JWT : 4. Generar token temporal de reset (15 min)
+C_Recovery --> E_Usuario : 5. Guardar hash de token y fecha expiración
+C_Recovery --> B_SMTP : 6. Enviar correo SMTP con enlace
+B_SMTP --> ActorUsuario : 7. Notificación enviada al buzón del usuario
+
+' ------------------------------------------------------------------------------
+' 3. FLUJO ALTERNATIVO: CU1.3 RESTABLECER CONTRASEÑA
+' ------------------------------------------------------------------------------
+ActorUsuario --> B_Reset : 1. Abrir enlace (?token=...), ingresar nueva clave
+B_Reset --> C_Recovery : 2. POST /api/v1/auth/reset-password
+C_Recovery --> C_JWT : 3. Decodificar y validar vigencia del token
+C_Recovery --> E_Usuario : 4. Verificar token vs hash y vigencia (< 15 min)
+C_Recovery --> C_Validator : 5. Hashear nueva clave (Bcrypt)
+C_Validator --> E_Usuario : 6. Actualizar passwordHash y limpiar token
+C_Recovery --> B_Reset : 7. Confirmar contraseña restablecida
+B_Reset --> B_Login : 8. Redirigir a inicio de sesión
+B_Login --> ActorUsuario : 9. Mensaje de éxito "Ya puedes iniciar sesión"
+
+@enduml

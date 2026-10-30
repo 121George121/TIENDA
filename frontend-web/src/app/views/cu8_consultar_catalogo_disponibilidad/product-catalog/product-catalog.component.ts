@@ -1,7 +1,7 @@
 // ==============================================================================
 // CAPA VISTA / CONTROLADOR (MVC - VIEW & CONTROLLER EN FRONTEND ANGULAR)
 // Módulo: CU08 - Consultar Catálogo y Disponibilidad de Inventario
-// Ubicación: frontend-web/src/app/views/product-catalog/product-catalog.component.ts
+// Ubicación: frontend-web/src/app/views/cu8_consultar_catalogo_disponibilidad/product-catalog/product-catalog.component.ts
 // ==============================================================================
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -26,7 +26,7 @@ import {
   SucursalItem,
   DisponibilidadProducto,
   DisponibilidadVariante
-} from '../../../models/cu8_consultar_catalogo_disponibilidad/inventory.model';
+} from '../../../models/cu8_consultar_catalogo_disponibilidad/catalogo.model';
 
 @Component({
   selector: 'app-product-catalog',
@@ -52,13 +52,18 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   sucursales: SucursalItem[] = [];
   loading = true;
 
+  // Estado reactivo offline y de datos desactualizados (CU08 Requerimiento)
+  datosDesactualizados = false;
+  offlineMode = false;
+  ultimaSincronizacion: string | null = null;
+  private subs: Subscription = new Subscription();
+
   // Filtros interactivos y búsqueda reactiva
   sucursalSeleccionadaId: number | null = null;
   generoSeleccionado: string = 'TODOS';
   searchTerm: string = '';
   soloDisponibles: boolean = false;
   private searchSubject = new Subject<string>();
-  private searchSub?: Subscription;
 
   // Mapa de variante seleccionada por producto (id_producto -> variante)
   variantesSeleccionadas: { [productoId: number]: DisponibilidadVariante } = {};
@@ -73,7 +78,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   isAdmin = false;
 
   constructor(
-    private inventoryService: InventoryService,
+    public inventoryService: InventoryService,
     private cartService: CartService,
     public authService: AuthService
   ) {}
@@ -84,60 +89,81 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     this.cargarCatalogo();
 
     // Sincronizar contador del carrito
-    this.cartService.cartCount$.subscribe(count => {
-      this.itemsCarritoCount = count;
-    });
+    this.subs.add(
+      this.cartService.cartCount$.subscribe((count: number) => {
+        this.itemsCarritoCount = count;
+      })
+    );
 
     // Búsqueda con debounce reactivo de 300ms
-    this.searchSub = this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged()
-    ).subscribe(term => {
-      this.searchTerm = term;
-      this.cargarCatalogo();
-    });
+    this.subs.add(
+      this.searchSubject.pipe(
+        debounceTime(300),
+        distinctUntilChanged()
+      ).subscribe((term: string) => {
+        this.searchTerm = term;
+        this.cargarCatalogo();
+      })
+    );
+
+    // Suscripción al estado de sincronización y offline (CU08)
+    this.subs.add(
+      this.inventoryService.datosDesactualizados$.subscribe((desactualizados: boolean) => {
+        this.datosDesactualizados = desactualizados;
+      })
+    );
+    this.subs.add(
+      this.inventoryService.offlineMode$.subscribe((offline: boolean) => {
+        this.offlineMode = offline;
+      })
+    );
+    this.subs.add(
+      this.inventoryService.ultimaSincronizacion$.subscribe((ts: string | null) => {
+        this.ultimaSincronizacion = ts;
+      })
+    );
   }
 
   ngOnDestroy(): void {
-    this.searchSub?.unsubscribe();
+    this.subs.unsubscribe();
   }
 
   cargarSucursales(): void {
-    this.inventoryService.getSucursales().subscribe({
-      next: (data) => {
+    this.inventoryService.obtenerSucursales().subscribe({
+      next: (data: SucursalItem[]) => {
         this.sucursales = data;
-        // Por defecto pre-seleccionar la primera sucursal si existe
-        if (data && data.length > 0) {
+        // Por defecto pre-seleccionar la primera sucursal si existe y ninguna estaba seleccionada
+        if (data && data.length > 0 && !this.sucursalSeleccionadaId) {
           this.sucursalSeleccionadaId = data[0].id;
           this.cargarCatalogo();
         }
       },
-      error: (err) => console.error('Error al cargar sucursales:', err)
+      error: (err: any) => console.error('[CU08 VIEW] Error al cargar sucursales:', err)
     });
   }
 
   cargarCatalogo(): void {
     this.loading = true;
-    this.inventoryService.getCatalogo(
+    this.inventoryService.consultarCatalogo(
       this.sucursalSeleccionadaId,
       null,
       this.generoSeleccionado,
       this.searchTerm,
       this.soloDisponibles
     ).subscribe({
-      next: (data) => {
+      next: (data: ProductoCatalogoItem[]) => {
         this.productos = data;
         // Auto-seleccionar la primera variante con stock para cada producto
-        this.productos.forEach(p => {
+        this.productos.forEach((p: ProductoCatalogoItem) => {
           if (p.variantes && p.variantes.length > 0) {
-            const conStock = p.variantes.find(v => v.stock > 0);
+            const conStock = p.variantes.find((v: DisponibilidadVariante) => v.stock > 0);
             this.variantesSeleccionadas[p.id] = conStock || p.variantes[0];
           }
         });
         this.loading = false;
       },
-      error: (err) => {
-        console.error('Error al consultar catálogo:', err);
+      error: (err: any) => {
+        console.error('[CU08 VIEW] Error al consultar catálogo:', err);
         this.loading = false;
       }
     });
@@ -171,7 +197,7 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
   getNombreSucursalActual(): string {
     if (!this.sucursalSeleccionadaId) return 'Todas las sucursales';
-    const suc = this.sucursales.find(s => s.id === this.sucursalSeleccionadaId);
+    const suc = this.sucursales.find((s: SucursalItem) => s.id === this.sucursalSeleccionadaId);
     return suc ? suc.nombre : 'Sucursal seleccionada';
   }
 
@@ -181,13 +207,13 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
     this.modalDisponibilidadAbierto = true;
     this.productoDisponibilidad = null;
 
-    this.inventoryService.getDisponibilidadProducto(productoId).subscribe({
-      next: (data) => {
+    this.inventoryService.consultarDisponibilidad(productoId).subscribe({
+      next: (data: DisponibilidadProducto) => {
         this.productoDisponibilidad = data;
         this.cargandoDisponibilidad = false;
       },
-      error: (err) => {
-        console.error('Error al consultar disponibilidad:', err);
+      error: (err: any) => {
+        console.error('[CU08 VIEW] Error al consultar disponibilidad:', err);
         this.cargandoDisponibilidad = false;
       }
     });
@@ -204,10 +230,9 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
 
     this.cartService.agregarItem(variante.variante_id, 1, this.sucursalSeleccionadaId).subscribe({
       next: () => {
-        // Feedback visual inmediato
         alert(`¡Añadido al carrito con éxito!\n${producto.nombre}\nTalla: ${variante.talla} | Color: ${variante.color}`);
       },
-      error: (err) => {
+      error: (err: any) => {
         alert(err.error?.detail || 'Error al agregar al carrito');
       }
     });

@@ -1,0 +1,128 @@
+@startuml Diagrama_Robustez_CU02_Gestionar_Usuarios_Roles_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU02
+' Caso de Uso: CU02 - Gestionar Usuarios, Asignación de Roles y Permisos
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU02 Gestionar Usuarios y Roles**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Administrador\n(SuperAdmin /\nAdmin de Sucursal)" as ActAdmin
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES (FRONTEND ANGULAR)
+' ==============================================================================
+boundary "Page : Lista de Usuarios" as B_UserList
+boundary "Page : Modal Formulario Usuario" as B_UserModal
+boundary "Page : Modal Detalle y Estado" as B_UserDetail
+boundary "Page : Lista de Roles" as B_RoleList
+boundary "Page : Modal Permisos de Rol" as B_RolePerms
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS (LÓGICA DE NEGOCIO Y SERVICIOS)
+' ==============================================================================
+control "Gestor : Usuarios\n(UsuarioController)" as C_User
+control "Gestor : Roles y Permisos\n(RolController)" as C_Role
+control "Validador : Plan Suscripcion\n(Cuota Colaboradores)" as C_Plan
+control "Validador : Bcrypt Hasher\n(Crypto Security)" as C_Bcrypt
+control "Gestor : Bitacora\n(BitacoraController)" as C_Bitacora
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES (PERSISTENCIA Y MODELO)
+' ==============================================================================
+entity "Usuario" as E_User
+entity "Rol" as E_Rol
+entity "Empresa / Tenant" as E_Tenant
+entity "Plan Suscripcion" as E_Plan
+entity "Empresa Rol Permiso" as E_Permiso
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS ---
+ActAdmin -- B_UserList : 1: Consultar Usuarios(search, rol, activo) >\n8: Mostrar Tabla de Usuarios() <
+ActAdmin -- B_UserModal : 9: Registrar Nuevo Usuario(form) >
+ActAdmin -- B_UserDetail : 22: Cambiar Estado / Asignar Rol() >
+ActAdmin -- B_RoleList : 29: Consultar Catalogo de Roles() >
+ActAdmin -- B_RolePerms : 33: Configurar Permisos por Rol() >
+
+' --- VISTAS A CONTROLADORES ---
+B_UserList -- C_User : 2: listar_usuarios(tenant_id, filtros) >\n7: ListaUsuariosResponse(items) <
+B_UserModal -- C_User : 10: crear_usuario(payload) >\n20: UsuarioCreado(id, email) <
+B_UserModal -- B_UserList : 21: Actualizar Tabla() >
+B_UserDetail -- C_User : 23: cambiar_estado(activo) / asignar_rol(rol_id) >\n28: EstadoActualizado() <
+B_RoleList -- C_Role : 30: listar_roles() >\n32: Retornar Roles() <
+B_RolePerms -- C_Role : 34: obtener_permisos_rol(rol_id) >\n37: PermisosActualizados() <
+
+' --- CONTROLADOR DE USUARIOS CON ENTIDADES Y TENANT ---
+C_User -- E_Tenant : 3: Validar Tenant Activo() >
+C_User -- E_User : 4: Buscar Usuarios Filtrados() >\n5: Retornar Lista Usuarios() <\n17: Guardar Nuevo UsuarioModel() >\n24: Validar No Autosuspendido() >\n26: Actualizar Estado / Rol() >
+C_User -- E_Rol : 6: Cargar Nombres de Rol() >\n25: Validar Existencia Rol() >
+
+' --- ORQUESTACIÓN CON VALIDADOR DE PLAN DE SUSCRIPCIÓN ---
+C_User -- C_Plan : 11: validar_cuota_colaboradores(tenant_id) >\n14: CuotaPermitida(bool) <
+C_Plan -- E_Plan : 12: Consultar LimiteUsuarios del Plan() >
+C_Plan -- E_User : 13: Contar Colaboradores Activos() >
+
+' --- ORQUESTACIÓN CON CRIPTOGRAFÍA BCRYPT ---
+C_User -- C_Bcrypt : 15: get_password_hash(pass) >\n16: Retornar PasswordHash <
+
+' --- CONTROLADOR DE ROLES Y PERMISOS CON ENTIDADES ---
+C_Role -- E_Rol : 31: Consultar / Guardar Rol() >
+C_Role -- E_Permiso : 35: Consultar / Actualizar Permisos() >
+
+' --- AUDITORÍA TRANSVERSAL EN BITÁCORA ---
+C_User -- C_Bitacora : 18: log_bitacora(CREAR) >\n27: log_bitacora(CAMBIO_ESTADO/ROL) >
+C_Role -- C_Bitacora : 36: log_bitacora(EDITAR_PERMISOS) >
+C_Bitacora -- E_Bitacora : 19: Guardar Log Auditoria() >
+
+@enduml

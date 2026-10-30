@@ -1,0 +1,126 @@
+@startuml Diagrama_Robustez_CU06_Gestionar_Clasificacion_Prendas_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU06
+' Caso de Uso: CU06 - Gestionar Clasificación de Prendas (Categorías, Temporadas, Colecciones)
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU06 Gestionar Clasificacion de Prendas**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Administrador / Diseñador\nde Líneas de Moda" as ActAdmin
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES
+' ==============================================================================
+boundary "Page : Panel de Clasificacion" as B_Tabs
+boundary "Page : Modal Formulario Categoria" as B_CatModal
+boundary "Page : Modal Formulario Temporada" as B_TempModal
+boundary "Page : Modal Formulario Coleccion" as B_ColModal
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS
+' ==============================================================================
+control "Gestor : Clasificacion\n(ClasificacionController)" as C_Clasif
+control "Validador : Vigencia Fechas\n(Date Range Validator)" as C_DateVal
+control "Gestor : Colecciones Temporada\n(Collection Aggregator)" as C_ColMgr
+control "Gestor : Bitacora\n(BitacoraController)" as C_Bitacora
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES
+' ==============================================================================
+entity "Categoria" as E_Categoria
+entity "Temporada" as E_Temporada
+entity "Coleccion" as E_Coleccion
+entity "Producto" as E_Producto
+entity "Empresa / Tenant" as E_Tenant
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS ---
+ActAdmin -- B_Tabs : 1: Consultar Clasificaciones() >\n7: Mostrar Tabs Clasificacion() <
+ActAdmin -- B_CatModal : 8: Registrar Categoria(nombre, desc) >
+ActAdmin -- B_TempModal : 15: Registrar Temporada(fechas) >
+ActAdmin -- B_ColModal : 25: Crear Coleccion(nombre, temporada) >
+
+' --- VISTAS A CONTROLADORES ---
+B_Tabs -- C_Clasif : 2: listar_categorias_temporadas() >\n6: Retornar Listados() <
+B_CatModal -- C_Clasif : 9: crear_categoria(form) >\n13: CategoriaCreada() <
+B_CatModal -- B_Tabs : 14: Actualizar Tab Categorias() >
+B_TempModal -- C_Clasif : 16: crear_temporada(form) >\n23: TemporadaCreada() <
+B_TempModal -- B_Tabs : 24: Actualizar Tab Temporadas() >
+B_ColModal -- C_ColMgr : 26: crear_coleccion(form) >\n32: ColeccionCreada() <
+B_ColModal -- B_Tabs : 33: Actualizar Tab Colecciones() >
+
+' --- CONTROLADOR DE CLASIFICACIÓN CON ENTIDADES ---
+C_Clasif -- E_Tenant : 3: Validar Tenant Activo() >
+C_Clasif -- E_Categoria : 4: Consultar / Guardar Categorias() >\n11: Guardar CategoriaModel() >
+C_Clasif -- E_Temporada : 5: Consultar / Guardar Temporadas() >\n20: Guardar TemporadaModel() >
+
+' --- ORQUESTACIÓN DE CATEGORÍAS ---
+C_Clasif -- E_Categoria : 10: Validar Nombre Unico() >
+
+' --- ORQUESTACIÓN CON VALIDADOR DE FECHAS TEMPORADA ---
+C_Clasif -- C_DateVal : 17: validar_rango_fechas(inicio, fin) >\n19: FechasValidas(bool) <
+C_DateVal -- E_Temporada : 18: Comprobar Superposicion() >
+
+' --- ORQUESTACIÓN DE COLECCIONES ---
+C_ColMgr -- E_Temporada : 27: Validar Temporada Asociada() >
+C_ColMgr -- E_Coleccion : 28: Guardar ColeccionModel() >
+C_ColMgr -- E_Producto : 29: Vincular Prendas a la Coleccion() >
+
+' --- AUDITORÍA EN BITÁCORA ---
+C_Clasif -- C_Bitacora : 12: log_bitacora(CREAR_CATEGORIA) >\n21: log_bitacora(CREAR_TEMPORADA) >
+C_ColMgr -- C_Bitacora : 30: log_bitacora(CREAR_COLECCION) >
+C_Bitacora -- E_Bitacora : 22: Guardar Log() >\n31: Guardar Log() >
+
+@enduml

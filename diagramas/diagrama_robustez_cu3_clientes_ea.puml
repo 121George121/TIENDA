@@ -1,0 +1,119 @@
+@startuml Diagrama_Robustez_CU03_Gestionar_Clientes_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU03
+' Caso de Uso: CU03 - Gestionar Clientes y Cuentas de Compradores
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU03 Gestionar Clientes**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Administrador / Cajero\n(Encargado de Ventas)" as ActAdmin
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES
+' ==============================================================================
+boundary "Page : Lista de Clientes" as B_CliList
+boundary "Page : Modal Registro Cliente" as B_CliModal
+boundary "Page : Modal Detalle Cliente" as B_CliDetail
+boundary "Page : Modal Historial Compras" as B_CliHistory
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS
+' ==============================================================================
+control "Gestor : Clientes\n(ClienteController)" as C_Cli
+control "Validador : Datos Tributarios\n(NIT/CI Validator)" as C_TaxVal
+control "Gestor : Historial Compras\n(Ventas y Reservas)" as C_History
+control "Gestor : Bitacora\n(BitacoraController)" as C_Bitacora
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES
+' ==============================================================================
+entity "Cliente" as E_Cliente
+entity "Usuario" as E_Usuario
+entity "Empresa / Tenant" as E_Tenant
+entity "Venta" as E_Venta
+entity "Reserva" as E_Reserva
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS ---
+ActAdmin -- B_CliList : 1: Consultar Clientes(search, activo) >\n8: Mostrar Tabla de Clientes() <
+ActAdmin -- B_CliModal : 9: Registrar Nuevo Cliente(form) >
+ActAdmin -- B_CliDetail : 20: Actualizar Datos / Estado() >
+ActAdmin -- B_CliHistory : 26: Consultar Compras y Reservas() >
+
+' --- VISTAS A CONTROLADORES ---
+B_CliList -- C_Cli : 2: listar_clientes(tenant_id, search) >\n7: ListaClientesResponse(items) <
+B_CliModal -- C_Cli : 10: crear_cliente(payload) >\n18: ClienteCreado(id, ci_nit) <
+B_CliModal -- B_CliList : 19: Actualizar Tabla Clientes() >
+B_CliDetail -- C_Cli : 21: actualizar_cliente(id, datos) >\n25: DatosActualizados() <
+B_CliHistory -- C_History : 27: obtener_historial(cliente_id) >\n32: Retornar Historial(ventas, reservas) <
+
+' --- CONTROLADOR DE CLIENTES CON ENTIDADES Y TENANT ---
+C_Cli -- E_Tenant : 3: Validar Tenant Activo() >
+C_Cli -- E_Cliente : 4: Buscar Clientes Filtrados() >\n5: Retornar Lista Clientes() <\n15: Guardar Nuevo ClienteModel() >\n23: Actualizar Registro Cliente() >
+C_Cli -- E_Usuario : 6: Cargar Cuenta de Usuario Asociada() >\n16: Vincular UsuarioModel() >
+
+' --- ORQUESTACIÓN CON VALIDADOR DE NIT/CI ---
+C_Cli -- C_TaxVal : 11: validar_nit_ci(ci_nit, tenant_id) >\n14: NitCiValido(bool) <
+C_TaxVal -- E_Cliente : 12: Verificar CI/NIT Duplicado() >\n13: Retornar Estado() <
+
+' --- ORQUESTACIÓN DE HISTORIAL DE COMPRAS ---
+C_History -- E_Venta : 28: Consultar Ventas del Cliente() >\n29: Retornar Ventas() <
+C_History -- E_Reserva : 30: Consultar Reservas de Prendas() >\n31: Retornar Reservas() <
+
+' --- AUDITORÍA EN BITÁCORA ---
+C_Cli -- C_Bitacora : 17: log_bitacora(CREAR_CLIENTE) >\n24: log_bitacora(MODIFICAR_CLIENTE) >
+C_Bitacora -- E_Bitacora : Guardar Log Auditoria() >
+
+@enduml

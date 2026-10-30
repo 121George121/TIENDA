@@ -1,0 +1,127 @@
+@startuml Diagrama_Robustez_CU01_Gestionar_Autenticacion_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU01
+' Caso de Uso: CU01 - Gestionar Autenticación, Sesión y Recuperación de Contraseña
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU01 Gestionar Autenticacion, Sesion y Recuperacion**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Usuario\n(Administrador, Encargado\nde Sucursal, Cajero,\nCliente, SuperAdmin)" as ActUsuario
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES (FRONTEND Y SISTEMAS EXTERNOS)
+' ==============================================================================
+boundary "Page : Dashboard Principal" as B_Dashboard
+boundary "Page : Inicio de Sesion" as B_Login
+boundary "Page : Restablecer Contrasenia" as B_Reset
+boundary "Page : Recuperar Contrasenia" as B_Recuperar
+boundary "Servidor : SMTP Gmail" as B_SMTP
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS (LÓGICA DE NEGOCIO Y SERVICIOS)
+' ==============================================================================
+control "Gestor : Autenticacion" as C_Auth
+control "Gestor : Recuperacion Pass" as C_Recov
+control "Gestor : Bitacora" as C_Bitacora
+control "Validador : Bcrypt Hasher" as C_Bcrypt
+control "Gestor : Tokens JWT" as C_JWT
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES (PERSISTENCIA Y MODELO)
+' ==============================================================================
+entity "Rol" as E_Rol
+entity "Empresa / Tenant" as E_Tenant
+entity "Empresa Rol Permiso" as E_Permiso
+entity "Sesion Token" as E_Token
+entity "Usuario" as E_User
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS (PANTALLAS) ---
+ActUsuario -- B_Login : 1: Iniciar Sesion(email, password) >\n10: Mostrar Panel segun Rol() <\n21: Mostrar Login() <
+ActUsuario -- B_Dashboard : 19: Cerrar Sesion() >
+ActUsuario -- B_Recuperar : 11: Solicitar Recuperacion(email) >
+ActUsuario -- B_Reset : 15: Abrir Enlace con Token(pass) >\n18: Contrasena Restablecida() <
+B_SMTP -- ActUsuario : 14: Recibir Enlace en Buzon() >
+
+' --- VISTAS A CONTROLADORES ---
+B_Login -- C_Auth : 2: login(payload) >\n9: TokenResponse(token, usuario) <
+B_Dashboard -- C_Auth : 20: logout() >
+B_Recuperar -- C_Recov : 12: solicitar_recuperacion(email) >
+B_Reset -- C_Recov : 16: reset_password(token, pass) >
+C_Recov -- B_SMTP : 13: send_recovery_email(enlace) >
+
+' --- CONTROLADOR DE AUTENTICACIÓN A ENTIDADES ---
+C_Auth -- E_Tenant : 3: Validar Tenant Activo() >
+C_Auth -- E_User : 4: Consultar Usuario por Email() >\n5: Retornar Hash y Datos() <
+C_Auth -- E_Rol : 6: Cargar Rol de Usuario() >
+C_Auth -- E_Permiso : 7: Obtener Permisos del Rol en Empresa() >
+C_Auth -- E_Token : 8: Guardar Session ID y Expiracion() >\n22: Limpiar Session ID() >
+
+' --- ORQUESTACIÓN ENTRE CONTROLADORES (LÓGICA ESPECIALIZADA) ---
+C_Auth -- C_Bcrypt : verify_password(pass, hash) >
+C_Auth -- C_JWT : generar_tokens(claims, tenant) >
+C_Auth -- C_Bitacora : log_bitacora(LOGIN) >\nlog_bitacora(LOGOUT) >
+
+C_Recov -- C_JWT : generar_token_reset() >\ndecodificar_token() >
+C_Recov -- C_Bcrypt : get_password_hash(nueva_pass) >
+C_Recov -- C_Bitacora : log_bitacora(RESET_PASS) >
+
+' --- CONTROLADOR DE RECUPERACIÓN A ENTIDADES ---
+C_Recov -- E_User : Guardar Token Expiracion() >\n17: Actualizar PasswordHash() >
+
+' --- CONTROLADOR DE BITÁCORA A ENTIDAD ---
+C_Bitacora -- E_Bitacora : log_bitacora() >
+
+@enduml

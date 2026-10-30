@@ -1,0 +1,120 @@
+@startuml Diagrama_Robustez_CU04_Gestionar_Sucursales_EA
+' ==============================================================================
+' DIAGRAMA DE ROBUSTEZ Y COMUNICACIÓN (BCE) - CU04
+' Caso de Uso: CU04 - Gestionar Sucursales, Puntos de Venta y Ubicación GPS
+' Estilo: Enterprise Architect 15 / 16 (Notación de Ivar Jacobson / ICONIX)
+' Proyecto: ECOMMERCE_TIENDA (SaaS Multi-Tenant)
+' ==============================================================================
+
+title **sd Diagrama de Comunicacion / Robustez - CU04 Gestionar Sucursales**
+
+left to right direction
+
+' --- CONFIGURACIÓN DE ESTILO ENTERPRISE ARCHITECT ---
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 11
+skinparam shadowing true
+skinparam roundcorner 12
+
+skinparam actor {
+    BackgroundColor #FFF2CC
+    BorderColor #2C3E50
+    FontColor #1A252F
+    FontStyle bold
+}
+
+skinparam boundary {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam control {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam entity {
+    BackgroundColor #D4EFF2
+    BorderColor #1B4F72
+    FontColor #17202A
+    FontStyle bold
+}
+
+skinparam arrow {
+    Color #2C3E50
+    FontColor #1B2631
+    FontSize 10
+}
+
+' ==============================================================================
+' 1. ACTOR
+' ==============================================================================
+actor "Administrador General\n(SuperAdmin / Gerente)" as ActAdmin
+
+' ==============================================================================
+' 2. MÚLTIPLES VISTAS / BOUNDARIES
+' ==============================================================================
+boundary "Page : Lista de Sucursales" as B_SucList
+boundary "Page : Modal Formulario Sucursal" as B_SucModal
+boundary "Page : Modal Mapa Ubicacion GPS" as B_SucMap
+boundary "Page : Modal Asignar Encargado" as B_SucStaff
+
+' ==============================================================================
+' 3. MÚLTIPLES CONTROLADORES / CONTROLS
+' ==============================================================================
+control "Gestor : Sucursales\n(SucursalController)" as C_Suc
+control "Validador : Coordenadas Geo\n(GPS Coordinates Validator)" as C_GeoVal
+control "Gestor : Asignacion Personal\n(Staff Assignment)" as C_Staff
+control "Gestor : Bitacora\n(BitacoraController)" as C_Bitacora
+
+' ==============================================================================
+' 4. MÚLTIPLES ENTIDADES / ENTITIES
+' ==============================================================================
+entity "Sucursal" as E_Sucursal
+entity "Usuario" as E_Encargado
+entity "Empresa / Tenant" as E_Tenant
+entity "Inventario" as E_Inventario
+entity "Bitacora" as E_Bitacora
+
+' ==============================================================================
+' FLUJOS Y MENSAJES NUMERADOS (COMUNICACIÓN ROBUSTEZ BCE)
+' ==============================================================================
+
+' --- ACTOR A VISTAS ---
+ActAdmin -- B_SucList : 1: Consultar Sucursales(search, ciudad) >\n8: Mostrar Tabla de Sucursales() <
+ActAdmin -- B_SucModal : 9: Registrar Nueva Sucursal(form) >
+ActAdmin -- B_SucMap : 12: Seleccionar Punto en Mapa() >
+ActAdmin -- B_SucStaff : 22: Asignar Supervisor / Encargado() >
+
+' --- VISTAS A CONTROLADORES ---
+B_SucList -- C_Suc : 2: listar_sucursales(tenant_id, search) >\n7: ListaSucursalesResponse(items) <
+B_SucModal -- C_Suc : 10: crear_sucursal(payload) >\n19: SucursalCreada(id, nombre) <
+B_SucModal -- B_SucList : 20: Actualizar Tabla() >
+B_SucMap -- C_GeoVal : 13: validar_coordenadas(lat, lng) >\n15: CoordenadasValidas(bool) <
+B_SucStaff -- C_Staff : 23: vincular_encargado(sucursal_id, usuario_id) >\n28: EncargadoAsignado() <
+
+' --- CONTROLADOR DE SUCURSALES CON ENTIDADES Y TENANT ---
+C_Suc -- E_Tenant : 3: Validar Tenant Activo() >
+C_Suc -- E_Sucursal : 4: Buscar Sucursales Filtradas() >\n5: Retornar Lista() <\n17: Guardar Nueva SucursalModel() >\n26: Actualizar Encargado Sucursal() >
+C_Suc -- E_Encargado : 6: Cargar Datos de Encargado Actual() >
+C_Suc -- E_Inventario : 18: Inicializar Kardex e Inventario() >
+
+' --- ORQUESTACIÓN CON VALIDADOR DE COORDENADAS GPS ---
+C_Suc -- C_GeoVal : 11: procesar_geolocalizacion(lat, lng) >\n16: GeoDatosConfirmados() <
+C_GeoVal -- E_Sucursal : 14: Validar Distancia / Unicidad() >
+
+' --- ORQUESTACIÓN DE ASIGNACIÓN DE PERSONAL ---
+C_Staff -- E_Encargado : 24: Validar Rol Supervisor/Cajero() >\n25: Asociar SucursalID al Usuario() <
+C_Staff -- C_Suc : 27: Confirmar Vinculacion() >
+
+' --- AUDITORÍA EN BITÁCORA ---
+C_Suc -- C_Bitacora : 21: log_bitacora(CREAR_SUCURSAL) >
+C_Staff -- C_Bitacora : 29: log_bitacora(ASIGNAR_ENCARGADO) >
+C_Bitacora -- E_Bitacora : Guardar Log Auditoria() >
+
+@enduml

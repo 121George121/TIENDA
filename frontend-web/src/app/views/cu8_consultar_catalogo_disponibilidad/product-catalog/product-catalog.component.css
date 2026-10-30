@@ -856,3 +856,148 @@
   border-radius: 8px;
   padding: 6px 20px;
 }
+
+/* ==============================================================================
+   ESTILOS AVISO DE DATOS DESACTUALIZADOS / MODO OFFLINE (CU08)
+   ============================================================================== */
+.offline-warning-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #f59e0b;
+  border-left: 6px solid #d97706;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12);
+  animation: slideDownFade 0.3s ease-out;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.banner-icon-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fde68a;
+  color: #b45309;
+}
+
+.banner-icon-col .icon-warning {
+  font-size: 26px;
+  width: 26px;
+  height: 26px;
+}
+
+.banner-info-col {
+  flex: 1;
+  min-width: 260px;
+}
+
+.banner-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.banner-title-row h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #92400e;
+  letter-spacing: -0.2px;
+}
+
+.offline-tag {
+  background: #d97706;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.banner-message {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #78350f;
+  line-height: 1.4;
+}
+
+.banner-message .sync-time {
+  margin-left: 4px;
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.banner-actions-col {
+  display: flex;
+  align-items: center;
+}
+
+.btn-retry-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #b45309;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.25);
+}
+
+.btn-retry-sync:hover:not(:disabled) {
+  background: #92400e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(180, 83, 9, 0.35);
+}
+
+.btn-retry-sync:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-retry-sync mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+

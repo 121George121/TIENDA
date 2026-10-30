@@ -55,6 +55,38 @@
   </header>
 
   <main class="catalog-main">
+    <!-- ==============================================================================
+         AVISO DE DATOS DESACTUALIZADOS / MODO OFFLINE (CU08 REQUERIMIENTO OFICIAL)
+         Permite la consulta offline de prendas, precios, tallas y existencias locales
+         ============================================================================== -->
+    <div *ngIf="datosDesactualizados || offlineMode" class="offline-warning-banner">
+      <div class="banner-inner">
+        <div class="banner-icon-col">
+          <mat-icon class="icon-warning">{{ offlineMode ? 'wifi_off' : 'history_toggle_off' }}</mat-icon>
+        </div>
+        <div class="banner-info-col">
+          <div class="banner-title-row">
+            <h4>{{ offlineMode ? 'MODO SIN CONEXIÓN (OFFLINE)' : 'AVISO: CONSULTANDO DATOS EN CACHÉ LOCAL' }}</h4>
+            <span class="offline-tag">CU08 - Disponibilidad Local</span>
+          </div>
+          <p class="banner-message">
+            {{ offlineMode 
+              ? 'No hay conexión a internet disponible. Estás consultando prendas, precios y existencias almacenadas localmente en este dispositivo.'
+              : 'Se detectaron posibles diferencias con el inventario en tiempo real. Mostrando la última copia sincronizada de productos y tallas.' }}
+            <span *ngIf="ultimaSincronizacion" class="sync-time">
+              (Última sincronización: <strong>{{ ultimaSincronizacion | date:'dd/MM/yyyy HH:mm:ss' }}</strong>)
+            </span>
+          </p>
+        </div>
+        <div class="banner-actions-col">
+          <button type="button" class="btn-retry-sync" (click)="cargarCatalogo()" [disabled]="loading">
+            <mat-icon [class.spinning]="loading">sync</mat-icon>
+            <span>{{ loading ? 'Sincronizando...' : 'Reintentar Conexión' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Barra de Filtros y Búsqueda -->
     <section class="filters-bar">
       <!-- Buscador -->
