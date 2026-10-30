@@ -7,7 +7,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap, map } from 'rxjs';
-import { Carrito, AgregarItemCarritoDTO } from '../../models/cu9_gestionar_carrito_compras/cart.model';
+import { Carrito, AgregarItemCarritoDTO } from '../../models/cu9_gestionar_carrito_compras/carrito.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -19,23 +19,34 @@ export class CartService {
   // Estado reactivo del Carrito
   private cartSubject = new BehaviorSubject<Carrito | null>(null);
   public cart$ = this.cartSubject.asObservable();
+  public carrito$ = this.cart$; // Alias canónico en español
 
   // Observables derivados para la UI
   public cartCount$ = this.cart$.pipe(map(c => c ? c.total_items : 0));
+  public totalItems$ = this.cartCount$; // Alias canónico en español
+
   public cartTotal$ = this.cart$.pipe(map(c => c ? c.total_precio : 0));
+  public totalPrecio$ = this.cartTotal$; // Alias canónico en español
 
   constructor(private http: HttpClient) {
-    this.cargarCarrito().subscribe();
+    this.obtenerCarrito().subscribe({
+      error: (err: any) => console.warn('[CU09 SERVICE] Inicialización de carrito silenciosa:', err)
+    });
   }
 
   /** Consulta el carrito activo desde la API de FastAPI */
-  cargarCarrito(): Observable<Carrito> {
+  obtenerCarrito(): Observable<Carrito> {
     return this.http.get<Carrito>(this.apiUrl).pipe(
       tap(carrito => this.cartSubject.next(carrito))
     );
   }
 
-  /** Agrega una prenda/variante al carrito */
+  /** Alias retrocompatible para obtenerCarrito */
+  cargarCarrito(): Observable<Carrito> {
+    return this.obtenerCarrito();
+  }
+
+  /** Agrega una prenda o variante al carrito */
   agregarItem(varianteId: number, cantidad: number = 1, sucursalId?: number | null): Observable<Carrito> {
     const payload: AgregarItemCarritoDTO = {
       variante_id: varianteId,
@@ -48,7 +59,7 @@ export class CartService {
     );
   }
 
-  /** Modifica la cantidad de una prenda */
+  /** Modifica la cantidad solicitada de una prenda */
   actualizarCantidad(varianteId: number, cantidad: number): Observable<Carrito> {
     return this.http.put<Carrito>(`${this.apiUrl}/items/${varianteId}`, { cantidad }).pipe(
       tap(carrito => this.cartSubject.next(carrito))

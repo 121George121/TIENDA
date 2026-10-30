@@ -17,11 +17,11 @@ class Carrito(Base):
     estado = Column(String(50), nullable=False, default="Activo")
     fechacreacion = Column(DateTime, default=datetime.utcnow, nullable=False)
     fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    clienteid = Column(Integer, ForeignKey("cliente.id"), nullable=False)
+    clienteid = Column(Integer, ForeignKey("usuario.id"), nullable=False)
     sucursalid = Column(Integer, ForeignKey("sucursal.id"), nullable=True)
 
     items = relationship("CarritoItem", back_populates="carrito", cascade="all, delete-orphan")
-    cliente = relationship("Cliente")
+    cliente = relationship("Usuario", foreign_keys=[clienteid])
     sucursal = relationship("Sucursal")
 
 

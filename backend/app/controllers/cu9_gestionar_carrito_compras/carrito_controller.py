@@ -1,306 +1,102 @@
 # ==============================================================================
 # CU09 - GESTIONAR CARRITO DE COMPRAS -> CAPA CONTROLADOR (MVC - CONTROLLER)
+# Arquitectura: Multi-Tenant SaaS con Validación de Stock en Tiempo Real
 # Ubicación: backend/app/controllers/cu9_gestionar_carrito_compras/carrito_controller.py
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-from decimal import Decimal
-from datetime import datetime
-from fastapi import HTTPException, status
-
-from app.models.models import (
-    CarritoModel, CarritoItemModel, VarianteProductoModel,
-    SucursalModel, InventarioSucursalModel
-)
+from app.services.cu9_gestionar_carrito_compras.carrito_service import CarritoService
 from app.schemas.carrito_schema import (
-    CarritoResponse, CarritoItemResponse,
-    AgregarItemCarritoRequest, ActualizarCantidadItemRequest,
-    AsignarSucursalCarritoRequest
+    CarritoResponse, AgregarItemCarritoRequest,
+    ActualizarCantidadItemRequest, AsignarSucursalCarritoRequest
 )
+
 
 class CarritoController:
+    """
+    Controlador MVC para la administración del Carrito de Compras.
+    Orquesta la lógica de negocio, validaciones multitenant y stock en tiendas físicas.
+    """
 
     @staticmethod
-    def _obtener_o_crear_cliente(db: Session, usuario_id: int):
-        from app.models.models import ClienteModel, UsuarioModel
-        # 1. ¿usuario_id es ya el ID de un ClienteModel (cliente.id)?
-        cliente = db.query(ClienteModel).filter(ClienteModel.id == usuario_id).first()
-        if cliente:
-            return cliente
-
-        # 2. ¿usuario_id es el ID de un UsuarioModel (usuario.id)?
-        cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
-        if cliente:
-            return cliente
-
-        # 3. Si existe el usuario en tabla usuario, crear su perfil cliente
-        user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
-        if user:
-            cliente = ClienteModel(
-                nombre=user.nombre,
-                apellido=user.apellido or "",
-                email=user.email,
-                telefono=user.telefono or "",
-                usuarioid=user.id,
-                activo=True
-            )
-            db.add(cliente)
-            db.commit()
-            db.refresh(cliente)
-            return cliente
-
-        # 4. Fallback al primer cliente de la BD
-        return db.query(ClienteModel).first()
-
-    @classmethod
-    def _obtener_carrito_activo(cls, db: Session, usuario_id: int) -> CarritoModel:
-        """Busca el carrito activo del usuario o crea uno nuevo en PostgreSQL"""
-        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
-        if not cliente:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró un cliente asociado para el carrito")
-
-        carrito = db.query(CarritoModel).filter(
-            CarritoModel.clienteid == cliente.id,
-            CarritoModel.estado == "ACTIVO"
-        ).first()
-
-        if not carrito:
-            carrito = CarritoModel(
-                clienteid=cliente.id,
-                estado="ACTIVO",
-                fechacreacion=datetime.utcnow(),
-                fechaactualizacion=datetime.utcnow()
-            )
-            db.add(carrito)
-            db.commit()
-            db.refresh(carrito)
-
-        return carrito
-
-    @classmethod
-    def obtener_carrito_dto(cls, db: Session, usuario_id: int) -> CarritoResponse:
-        """Construye la respuesta completa del carrito con stock en tiempo real"""
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
-
-        items_resp = []
-        total_items = 0
-        total_precio = Decimal("0.00")
-        tiene_alertas = False
-
-        sucursal_nombre = carrito.sucursal.nombre if carrito.sucursal else None
-
-        for item in carrito.items:
-            variante = item.variante
-            if not variante:
-                continue
-
-            producto = variante.producto
-
-            # Calcular stock disponible en la sucursal del carrito (o global si no tiene sucursal)
-            if carrito.sucursalid:
-                inv = db.query(InventarioSucursalModel).filter(
-                    InventarioSucursalModel.varianteid == variante.id,
-                    InventarioSucursalModel.sucursalid == carrito.sucursalid
-                ).first()
-                stock_disp = max(0, (inv.cantidad - inv.stockreservado)) if inv else 0
-            else:
-                invs = db.query(InventarioSucursalModel).filter(
-                    InventarioSucursalModel.varianteid == variante.id
-                ).all()
-                stock_disp = sum(max(0, (i.cantidad - i.stockreservado)) for i in invs)
-
-            subtotal = Decimal(str(item.cantidad)) * item.preciounitario
-            stock_suficiente = item.cantidad <= stock_disp
-
-            if not stock_suficiente:
-                tiene_alertas = True
-
-            total_items += item.cantidad
-            total_precio += subtotal
-
-            items_resp.append(
-                CarritoItemResponse(
-                    variante_id=variante.id,
-                    producto_id=producto.id,
-                    producto_nombre=producto.nombre,
-                    imagen_url=variante.imagenurl or producto.imagenprincipal,
-                    sku=variante.sku,
-                    talla=variante.talla.nombre if variante.talla else None,
-                    color=variante.color.nombre if variante.color else None,
-                    codigohex=variante.color.codigohex if variante.color else None,
-                    precio_unitario=item.preciounitario,
-                    cantidad=item.cantidad,
-                    subtotal=subtotal,
-                    stock_disponible=stock_disp,
-                    stock_suficiente=stock_suficiente
-                )
-            )
-
-        return CarritoResponse(
-            id=carrito.id,
-            estado=carrito.estado,
-            cliente_id=carrito.clienteid,
-            sucursal_id=carrito.sucursalid,
-            sucursal_nombre=sucursal_nombre,
-            items=items_resp,
-            total_items=total_items,
-            total_precio=total_precio,
-            tiene_alertas_stock=tiene_alertas,
-            fecha_actualizacion=carrito.fechaactualizacion
+    def obtener_carrito(db: Session, usuario_id: int, tenant_id: int = 1) -> CarritoResponse:
+        """Obtiene el estado completo del carrito activo con stock en tiempo real"""
+        return CarritoService.obtener_carrito(
+            db=db,
+            usuario_id=usuario_id,
+            tenant_id=tenant_id
         )
 
-    @classmethod
-    def agregar_item(cls, db: Session, usuario_id: int, datos: AgregarItemCarritoRequest) -> CarritoResponse:
-        """Agrega una prenda al carrito con validación de existencia y stock"""
-        variante = db.query(VarianteProductoModel).filter(
-            VarianteProductoModel.id == datos.variante_id,
-            VarianteProductoModel.activo == True
-        ).first()
+    @staticmethod
+    def agregar_item(
+        db: Session,
+        usuario_id: int,
+        datos: AgregarItemCarritoRequest,
+        tenant_id: int = 1
+    ) -> CarritoResponse:
+        """Agrega una prenda o variante al carrito con verificación de stock"""
+        return CarritoService.agregar_item(
+            db=db,
+            usuario_id=usuario_id,
+            datos=datos,
+            tenant_id=tenant_id
+        )
 
-        if not variante:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Variante de prenda no encontrada o inactiva")
+    @staticmethod
+    def actualizar_cantidad(
+        db: Session,
+        usuario_id: int,
+        variante_id: int,
+        datos: ActualizarCantidadItemRequest,
+        tenant_id: int = 1
+    ) -> CarritoResponse:
+        """Modifica la cantidad de una prenda o la retira si la cantidad es 0"""
+        return CarritoService.actualizar_cantidad(
+            db=db,
+            usuario_id=usuario_id,
+            variante_id=variante_id,
+            datos=datos,
+            tenant_id=tenant_id
+        )
 
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
-
-        # Si se especificó sucursal en el request, asignarla
-        if datos.sucursal_id:
-            carrito.sucursalid = datos.sucursal_id
-        elif not carrito.sucursalid:
-            # Si el carrito no tiene sucursal, buscar una sucursal que tenga stock de esta prenda
-            inv_con_stock = db.query(InventarioSucursalModel).filter(
-                InventarioSucursalModel.varianteid == datos.variante_id,
-                (InventarioSucursalModel.cantidad - InventarioSucursalModel.stockreservado) >= datos.cantidad
-            ).first()
-            if inv_con_stock:
-                carrito.sucursalid = inv_con_stock.sucursalid
-
-        # Validar stock disponible
-        if carrito.sucursalid:
-            inv = db.query(InventarioSucursalModel).filter(
-                InventarioSucursalModel.varianteid == datos.variante_id,
-                InventarioSucursalModel.sucursalid == carrito.sucursalid
-            ).first()
-            stock_disp = max(0, (inv.cantidad - inv.stockreservado)) if inv else 0
-        else:
-            invs = db.query(InventarioSucursalModel).filter(
-                InventarioSucursalModel.varianteid == datos.variante_id
-            ).all()
-            stock_disp = sum(max(0, (i.cantidad - i.stockreservado)) for i in invs)
-
-        item = db.query(CarritoItemModel).filter(
-            CarritoItemModel.carritoid == carrito.id,
-            CarritoItemModel.varianteid == datos.variante_id
-        ).first()
-
-        cantidad_final = (item.cantidad + datos.cantidad) if item else datos.cantidad
-
-        if cantidad_final > stock_disp:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Stock insuficiente en la tienda. Disponibles: {stock_disp} uds."
-            )
-
-        if item:
-            item.cantidad = cantidad_final
-        else:
-            nuevo_item = CarritoItemModel(
-                carritoid=carrito.id,
-                varianteid=datos.variante_id,
-                cantidad=datos.cantidad,
-                preciounitario=variante.precioventa or variante.producto.preciobase,
-                fechaagregado=datetime.utcnow()
-            )
-            db.add(nuevo_item)
-
-        carrito.fechaactualizacion = datetime.utcnow()
-        db.commit()
-
-        return cls.obtener_carrito_dto(db, usuario_id)
-
-    @classmethod
-    def actualizar_cantidad(cls, db: Session, usuario_id: int, variante_id: int, datos: ActualizarCantidadItemRequest) -> CarritoResponse:
-        """Modifica la cantidad de un ítem en el carrito"""
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
-
-        item = db.query(CarritoItemModel).filter(
-            CarritoItemModel.carritoid == carrito.id,
-            CarritoItemModel.varianteid == variante_id
-        ).first()
-
-        if not item:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El ítem no está en el carrito")
-
-        if datos.cantidad <= 0:
-            db.delete(item)
-        else:
-            # Validar stock
-            if carrito.sucursalid:
-                inv = db.query(InventarioSucursalModel).filter(
-                    InventarioSucursalModel.varianteid == variante_id,
-                    InventarioSucursalModel.sucursalid == carrito.sucursalid
-                ).first()
-                stock_disp = max(0, (inv.cantidad - inv.stockreservado)) if inv else 0
-            else:
-                invs = db.query(InventarioSucursalModel).filter(
-                    InventarioSucursalModel.varianteid == variante_id
-                ).all()
-                stock_disp = sum(max(0, (i.cantidad - i.stockreservado)) for i in invs)
-
-            if datos.cantidad > stock_disp:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"No puedes agregar {datos.cantidad} unidades. Stock disponible: {stock_disp} uds."
-                )
-
-            item.cantidad = datos.cantidad
-
-        carrito.fechaactualizacion = datetime.utcnow()
-        db.commit()
-
-        return cls.obtener_carrito_dto(db, usuario_id)
-
-    @classmethod
-    def eliminar_item(cls, db: Session, usuario_id: int, variante_id: int) -> CarritoResponse:
+    @staticmethod
+    def eliminar_item(
+        db: Session,
+        usuario_id: int,
+        variante_id: int,
+        tenant_id: int = 1
+    ) -> CarritoResponse:
         """Elimina una prenda del carrito"""
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
+        return CarritoService.eliminar_item(
+            db=db,
+            usuario_id=usuario_id,
+            variante_id=variante_id,
+            tenant_id=tenant_id
+        )
 
-        item = db.query(CarritoItemModel).filter(
-            CarritoItemModel.carritoid == carrito.id,
-            CarritoItemModel.varianteid == variante_id
-        ).first()
+    @staticmethod
+    def asignar_sucursal(
+        db: Session,
+        usuario_id: int,
+        datos: AsignarSucursalCarritoRequest,
+        tenant_id: int = 1
+    ) -> CarritoResponse:
+        """Asigna la sucursal física de retiro o compra al carrito"""
+        return CarritoService.asignar_sucursal(
+            db=db,
+            usuario_id=usuario_id,
+            datos=datos,
+            tenant_id=tenant_id
+        )
 
-        if item:
-            db.delete(item)
-            carrito.fechaactualizacion = datetime.utcnow()
-            db.commit()
-
-        return cls.obtener_carrito_dto(db, usuario_id)
-
-    @classmethod
-    def asignar_sucursal(cls, db: Session, usuario_id: int, datos: AsignarSucursalCarritoRequest) -> CarritoResponse:
-        """Asigna o cambia la tienda física donde se retirará/comprará el carrito"""
-        sucursal = db.query(SucursalModel).filter(
-            SucursalModel.id == datos.sucursal_id,
-            SucursalModel.activo == True
-        ).first()
-
-        if not sucursal:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sucursal no encontrada o inactiva")
-
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
-        carrito.sucursalid = datos.sucursal_id
-        carrito.fechaactualizacion = datetime.utcnow()
-        db.commit()
-
-        return cls.obtener_carrito_dto(db, usuario_id)
-
-    @classmethod
-    def vaciar_carrito(cls, db: Session, usuario_id: int) -> CarritoResponse:
+    @staticmethod
+    def vaciar_carrito(db: Session, usuario_id: int, tenant_id: int = 1) -> CarritoResponse:
         """Elimina todos los productos del carrito"""
-        carrito = cls._obtener_carrito_activo(db, usuario_id)
+        return CarritoService.vaciar_carrito(
+            db=db,
+            usuario_id=usuario_id,
+            tenant_id=tenant_id
+        )
 
-        db.query(CarritoItemModel).filter(CarritoItemModel.carritoid == carrito.id).delete()
-        carrito.fechaactualizacion = datetime.utcnow()
-        db.commit()
-
-        return cls.obtener_carrito_dto(db, usuario_id)
+    # Alias de compatibilidad hacia atrás
+    obtener_carrito_dto = obtener_carrito

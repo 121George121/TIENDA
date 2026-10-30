@@ -81,7 +81,7 @@ export class CartViewComponent implements OnInit {
     // 1. Cargar tiendas físicas
     this.inventoryService.getSucursales().subscribe({
       next: (s) => this.sucursales = s,
-      error: (e) => console.error('Error al cargar sucursales:', e)
+      error: (e: any) => console.error('Error al cargar sucursales:', e)
     });
 
     // 2. Cargar métodos de pago activos (CU16)
@@ -95,7 +95,7 @@ export class CartViewComponent implements OnInit {
           this.metodoSeleccionadoId = m[0].id;
         }
       },
-      error: (e) => console.error('Error al cargar métodos de pago:', e)
+      error: (e: any) => console.error('Error al cargar métodos de pago:', e)
     });
 
     // 3. Detectar si regresa de la pasarela oficial de PayPal
@@ -117,7 +117,7 @@ export class CartViewComponent implements OnInit {
             this.urlComprobante = this.pagoService.getComprobanteUrl(ordenId);
             this.mostrarModalCompra = true;
           },
-          error: (err) => {
+          error: (err: any) => {
             console.error('Error capturando PayPal:', err);
           }
         });
@@ -135,7 +135,7 @@ export class CartViewComponent implements OnInit {
           this.recomendaciones = [];
         }
       },
-      error: (e) => {
+      error: (e: any) => {
         console.error('Error al cargar carrito:', e);
         this.loading = false;
       }
@@ -154,7 +154,7 @@ export class CartViewComponent implements OnInit {
         this.recomendaciones = data;
         this.cargandoRecomendaciones = false;
       },
-      error: (e) => {
+      error: (e: any) => {
         console.warn('Error recomendaciones:', e);
         this.cargandoRecomendaciones = false;
       }
@@ -173,7 +173,7 @@ export class CartViewComponent implements OnInit {
     this.procesandoId = item.variante_id;
     this.cartService.actualizarCantidad(item.variante_id, item.cantidad + 1).subscribe({
       next: () => this.procesandoId = null,
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoId = null;
         alert(err.error?.detail || 'Error al actualizar cantidad');
       }
@@ -189,7 +189,7 @@ export class CartViewComponent implements OnInit {
 
     this.cartService.actualizarCantidad(item.variante_id, item.cantidad - 1).subscribe({
       next: () => this.procesandoId = null,
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoId = null;
         alert(err.error?.detail || 'Error al decrementar cantidad');
       }
@@ -201,7 +201,7 @@ export class CartViewComponent implements OnInit {
       this.procesandoId = item.variante_id;
       this.cartService.eliminarItem(item.variante_id).subscribe({
         next: () => this.procesandoId = null,
-        error: (err) => {
+        error: (err: any) => {
           this.procesandoId = null;
           alert(err.error?.detail || 'Error al eliminar ítem');
         }
@@ -215,7 +215,7 @@ export class CartViewComponent implements OnInit {
 
     this.cartService.asignarSucursal(sucursalId).subscribe({
       next: () => {},
-      error: (err) => alert(err.error?.detail || 'Error al cambiar sucursal')
+      error: (err: any) => alert(err.error?.detail || 'Error al cambiar sucursal')
     });
   }
 
@@ -260,7 +260,7 @@ export class CartViewComponent implements OnInit {
         this.procesandoReserva = false;
         this.reservaExitosa = nuevaReserva;
       },
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoReserva = false;
         alert(err.error?.detail || 'Error al procesar la reserva. Por favor intenta de nuevo.');
       }
@@ -332,13 +332,13 @@ export class CartViewComponent implements OnInit {
               this.urlComprobante = this.pagoService.getComprobanteUrl(orden.id);
             }
           },
-          error: (err) => {
+          error: (err: any) => {
             this.procesandoCompra = false;
             alert(err.error?.detail || 'Error al iniciar el pago.');
           }
         });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoCompra = false;
         alert(err.error?.detail || 'Error al procesar la orden digital.');
       }
