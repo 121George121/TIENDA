@@ -1,9 +1,21 @@
-// CU21 - ADMINISTRAR PLANES DE SUSCRIPCIÓN Y TENANTS -> SERVICE
+// ==============================================================================
+// CU21 - ADMINISTRAR PLANES DE SUSCRIPCIÓN Y TENANTS -> SERVICIO HTTP (ANGULAR)
+// Ubicación: frontend-web/src/app/services/cu21_administrar_planes_suscripcion_tenants/suscripcion-tenant.service.ts
+// ==============================================================================
+
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { PlanSuscripcionDTO, TenantDTO, NuevoTenantRequest } from '../../models/cu21_administrar_planes_suscripcion_tenants/suscripcion-tenant.model';
+import {
+  PlanSuscripcionDTO,
+  PlanSuscripcionCreateDTO,
+  TenantDTO,
+  NuevoTenantRequest,
+  CambiarPlanRequest,
+  RenovarSuscripcionRequest,
+  KpiSaaSDTO
+} from '../../models/cu21_administrar_planes_suscripcion_tenants/suscripcion-tenant.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,15 +25,47 @@ export class SuscripcionTenantService {
 
   constructor(private http: HttpClient) {}
 
-  listarPlanes(): Observable<{ exito: boolean; planes: PlanSuscripcionDTO[] }> {
-    return this.http.get<{ exito: boolean; planes: PlanSuscripcionDTO[] }>(`${this.apiUrl}/planes`);
+  // --- PLANES ---
+  listarPlanes(soloActivos: boolean = false): Observable<{ exito: boolean; planes: PlanSuscripcionDTO[] }> {
+    const params = new HttpParams().set('solo_activos', soloActivos.toString());
+    return this.http.get<{ exito: boolean; planes: PlanSuscripcionDTO[] }>(`${this.apiUrl}/planes`, { params });
   }
 
+  crearPlan(payload: PlanSuscripcionCreateDTO): Observable<{ exito: boolean; plan: PlanSuscripcionDTO }> {
+    return this.http.post<{ exito: boolean; plan: PlanSuscripcionDTO }>(`${this.apiUrl}/planes`, payload);
+  }
+
+  actualizarPlan(planId: number, payload: Partial<PlanSuscripcionCreateDTO>): Observable<{ exito: boolean; plan: PlanSuscripcionDTO }> {
+    return this.http.put<{ exito: boolean; plan: PlanSuscripcionDTO }>(`${this.apiUrl}/planes/${planId}`, payload);
+  }
+
+  // --- TENANTS ---
   listarTenants(): Observable<{ exito: boolean; tenants: TenantDTO[] }> {
     return this.http.get<{ exito: boolean; tenants: TenantDTO[] }>(`${this.apiUrl}/tenants`);
   }
 
+  obtenerTenant(tenantId: number): Observable<{ exito: boolean; data: any }> {
+    return this.http.get<{ exito: boolean; data: any }>(`${this.apiUrl}/tenants/${tenantId}`);
+  }
+
   registrarTenant(payload: NuevoTenantRequest): Observable<{ exito: boolean; tenant: TenantDTO }> {
     return this.http.post<{ exito: boolean; tenant: TenantDTO }>(`${this.apiUrl}/tenants`, payload);
+  }
+
+  cambiarPlanTenant(tenantId: number, payload: CambiarPlanRequest): Observable<{ exito: boolean; tenant: TenantDTO }> {
+    return this.http.put<{ exito: boolean; tenant: TenantDTO }>(`${this.apiUrl}/tenants/${tenantId}/plan`, payload);
+  }
+
+  toggleEstadoTenant(tenantId: number, activo: boolean, motivo?: string): Observable<{ exito: boolean; tenant: TenantDTO }> {
+    return this.http.put<{ exito: boolean; tenant: TenantDTO }>(`${this.apiUrl}/tenants/${tenantId}/estado`, { activo, motivo });
+  }
+
+  renovarSuscripcion(tenantId: number, payload: RenovarSuscripcionRequest): Observable<{ exito: boolean; suscripcion: any }> {
+    return this.http.post<{ exito: boolean; suscripcion: any }>(`${this.apiUrl}/tenants/${tenantId}/renovar`, payload);
+  }
+
+  // --- KPIS ---
+  obtenerKpis(): Observable<{ exito: boolean; kpis: KpiSaaSDTO }> {
+    return this.http.get<{ exito: boolean; kpis: KpiSaaSDTO }>(`${this.apiUrl}/kpis`);
   }
 }

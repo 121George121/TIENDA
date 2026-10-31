@@ -1,0 +1,654 @@
+<div class="saas-container">
+
+  <!-- Header Superior -->
+  <header class="view-header">
+    <div class="header-title-group">
+      <div class="header-icon-box">
+        <mat-icon>domain</mat-icon>
+      </div>
+      <div>
+        <div class="badge-module">CASO DE USO 21 (CU21)</div>
+        <h1 class="page-title">Administración de Planes & Tenants SaaS</h1>
+        <p class="page-subtitle">Aislamiento multi-tenant, asignación de cuotas operativas y supervisión de vigencia contractual</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="ctrl.abrirModalNuevoPlan()" id="btn-nuevo-plan">
+        <mat-icon>add_circle_outline</mat-icon>
+        <span>Nuevo Plan</span>
+      </button>
+      <button class="btn btn-primary" (click)="ctrl.abrirModalNuevoTenant()" id="btn-nuevo-tenant">
+        <mat-icon>add_business</mat-icon>
+        <span>+ Nueva Empresa (Tenant)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mensajes de Alerta Reactivos -->
+  <div *ngIf="ctrl.mensajeExito()" class="alert-banner alert-success">
+    <mat-icon>check_circle</mat-icon>
+    <span>{{ ctrl.mensajeExito() }}</span>
+  </div>
+
+  <div *ngIf="ctrl.error()" class="alert-banner alert-danger">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ ctrl.error() }}</span>
+    <button class="btn-close-alert" (click)="ctrl.error.set(null)">✕</button>
+  </div>
+
+  <!-- Tarjetas KPI SaaS -->
+  <section class="kpi-grid" *ngIf="ctrl.kpis() as k">
+    <div class="kpi-card card-tenants">
+      <div class="kpi-icon-box">
+        <mat-icon>store</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Empresas / Tenants</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value">{{ k.tenants_activos }}</span>
+          <span class="kpi-subtext">/ {{ k.total_tenants }} registradas</span>
+        </div>
+        <span class="kpi-hint text-emerald">100% aislamiento de BD</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-mrr">
+      <div class="kpi-icon-box">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">MRR Estimado (Mensual)</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value">Bs. {{ k.mrr_estimado | number:'1.2-2' }}</span>
+        </div>
+        <span class="kpi-subtext">Facturación recurrente activa</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-plans">
+      <div class="kpi-icon-box">
+        <mat-icon>layers</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Planes Comerciales</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value">{{ k.total_planes }}</span>
+          <span class="kpi-subtext">modalidades activas</span>
+        </div>
+        <span class="kpi-hint">Básico & Profesional</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-health">
+      <div class="kpi-icon-box">
+        <mat-icon>verified_user</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Auditoría Multi-Tenant</span>
+        <div class="kpi-value-row">
+          <span class="badge-status badge-active">CU26 VINCULADO</span>
+        </div>
+        <span class="kpi-subtext">Trazabilidad inmutable de eventos</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pestañas de Navegación -->
+  <div class="tabs-container">
+    <button 
+      class="tab-btn" 
+      [class.active]="ctrl.tabActiva() === 'tenants'"
+      (click)="ctrl.tabActiva.set('tenants')"
+      id="tab-tenants">
+      <mat-icon>corporate_fare</mat-icon>
+      <span>Directorio de Empresas (Tenants)</span>
+      <span class="tab-badge">{{ ctrl.tenants().length }}</span>
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="ctrl.tabActiva() === 'planes'"
+      (click)="ctrl.tabActiva.set('planes')"
+      id="tab-planes">
+      <mat-icon>sell</mat-icon>
+      <span>Planes Comerciales & Cuotas</span>
+      <span class="tab-badge">{{ ctrl.planes().length }}</span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: DIRECTORIO DE EMPRESAS / TENANTS                                   -->
+  <!-- ========================================================================= -->
+  <section *ngIf="ctrl.tabActiva() === 'tenants'" class="tab-content">
+    
+    <!-- Barra de Filtros y Búsqueda -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input 
+          type="text" 
+          placeholder="Buscar por razón social, subdominio, NIT o email..." 
+          [value]="ctrl.filtroTexto()"
+          (input)="actualizarFiltro($event)"
+          id="input-filtro-tenant" />
+        <button *ngIf="ctrl.filtroTexto()" class="btn-clear" (click)="ctrl.filtroTexto.set('')">✕</button>
+      </div>
+
+      <div class="filter-info">
+        <span>Mostrando <strong>{{ ctrl.tenantsFiltrados().length }}</strong> de <strong>{{ ctrl.tenants().length }}</strong> empresas</span>
+      </div>
+    </div>
+
+    <!-- Spinner de Carga -->
+    <div *ngIf="ctrl.cargando()" class="loading-state">
+      <mat-icon class="spin-icon">autorenew</mat-icon>
+      <p>Cargando información y cuotas de tenants...</p>
+    </div>
+
+    <!-- Tabla de Tenants -->
+    <div *ngIf="!ctrl.cargando()" class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>EMPRESA / INQUILINO</th>
+            <th>PLAN ASIGNADO</th>
+            <th>CUOTA DE SUCURSALES</th>
+            <th>CUOTA DE COLABORADORES</th>
+            <th>SUSCRIPCIÓN & VIGENCIA</th>
+            <th>ESTADO</th>
+            <th class="text-right">ACCIONES</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of ctrl.tenantsFiltrados()">
+            <!-- Nombre y Datos -->
+            <td>
+              <div class="tenant-identity">
+                <div class="tenant-avatar">{{ t.nombre.charAt(0).toUpperCase() }}</div>
+                <div class="tenant-meta">
+                  <span class="tenant-name">{{ t.nombre }}</span>
+                  <span class="tenant-slug">
+                    <mat-icon class="slug-icon">link</mat-icon>
+                    {{ t.slug }}.goldenstore.com
+                  </span>
+                  <span class="tenant-sub" *ngIf="t.nit_ruc">NIT: {{ t.nit_ruc }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Plan Asignado -->
+            <td>
+              <div class="plan-tag-box" *ngIf="t.plan">
+                <span class="plan-tag" [class.plan-pro]="t.plan.precio_mensual >= 200">
+                  {{ t.plan.nombre }}
+                </span>
+                <span class="plan-price">Bs. {{ t.plan.precio_mensual }} / mes</span>
+              </div>
+              <span *ngIf="!t.plan" class="text-muted">Sin Plan</span>
+            </td>
+
+            <!-- Cuota Sucursales -->
+            <td>
+              <div class="quota-box" *ngIf="t.metricas_uso as m">
+                <div class="quota-numbers">
+                  <span class="quota-used"><strong>{{ m.sucursales_usadas }}</strong> de {{ m.sucursales_limite }}</span>
+                  <span class="quota-pct">{{ m.porcentaje_sucursales }}%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div 
+                    class="progress-bar-fill"
+                    [class.bar-danger]="m.porcentaje_sucursales >= 100"
+                    [class.bar-warning]="m.porcentaje_sucursales >= 75 && m.porcentaje_sucursales < 100"
+                    [style.width.%]="m.porcentaje_sucursales > 100 ? 100 : m.porcentaje_sucursales">
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Cuota Usuarios -->
+            <td>
+              <div class="quota-box" *ngIf="t.metricas_uso as m">
+                <div class="quota-numbers">
+                  <span class="quota-used"><strong>{{ m.usuarios_usados }}</strong> de {{ m.usuarios_limite }}</span>
+                  <span class="quota-pct">{{ m.porcentaje_usuarios }}%</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div 
+                    class="progress-bar-fill"
+                    [class.bar-danger]="m.porcentaje_usuarios >= 100"
+                    [class.bar-warning]="m.porcentaje_usuarios >= 75 && m.porcentaje_usuarios < 100"
+                    [style.width.%]="m.porcentaje_usuarios > 100 ? 100 : m.porcentaje_usuarios">
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <!-- Vigencia Suscripción -->
+            <td>
+              <div class="suscripcion-meta" *ngIf="t.suscripcion_actual as s">
+                <span class="badge-status" [class.badge-active]="s.estado === 'ACTIVA'" [class.badge-suspended]="s.estado !== 'ACTIVA'">
+                  {{ s.estado }}
+                </span>
+                <span class="fecha-vence">Vence: {{ s.fecha_fin | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <span *ngIf="!t.suscripcion_actual" class="text-muted">Sin Registro</span>
+            </td>
+
+            <!-- Estado Activo / Suspendido -->
+            <td>
+              <span class="badge-status" [class.badge-active]="t.activo" [class.badge-suspended]="!t.activo">
+                {{ t.activo ? 'ACTIVO' : 'SUSPENDIDO' }}
+              </span>
+            </td>
+
+            <!-- Acciones -->
+            <td class="text-right">
+              <div class="action-buttons">
+                <button 
+                  class="btn-icon" 
+                  title="Cambiar Plan (Upgrade/Downgrade)"
+                  (click)="ctrl.abrirModalCambiarPlan(t)">
+                  <mat-icon>swap_horiz</mat-icon>
+                </button>
+                <button 
+                  class="btn-icon" 
+                  title="Renovar Suscripción"
+                  (click)="ctrl.abrirModalRenovar(t)">
+                  <mat-icon>autorenew</mat-icon>
+                </button>
+                <button 
+                  class="btn-icon" 
+                  [class.text-danger]="t.activo"
+                  [class.text-success]="!t.activo"
+                  [title]="t.activo ? 'Suspender Acceso' : 'Reactivar Acceso'"
+                  (click)="ctrl.toggleEstadoTenant(t)">
+                  <mat-icon>{{ t.activo ? 'block' : 'lock_open' }}</mat-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="ctrl.tenantsFiltrados().length === 0">
+            <td colspan="7" class="empty-row">
+              <mat-icon>search_off</mat-icon>
+              <p>No se encontraron empresas con el criterio de búsqueda especificado.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: PLANES COMERCIALES                                                 -->
+  <!-- ========================================================================= -->
+  <section *ngIf="ctrl.tabActiva() === 'planes'" class="tab-content">
+    <div class="planes-grid">
+      <div class="plan-card" *ngFor="let p of ctrl.planes()" [class.featured-plan]="p.precio_mensual >= 200">
+        <div class="plan-card-header">
+          <div>
+            <span class="plan-tier-badge">{{ p.nombre }}</span>
+            <h3 class="plan-title">{{ p.nombre }}</h3>
+          </div>
+          <span class="badge-status" [class.badge-active]="p.activo" [class.badge-suspended]="!p.activo">
+            {{ p.activo ? 'DISPONIBLE' : 'ARCHIVADO' }}
+          </span>
+        </div>
+
+        <div class="plan-price-box">
+          <span class="price-currency">Bs.</span>
+          <span class="price-amount">{{ p.precio_mensual }}</span>
+          <span class="price-period">/ mes</span>
+        </div>
+
+        <p class="plan-desc">{{ p.descripcion || 'Plan comercial adaptado para retail de poleras y moda.' }}</p>
+
+        <hr class="plan-divider" />
+
+        <ul class="plan-features-list">
+          <li>
+            <mat-icon class="feature-icon text-success">check_circle</mat-icon>
+            <span>Hasta <strong>{{ p.limite_sucursales }}</strong> sucursales físicas</span>
+          </li>
+          <li>
+            <mat-icon class="feature-icon text-success">check_circle</mat-icon>
+            <span>Hasta <strong>{{ p.limite_usuarios }}</strong> cuentas de usuario</span>
+          </li>
+          <li>
+            <mat-icon class="feature-icon text-success">check_circle</mat-icon>
+            <span>Catálogo de hasta <strong>{{ p.limite_productos }}</strong> modelos de poleras</span>
+          </li>
+          <li>
+            <mat-icon 
+              class="feature-icon" 
+              [class.text-success]="p.habilitar_vestidor_ia" 
+              [class.text-muted]="!p.habilitar_vestidor_ia">
+              {{ p.habilitar_vestidor_ia ? 'check_circle' : 'cancel' }}
+            </mat-icon>
+            <span [class.text-muted]="!p.habilitar_vestidor_ia">
+              Vestidor Virtual con IA (CU12)
+            </span>
+          </li>
+          <li>
+            <mat-icon class="feature-icon text-success">check_circle</mat-icon>
+            <span>Auditoría de Bitácora (CU26)</span>
+          </li>
+        </ul>
+
+        <div class="plan-card-footer">
+          <button class="btn btn-outline" (click)="ctrl.abrirModalEditarPlan(p)">
+            <mat-icon>edit</mat-icon>
+            <span>Modificar Condiciones</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: REGISTRAR NUEVA EMPRESA (TENANT)                                 -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalTenantAbierto()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>add_business</mat-icon>
+          <h3>Registrar Nueva Empresa / Boutique SaaS</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalNuevoTenant()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Razón Social / Nombre Comercial *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="nuevoTenantForm.nombre" 
+              (input)="autoGenerarSlug()"
+              placeholder="Ej. Golden Boutique Fashion" />
+          </div>
+
+          <div class="form-group">
+            <label>Identificador Subdominio (Slug) *</label>
+            <div class="input-prefix-box">
+              <input 
+                type="text" 
+                [(ngModel)]="nuevoTenantForm.slug" 
+                placeholder="golden-boutique" />
+              <span class="input-suffix">.goldenstore.com</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>NIT o RUC Fiscal</label>
+            <input 
+              type="text" 
+              [(ngModel)]="nuevoTenantForm.nit_ruc" 
+              placeholder="Ej. 1029384029" />
+          </div>
+
+          <div class="form-group">
+            <label>Correo Electrónico de Gerencia *</label>
+            <input 
+              type="email" 
+              [(ngModel)]="nuevoTenantForm.email_contacto" 
+              placeholder="admin@boutique.bo" />
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono de Contacto</label>
+            <input 
+              type="text" 
+              [(ngModel)]="nuevoTenantForm.telefono_contacto" 
+              placeholder="+591 70000000" />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Dirección Fiscal</label>
+            <input 
+              type="text" 
+              [(ngModel)]="nuevoTenantForm.direccion_fiscal" 
+              placeholder="Av. Principal #123, Santa Cruz de la Sierra" />
+          </div>
+
+          <div class="form-group">
+            <label>Plan Comercial a Asignar *</label>
+            <select [(ngModel)]="nuevoTenantForm.plan_id">
+              <option *ngFor="let p of ctrl.planes()" [value]="p.id">
+                {{ p.nombre }} - Bs. {{ p.precio_mensual }}/mes ({{ p.limite_sucursales }} sucursales, {{ p.limite_usuarios }} usuarios)
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Vigencia Inicial Contratada *</label>
+            <select [(ngModel)]="nuevoTenantForm.meses_suscripcion">
+              <option [value]="6">6 Meses (Semestral)</option>
+              <option [value]="12">12 Meses (Anual - Recomendado)</option>
+              <option [value]="24">24 Meses (Bienal con descuento)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalNuevoTenant()">Cancelar</button>
+        <button 
+          class="btn btn-primary" 
+          [disabled]="ctrl.guardando() || !nuevoTenantForm.nombre || !nuevoTenantForm.slug || !nuevoTenantForm.email_contacto"
+          (click)="guardarNuevoTenant()">
+          <mat-icon *ngIf="!ctrl.guardando()">save</mat-icon>
+          <mat-icon *ngIf="ctrl.guardando()" class="spin-icon">autorenew</mat-icon>
+          <span>{{ ctrl.guardando() ? 'Creando Empresa...' : 'Crear Empresa & Suscripción' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: CAMBIAR PLAN DE SUSCRIPCIÓN                                      -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalCambiarPlanAbierto()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>swap_horiz</mat-icon>
+          <h3>Cambiar Plan Comercial</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalCambiarPlan()">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="ctrl.tenantSeleccionado() as t">
+        <div class="info-callout">
+          <p>Empresa seleccionada: <strong>{{ t.nombre }}</strong> ({{ t.slug }})</p>
+          <p>Plan actual: <strong>{{ t.plan?.nombre || 'Sin Plan' }}</strong> (Bs. {{ t.plan?.precio_mensual || 0 }}/mes)</p>
+        </div>
+
+        <div class="form-group mt-4">
+          <label>Nuevo Plan Comercial *</label>
+          <select [(ngModel)]="cambioPlanNuevoId">
+            <option *ngFor="let p of ctrl.planes()" [value]="p.id">
+              {{ p.nombre }} — Bs. {{ p.precio_mensual }}/mes ({{ p.limite_sucursales }} sucursales, {{ p.limite_usuarios }} usuarios)
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group mt-3">
+          <label>Motivo del Cambio / Justificación</label>
+          <textarea 
+            [(ngModel)]="cambioPlanMotivo" 
+            rows="3" 
+            placeholder="Ej. Solicitud de expansión de sucursales por parte de la boutique..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalCambiarPlan()">Cancelar</button>
+        <button 
+          class="btn btn-primary" 
+          [disabled]="ctrl.guardando() || !cambioPlanNuevoId"
+          (click)="confirmarCambioPlan()">
+          <mat-icon *ngIf="!ctrl.guardando()">check</mat-icon>
+          <mat-icon *ngIf="ctrl.guardando()" class="spin-icon">autorenew</mat-icon>
+          <span>{{ ctrl.guardando() ? 'Aplicando...' : 'Confirmar Cambio de Plan' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 3: RENOVAR SUSCRIPCIÓN                                              -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalRenovarAbierto()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>autorenew</mat-icon>
+          <h3>Renovar Suscripción SaaS</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalRenovar()">✕</button>
+      </div>
+
+      <div class="modal-body" *ngIf="ctrl.tenantSeleccionado() as t">
+        <div class="info-callout">
+          <p>Empresa: <strong>{{ t.nombre }}</strong></p>
+          <p>Plan: <strong>{{ t.plan?.nombre }}</strong> — Tarifa mensual: <strong>Bs. {{ t.plan?.precio_mensual }}</strong></p>
+          <p *ngIf="t.suscripcion_actual">Vigencia actual hasta: <strong>{{ t.suscripcion_actual.fecha_fin | date:'dd/MM/yyyy' }}</strong></p>
+        </div>
+
+        <div class="form-grid mt-4">
+          <div class="form-group">
+            <label>Período a Extender *</label>
+            <select [(ngModel)]="renovacionMeses">
+              <option [value]="6">6 Meses</option>
+              <option [value]="12">12 Meses (1 Año)</option>
+              <option [value]="24">24 Meses (2 Años)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Método de Pago *</label>
+            <select [(ngModel)]="renovacionMetodo">
+              <option value="TRANSFERENCIA_BANCARIA">Transferencia Bancaria</option>
+              <option value="QR_SIMPLE">QR Simple Bolivia</option>
+              <option value="TARJETA_CREDITO">Tarjeta de Crédito / Débito</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="total-calc-box mt-3" *ngIf="t.plan">
+          <span>Total a Facturar:</span>
+          <strong>Bs. {{ (t.plan.precio_mensual * renovacionMeses) | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalRenovar()">Cancelar</button>
+        <button 
+          class="btn btn-primary" 
+          [disabled]="ctrl.guardando()"
+          (click)="confirmarRenovacion()">
+          <mat-icon *ngIf="!ctrl.guardando()">verified</mat-icon>
+          <mat-icon *ngIf="ctrl.guardando()" class="spin-icon">autorenew</mat-icon>
+          <span>{{ ctrl.guardando() ? 'Renovando...' : 'Aplicar Renovación' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 4: CREAR / EDITAR PLAN COMERCIAL                                    -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalPlanAbierto()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>sell</mat-icon>
+          <h3>{{ ctrl.planSeleccionado() ? 'Modificar Plan Comercial' : 'Crear Nuevo Plan de Suscripción' }}</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalPlan()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Nombre del Plan *</label>
+            <input 
+              type="text" 
+              [(ngModel)]="planForm.nombre" 
+              placeholder="Ej. Enterprise Boutique" />
+          </div>
+
+          <div class="form-group full-width">
+            <label>Descripción Comercial</label>
+            <textarea 
+              [(ngModel)]="planForm.descripcion" 
+              rows="2" 
+              placeholder="Descripción del alcance y clientes objetivo..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Precio Mensual (Bs.) *</label>
+            <input 
+              type="number" 
+              [(ngModel)]="planForm.precio_mensual" 
+              min="0" 
+              step="0.01" />
+          </div>
+
+          <div class="form-group">
+            <label>Límite de Sucursales Físicas *</label>
+            <input 
+              type="number" 
+              [(ngModel)]="planForm.limite_sucursales" 
+              min="1" />
+          </div>
+
+          <div class="form-group">
+            <label>Límite de Usuarios / Colaboradores *</label>
+            <input 
+              type="number" 
+              [(ngModel)]="planForm.limite_usuarios" 
+              min="1" />
+          </div>
+
+          <div class="form-group">
+            <label>Límite de Modelos de Prendas *</label>
+            <input 
+              type="number" 
+              [(ngModel)]="planForm.limite_productos" 
+              min="1" />
+          </div>
+
+          <div class="form-group full-width checkbox-row">
+            <label class="custom-checkbox">
+              <input type="checkbox" [(ngModel)]="planForm.habilitar_vestidor_ia" />
+              <span>Habilitar Módulo de Vestidor Virtual con IA (CU12)</span>
+            </label>
+          </div>
+
+          <div class="form-group full-width checkbox-row">
+            <label class="custom-checkbox">
+              <input type="checkbox" [(ngModel)]="planForm.activo" />
+              <span>Plan disponible comercialmente (Activo)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalPlan()">Cancelar</button>
+        <button 
+          class="btn btn-primary" 
+          [disabled]="ctrl.guardando() || !planForm.nombre || planForm.precio_mensual < 0"
+          (click)="confirmarGuardarPlan()">
+          <mat-icon *ngIf="!ctrl.guardando()">save</mat-icon>
+          <mat-icon *ngIf="ctrl.guardando()" class="spin-icon">autorenew</mat-icon>
+          <span>{{ ctrl.guardando() ? 'Guardando...' : 'Guardar Plan' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
