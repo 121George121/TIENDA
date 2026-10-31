@@ -9,7 +9,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_tenant_user
 from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
 from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
 from app.schemas.cu20_gestionar_bitacora.bitacora_schema import (
@@ -30,11 +30,12 @@ def listar_bitacora(
     limit: int = Query(50, ge=1, le=200, description="Cantidad de registros por página"),
     offset: int = Query(0, ge=0, description="Desplazamiento / paginación"),
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """
     Retorna el historial paginado de bitácora con capacidades de filtrado multicriterio.
     """
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
     return BitacoraController.listar(
         db=db,
         fecha_inicio=fecha_inicio,
@@ -44,19 +45,21 @@ def listar_bitacora(
         usuario_id=usuario_id,
         search=search,
         limit=limit,
-        offset=offset
+        offset=offset,
+        tenant_id=tenant_id
     )
 
 
 @router.get("/estadisticas", response_model=BitacoraStatsResponse, summary="Obtener KPIs y métricas de auditoría")
 def obtener_estadisticas_bitacora(
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """
     Retorna indicadores clave: eventos de hoy, semana, mes y distribución por módulo y acción.
     """
-    return BitacoraController.obtener_estadisticas(db=db)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    return BitacoraController.obtener_estadisticas(db=db, tenant_id=tenant_id)
 
 
 @router.get("/exportar", summary="Exportar registros filtrados a archivo CSV")
@@ -68,11 +71,12 @@ def exportar_bitacora_csv(
     usuario_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """
     Genera y descarga un archivo CSV con los registros de auditoría coincidentes con los filtros aplicados.
     """
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
     csv_data = BitacoraController.exportar_csv(
         db=db,
         fecha_inicio=fecha_inicio,
@@ -80,7 +84,8 @@ def exportar_bitacora_csv(
         modulo=modulo,
         accion=accion,
         usuario_id=usuario_id,
-        search=search
+        search=search,
+        tenant_id=tenant_id
     )
 
     filename = f"bitacora_auditoria_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
@@ -98,12 +103,13 @@ def crear_evento_bitacora(
     evento: BitacoraCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """
     Permite registrar un evento de auditoría originado desde el cliente web o servicios asociados.
     """
-    ip_cliente = evento.ip or request.client.host if request.client else None
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    ip_cliente = evento.ip or (request.client.host if request.client else None)
     usuario_efectivo = evento.usuarioid if evento.usuarioid is not None else current_user.id
 
     nuevo = BitacoraController.registrar_evento(
@@ -114,7 +120,8 @@ def crear_evento_bitacora(
         detalle=evento.detalle,
         ip=ip_cliente,
         datos_previos=evento.datosprevios,
-        datos_nuevos=evento.datosnuevos
+        datos_nuevos=evento.datosnuevos,
+        tenant_id=tenant_id
     )
 
     if not nuevo:
@@ -127,3 +134,4 @@ def crear_evento_bitacora(
         "mensaje": "Evento registrado con éxito",
         "id": nuevo.id
     }
+

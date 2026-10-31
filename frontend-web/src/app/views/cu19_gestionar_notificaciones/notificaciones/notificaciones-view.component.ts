@@ -37,4 +37,13 @@ export class NotificacionesViewComponent implements OnInit {
   cambiarFiltro(filtro: string): void {
     this.filtroActual = filtro;
   }
+
+  filtrar(lista: any[] | null): any[] {
+    if (!lista) return [];
+    if (this.filtroActual === 'no_leidas') return lista.filter(n => !n.leido);
+    if (this.filtroActual === 'pedido') return lista.filter(n => (n.tipo || '').toLowerCase().includes('pedido') || (n.tipo || '').toLowerCase().includes('compra'));
+    if (this.filtroActual === 'reserva') return lista.filter(n => (n.tipo || '').toLowerCase().includes('reserva'));
+    return lista;
+  }
 }
+

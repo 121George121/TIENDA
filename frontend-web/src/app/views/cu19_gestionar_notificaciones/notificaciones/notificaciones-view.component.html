@@ -43,7 +43,7 @@
       </div>
 
       <mat-card
-        *ngFor="let notif of list"
+        *ngFor="let notif of filtrar(list)"
         class="notif-card"
         [class.unread]="!notif.leido"
         (click)="controller.marcarComoLeida(notif.id)">

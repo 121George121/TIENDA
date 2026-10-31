@@ -9,6 +9,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.dependencies import get_current_tenant_user
+from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
 from app.controllers.cu18_gestionar_recomendaciones_ia.recomendacion_controller import RecomendacionController
 
 router = APIRouter(prefix="/recomendaciones", tags=["CU18 - Gestionar Recomendaciones mediante IA (Web y Móvil)"])
@@ -18,6 +20,7 @@ class OutfitRequest(BaseModel):
     producto_id: Optional[int] = None
     carrito_ids: Optional[List[int]] = None
     limite: int = 3
+    tenant_id: Optional[int] = 1
 
 
 @router.post("/outfit", summary="Generar recomendaciones de outfit con Gemini AI / Stylist")
@@ -27,20 +30,39 @@ def recomendar_outfit(
 ):
     """
     CU18: Sugiere prendas complementarias para armar un outfit completo,
-    analizando color, corte y estilo mediante Gemini AI.
+    analizando color, corte y estilo mediante Gemini AI o motor de estilismo.
     """
     return RecomendacionController.recomendar_outfit(
         db=db,
         producto_id=data.producto_id,
         carrito_ids=data.carrito_ids,
-        limite=data.limite
+        limite=data.limite,
+        tenant_id=data.tenant_id or 1
     )
 
 
 @router.get("/tendencias", summary="Obtener prendas en tendencia recomendadas")
 def obtener_tendencias(
     limite: int = Query(4, ge=1, le=10),
+    tenant_id: int = Query(1),
     db: Session = Depends(get_db)
 ):
     """CU18: Retorna productos destacados en tendencia para inspiración del comprador."""
-    return RecomendacionController.obtener_tendencias(db=db, limite=limite)
+    return RecomendacionController.obtener_tendencias(db=db, limite=limite, tenant_id=tenant_id)
+
+
+@router.get("/para-ti", summary="Recomendaciones personalizadas basadas en el historial del cliente")
+def obtener_para_ti(
+    limite: int = Query(4, ge=1, le=10),
+    db: Session = Depends(get_db),
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
+):
+    """CU18: Genera recomendaciones hiper-personalizadas analizando las compras pasadas del cliente."""
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    return RecomendacionController.recomendar_personalizado(
+        db=db,
+        current_user=current_user,
+        limite=limite,
+        tenant_id=tenant_id
+    )
+

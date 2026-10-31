@@ -34,7 +34,9 @@ export class HistorialViewComponent implements OnInit {
     this.controller.cargarHistorial();
   }
 
-  descargarComprobante(codigo: string): void {
-    alert(`Descargando comprobante fiscal en PDF para el pedido ${codigo}...`);
+  descargarComprobante(compra: any): void {
+    const url = compra.comprobante_url || `/api/v1/pagos/${compra.id}/comprobante-html`;
+    window.open(url, '_blank');
   }
 }
+

@@ -87,7 +87,7 @@
                 <span>Total Abonado:</span>
                 <strong>Bs. {{ compra.total | number:'1.2-2' }}</strong>
               </div>
-              <button mat-stroked-button color="primary" (click)="descargarComprobante(compra.codigo_venta)">
+              <button mat-stroked-button color="primary" (click)="descargarComprobante(compra)">
                 <mat-icon>receipt</mat-icon> Comprobante Fiscal
               </button>
             </div>
@@ -122,6 +122,15 @@
               <span class="hours-badge" *ngIf="res.horas_restantes">Tiempo límite: {{ res.horas_restantes }} horas</span>
             </div>
 
+            <!-- QR de Retiro en Tienda -->
+            <div class="reserve-qr" *ngIf="res.qr_retiro" style="margin: 15px 0; display: flex; align-items: center; gap: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+              <img [src]="res.qr_retiro" alt="QR Retiro" style="width: 80px; height: 80px; border-radius: 6px; background: white; padding: 4px; border: 1px solid #e2e8f0;">
+              <div>
+                <strong style="color: #0f172a; font-size: 13px; display: block;">Código QR de Retiro</strong>
+                <small style="color: #64748b; font-size: 12px;">Presenta este código en el mostrador para reclamar y abonar tus prendas.</small>
+              </div>
+            </div>
+
             <mat-divider></mat-divider>
 
             <div class="order-items">
@@ -146,3 +155,4 @@
     </mat-tab>
   </mat-tab-group>
 </div>
+

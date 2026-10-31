@@ -116,7 +116,8 @@ class BitacoraController:
         usuario_id: Optional[int] = None,
         search: Optional[str] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
+        tenant_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Recupera eventos de bitácora con filtros combinados y paginación eficiente.
@@ -125,7 +126,10 @@ class BitacoraController:
             joinedload(BitacoraModel.usuario).joinedload(UsuarioModel.rol)
         )
 
+        if tenant_id:
+            query = query.filter(BitacoraModel.tenant_id == tenant_id)
         if fecha_inicio:
+
             query = query.filter(BitacoraModel.fechahora >= fecha_inicio)
         if fecha_fin:
             query = query.filter(BitacoraModel.fechahora <= fecha_fin)
@@ -184,24 +188,28 @@ class BitacoraController:
         }
 
     @staticmethod
-    def obtener_estadisticas(db: Session) -> Dict[str, Any]:
+    def obtener_estadisticas(db: Session, tenant_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Calcula indicadores clave de seguridad y actividad para la cabecera del módulo.
         """
+        tenant_id = tenant_id or 1
         ahora = get_bolivia_now()
         inicio_hoy = datetime(ahora.year, ahora.month, ahora.day)
         hace_7_dias = ahora - timedelta(days=7)
         hace_30_dias = ahora - timedelta(days=30)
 
         total_hoy = db.query(func.count(BitacoraModel.id)).filter(
+            BitacoraModel.tenant_id == tenant_id,
             BitacoraModel.fechahora >= inicio_hoy
         ).scalar() or 0
 
         total_semana = db.query(func.count(BitacoraModel.id)).filter(
+            BitacoraModel.tenant_id == tenant_id,
             BitacoraModel.fechahora >= hace_7_dias
         ).scalar() or 0
 
         total_mes = db.query(func.count(BitacoraModel.id)).filter(
+            BitacoraModel.tenant_id == tenant_id,
             BitacoraModel.fechahora >= hace_30_dias
         ).scalar() or 0
 
@@ -209,14 +217,20 @@ class BitacoraController:
         modulos_rows = db.query(
             BitacoraModel.modulo,
             func.count(BitacoraModel.id)
-        ).filter(BitacoraModel.fechahora >= hace_30_dias).group_by(BitacoraModel.modulo).all()
+        ).filter(
+            BitacoraModel.tenant_id == tenant_id,
+            BitacoraModel.fechahora >= hace_30_dias
+        ).group_by(BitacoraModel.modulo).all()
         modulos_dist = {row[0]: row[1] for row in modulos_rows}
 
         # Distribución por acción (últimos 30 días)
         acciones_rows = db.query(
             BitacoraModel.accion,
             func.count(BitacoraModel.id)
-        ).filter(BitacoraModel.fechahora >= hace_30_dias).group_by(BitacoraModel.accion).all()
+        ).filter(
+            BitacoraModel.tenant_id == tenant_id,
+            BitacoraModel.fechahora >= hace_30_dias
+        ).group_by(BitacoraModel.accion).all()
         acciones_dist = {row[0]: row[1] for row in acciones_rows}
 
         return {
@@ -235,7 +249,8 @@ class BitacoraController:
         modulo: Optional[str] = None,
         accion: Optional[str] = None,
         usuario_id: Optional[int] = None,
-        search: Optional[str] = None
+        search: Optional[str] = None,
+        tenant_id: Optional[int] = None
     ) -> str:
         """
         Genera el contenido CSV delimitado por comas con encoding compatible para Excel.
@@ -250,8 +265,10 @@ class BitacoraController:
             usuario_id=usuario_id,
             search=search,
             limit=5000,
-            offset=0
+            offset=0,
+            tenant_id=tenant_id
         )
+
 
         output = io.StringIO()
         # Escribir UTF-8 BOM para soporte correcto de tildes y caracteres en Excel

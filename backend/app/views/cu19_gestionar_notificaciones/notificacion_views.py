@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_tenant_user
 from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
 from app.controllers.cu19_gestionar_notificaciones.notificacion_controller import NotificacionController
 
@@ -18,19 +18,21 @@ router = APIRouter(prefix="/notificaciones", tags=["CU19 - Gestionar Notificacio
 @router.get("", summary="Listar notificaciones del usuario (con detección de vencimientos y stock)")
 def listar_notificaciones(
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU19: Retorna lista de notificaciones activas para el usuario conectado."""
-    return NotificacionController.listar_notificaciones(db=db, current_user=current_user)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    return NotificacionController.listar_notificaciones(db=db, current_user=current_user, tenant_id=tenant_id)
 
 
 @router.get("/contador", summary="Contar notificaciones no leídas para insignia/badge")
 def contar_no_leidas(
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU19: Retorna la cantidad de alertas no leídas."""
-    conteo = NotificacionController.contar_no_leidas(db=db, current_user=current_user)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    conteo = NotificacionController.contar_no_leidas(db=db, current_user=current_user, tenant_id=tenant_id)
     return {"no_leidas": conteo}
 
 
@@ -38,18 +40,21 @@ def contar_no_leidas(
 def marcar_leida(
     notificacion_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU19: Actualiza el estado a leído = True."""
-    ok = NotificacionController.marcar_como_leida(db=db, current_user=current_user, notificacion_id=notificacion_id)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    ok = NotificacionController.marcar_como_leida(db=db, current_user=current_user, notificacion_id=notificacion_id, tenant_id=tenant_id)
     return {"exito": ok}
 
 
 @router.post("/marcar-todas-leidas", summary="Marcar todas las notificaciones como leídas")
 def marcar_todas(
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU19: Marca todas las notificaciones pendientes como leídas."""
-    ok = NotificacionController.marcar_todas_leidas(db=db, current_user=current_user)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    ok = NotificacionController.marcar_todas_leidas(db=db, current_user=current_user, tenant_id=tenant_id)
     return {"exito": ok}
+

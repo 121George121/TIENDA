@@ -4,321 +4,79 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-from typing import List, Dict, Optional
-from decimal import Decimal
-from datetime import datetime
-import random
-
-from app.models.cu14_registrar_ventas_presenciales.venta_presencial_model import (
-    VentaModel, DetalleVentaModel, MetodoPagoModel, PagoModel
-)
-from app.models.cu15_realizar_compras_digitales.compra_digital_model import (
-    CarritoModel, CarritoItemModel
-)
-from app.models.cu13_gestionar_inventario_movimientos.inventario_model import (
-    InventarioModel, MovimientoInventarioModel
-)
-from app.models.cu5_gestionar_productos.producto_model import (
-    ProductoModel, VarianteProductoModel, ColorModel, TallaModel
-)
-from app.models.cu4_gestionar_sucursales.sucursal_model import SucursalModel
-from app.models.cu3_gestionar_clientes.cliente_model import ClienteModel
+from typing import List, Dict, Optional, Any
 from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
-from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
-from app.schemas.orden_schema import OrdenCreate
+from app.schemas.orden_schema import OrdenCreate, ActualizarEstadoOrdenRequest
+from app.services.cu15_realizar_compras_digitales.compra_digital_service import CompraDigitalService
 
 
 class CompraDigitalController:
 
     @staticmethod
-    def _obtener_o_crear_variante(db: Session, producto: ProductoModel, variante_id: Optional[int] = None) -> VarianteProductoModel:
-        if variante_id:
-            variante = db.query(VarianteProductoModel).filter(
-                VarianteProductoModel.id == variante_id,
-                VarianteProductoModel.productoid == producto.id
-            ).first()
-            if variante:
-                return variante
-
-        variante = db.query(VarianteProductoModel).filter(VarianteProductoModel.productoid == producto.id).first()
-        if variante:
-            return variante
-
-        color = db.query(ColorModel).first()
-        if not color:
-            color = ColorModel(nombre="Negro", codigohex="#000000")
-            db.add(color)
-            db.flush()
-
-        talla = db.query(TallaModel).first()
-        if not talla:
-            talla = TallaModel(nombre="M", descripcion="Talla Mediana")
-            db.add(talla)
-            db.flush()
-
-        sku = f"DIG-{producto.id}-{color.id}-{talla.id}"
-        nueva_variante = VarianteProductoModel(
-            sku=sku,
-            productoid=producto.id,
-            colorid=color.id,
-            tallaid=talla.id,
-            precioventa=producto.preciobase,
-            activo=True
-        )
-        db.add(nueva_variante)
-        db.flush()
-        return nueva_variante
-
-    @staticmethod
-    def _descontar_stock_y_registrar_kardex(
-        db: Session,
-        sucursal_id: int,
-        variante_id: int,
-        cantidad: int,
-        tipo_mov: str,
-        referencia: str,
-        usuario_id: int
-    ):
-        inv = db.query(InventarioModel).filter(
-            InventarioModel.sucursalid == sucursal_id,
-            InventarioModel.varianteid == variante_id
-        ).first()
-
-        if not inv:
-            inv = InventarioModel(
-                sucursalid=sucursal_id,
-                varianteid=variante_id,
-                stockfisico=100,
-                stockreservado=0,
-                stockminimo=10,
-                fechaactualizacion=datetime.utcnow()
-            )
-            db.add(inv)
-            db.flush()
-
-        inv.stockfisico = max(0, inv.stockfisico - cantidad)
-        inv.fechaactualizacion = datetime.utcnow()
-
-        kardex = MovimientoInventarioModel(
-            tipomovimiento=tipo_mov,
-            cantidad=-cantidad,
-            motivo=f"Descuento automático por {tipo_mov} ({referencia})",
-            referencia=referencia,
-            fecha=datetime.utcnow(),
-            inventarioid=inv.id,
-            usuarioid=usuario_id
-        )
-        db.add(kardex)
-
-    @staticmethod
     def procesar_orden_digital(
         db: Session,
         current_user: UsuarioModel,
-        data: OrdenCreate
-    ) -> VentaModel:
-        if not data.items:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="La orden debe contener al menos un producto."
-            )
-
-        # 1. Cliente asociado
-        cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == current_user.id).first()
-        if not cliente:
-            cliente = ClienteModel(
-                nombre=current_user.nombre,
-                apellido=current_user.apellido or "",
-                email=current_user.email,
-                telefono="",
-                usuarioid=current_user.id,
-                activo=True
-            )
-            db.add(cliente)
-            db.flush()
-
-        # 2. Sucursal de despacho
-        sucursal = None
-        if data.sucursal_id:
-            sucursal = db.query(SucursalModel).filter(SucursalModel.id == data.sucursal_id, SucursalModel.activo == True).first()
-        if not sucursal:
-            sucursal = db.query(SucursalModel).filter(SucursalModel.activo == True).first()
-        if not sucursal:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No hay sucursales activas registradas para procesar la orden."
-            )
-
-        # 3. Items y totales
-        total_acumulado = Decimal("0.00")
-        items_a_insertar = []
-
-        for item in data.items:
-            producto = db.query(ProductoModel).filter(ProductoModel.id == item.producto_id).first()
-            if not producto:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Producto con ID {item.producto_id} no encontrado en el catálogo."
-                )
-
-            variante = CompraDigitalController._obtener_o_crear_variante(db, producto, item.variante_id)
-            precio_unitario = Decimal(str(variante.precioventa or producto.preciobase))
-            subtotal_item = precio_unitario * Decimal(item.cantidad)
-            total_acumulado += subtotal_item
-
-            items_a_insertar.append({
-                "variante": variante,
-                "cantidad": item.cantidad,
-                "precio_unitario": precio_unitario,
-                "subtotal": subtotal_item
-            })
-
-        # 4. Crear venta digital
-        ahora = datetime.utcnow()
-        codigo_venta = f"ORD-{ahora.strftime('%Y%m%d%H%M')}-{random.randint(100, 999)}"
-
-        nueva_venta = VentaModel(
-            codigoventa=codigo_venta,
-            tipoventa="Digital",
-            estado="Completada",
-            subtotal=total_acumulado,
-            descuento=Decimal("0.00"),
-            total=total_acumulado,
-            fecha=ahora,
-            sucursalid=sucursal.id,
-            clienteid=cliente.id,
-            usuarioid=current_user.id
+        data: OrdenCreate,
+        tenant_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        CU15: Delegación al servicio de compras digitales para validar stock,
+        crear orden digital, asentar kardex y generar comprobante.
+        """
+        return CompraDigitalService.procesar_orden_digital(
+            db=db,
+            current_user=current_user,
+            data=data,
+            tenant_id=tenant_id
         )
-        db.add(nueva_venta)
-        db.flush()
-
-        # 5. Insertar renglones y descontar stock
-        for item_data in items_a_insertar:
-            detalle = DetalleVentaModel(
-                ventaid=nueva_venta.id,
-                varianteid=item_data["variante"].id,
-                cantidad=item_data["cantidad"],
-                preciounitario=item_data["precio_unitario"],
-                descuento=Decimal("0.00"),
-                subtotal=item_data["subtotal"]
-            )
-            db.add(detalle)
-
-            CompraDigitalController._descontar_stock_y_registrar_kardex(
-                db=db,
-                sucursal_id=sucursal.id,
-                variante_id=item_data["variante"].id,
-                cantidad=item_data["cantidad"],
-                tipo_mov="Venta Digital",
-                referencia=codigo_venta,
-                usuario_id=current_user.id
-            )
-
-        # 6. Registrar pago
-        metodo_digital = None
-        if data.metodo_id:
-            metodo_digital = db.query(MetodoPagoModel).filter(MetodoPagoModel.id == data.metodo_id).first()
-        if not metodo_digital:
-            metodo_digital = db.query(MetodoPagoModel).filter(MetodoPagoModel.nombre.ilike("%Digital%")).first()
-        if not metodo_digital:
-            metodo_digital = db.query(MetodoPagoModel).first()
-
-        if metodo_digital:
-            pago = PagoModel(
-                monto=total_acumulado,
-                estado="Aprobado",
-                referencia=f"PAY-{codigo_venta}",
-                fecha=ahora,
-                ventaid=nueva_venta.id,
-                metodoid=metodo_digital.id
-            )
-            db.add(pago)
-
-        # 7. Registrar Notificación Oficial de Compra (CU19)
-        try:
-            nombres = []
-            for it in items_a_insertar:
-                v = it.get("variante")
-                if v and v.producto and v.producto.nombre:
-                    nombres.append(v.producto.nombre)
-            resumen_prod = ", ".join(nombres[:2])
-            if len(nombres) > 2:
-                resumen_prod += f" y {len(nombres) - 2} prendas más"
-            elif not resumen_prod:
-                resumen_prod = "Prendas de Catálogo"
-
-            notif_compra = NotificacionModel(
-                usuario_id=current_user.id,
-                titulo=f"🛍️ ¡Compra Realizada! #{nueva_venta.codigoventa}",
-                mensaje=f"Has comprado exitosamente: {resumen_prod}. Monto: Bs. {float(total_acumulado):.2f}. Tu pedido ya está confirmado y en preparación.",
-                tipo="COMPRA_EXITOSA",
-                enlace="/mis-pedidos",
-                leido=False,
-                fecha_creacion=ahora
-            )
-            db.add(notif_compra)
-        except Exception as err_notif:
-            print(f"[Notificaciones CU19] Error creando alerta: {err_notif}")
-
-        db.commit()
-        db.refresh(nueva_venta)
-        return nueva_venta
 
     @staticmethod
-    def listar_mis_ordenes(db: Session, current_user: UsuarioModel) -> List[Dict]:
-        ventas = db.query(VentaModel).filter(
-            VentaModel.usuarioid == current_user.id
-        ).order_by(VentaModel.id.desc()).all()
+    def listar_mis_ordenes(
+        db: Session,
+        current_user: UsuarioModel,
+        tenant_id: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        CU15: Consulta del historial de órdenes del cliente autenticado.
+        """
+        return CompraDigitalService.listar_mis_ordenes(
+            db=db,
+            current_user=current_user,
+            tenant_id=tenant_id
+        )
 
-        res = []
-        for v in ventas:
-            metodo_str = "QR / Transferencia"
-            if v.pagos and len(v.pagos) > 0 and v.pagos[0].metodo:
-                metodo_str = v.pagos[0].metodo.nombre
+    @staticmethod
+    def consultar_tracking(
+        db: Session,
+        orden_id: int,
+        current_user: UsuarioModel,
+        tenant_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        CU15: Consulta del timeline y etapas de despacho de la orden.
+        """
+        return CompraDigitalService.consultar_tracking(
+            db=db,
+            orden_id=orden_id,
+            current_user=current_user,
+            tenant_id=tenant_id
+        )
 
-            items_det = []
-            for d in v.detalles:
-                prod_nombre = "Prenda Exclusiva"
-                img_url = None
-                talla_str = "M"
-                color_str = "Estándar"
-
-                if d.variante:
-                    if d.variante.producto:
-                        prod_nombre = d.variante.producto.nombre
-                        img_url = d.variante.producto.imagenprincipal or getattr(d.variante.producto, 'imagen_url', None)
-                    if d.variante.talla:
-                        talla_str = d.variante.talla.nombre
-                    if d.variante.color:
-                        color_str = d.variante.color.nombre
-
-                items_det.append({
-                    "producto_id": d.variante.productoid if d.variante else 0,
-                    "producto_nombre": prod_nombre,
-                    "imagen_url": img_url,
-                    "talla": talla_str,
-                    "color": color_str,
-                    "cantidad": d.cantidad,
-                    "preciounitario": d.preciounitario,
-                    "subtotal": d.subtotal
-                })
-
-            # Mostrar estado 'Comprado' en vez de técnico 'Completada' si corresponde
-            estado_cliente = v.estado
-            if estado_cliente.upper() in ["COMPLETADA", "APROBADA", "PAGADA"]:
-                estado_cliente = "Comprado"
-
-            res.append({
-                "id": v.id,
-                "codigoventa": v.codigoventa,
-                "estado": estado_cliente,
-                "tipoventa": v.tipoventa,
-                "subtotal": v.subtotal,
-                "descuento": v.descuento,
-                "total": v.total,
-                "fecha": v.fecha,
-                "metodo_pago": metodo_str,
-                "mensaje": "¡Orden procesada y registrada exitosamente!",
-                "items": items_det
-            })
-        return res
+    @staticmethod
+    def actualizar_estado_orden(
+        db: Session,
+        orden_id: int,
+        req: ActualizarEstadoOrdenRequest,
+        usuario_actual: UsuarioModel,
+        tenant_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        CU15: Actualización del estado logístico de la orden digital.
+        """
+        return CompraDigitalService.actualizar_estado_orden(
+            db=db,
+            orden_id=orden_id,
+            req=req,
+            usuario_actual=usuario_actual,
+            tenant_id=tenant_id
+        )

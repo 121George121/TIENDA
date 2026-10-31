@@ -122,4 +122,12 @@ export class CompraDigitalController {
         error: (err) => console.error('Error al cargar pedidos del cliente:', err)
       });
   }
+
+  consultarTracking(ordenId: number): Observable<any> {
+    return this.service.consultarTracking(ordenId);
+  }
+
+  actualizarEstadoOrden(ordenId: number, nuevoEstado: string, comentario?: string): Observable<any> {
+    return this.service.actualizarEstadoOrden(ordenId, nuevoEstado, comentario);
+  }
 }

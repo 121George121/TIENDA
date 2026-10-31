@@ -10,7 +10,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_active_user, get_current_tenant_user
 from app.models.models import UsuarioModel
 from app.controllers.cu16_gestionar_pagos_comprobantes.pago_controller import PagoController
 
@@ -39,7 +39,7 @@ def listar_metodos(db: Session = Depends(get_db)):
 def iniciar_pago(
     data: IniciarPagoSchema,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """
     CU16:
@@ -47,6 +47,7 @@ def iniciar_pago(
     - QR: Genera imagen Base64 del código QR oficial con temporizador de 15 minutos.
     - Efectivo: Registra orden para pago y retiro en caja de la sucursal.
     """
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
     return PagoController.iniciar_pago(
         db=db,
         current_user=current_user,
@@ -54,6 +55,7 @@ def iniciar_pago(
         metodo_id=data.metodo_id,
         return_url=data.return_url,
         cancel_url=data.cancel_url,
+        tenant_id=tenant_id
     )
 
 
@@ -61,14 +63,16 @@ def iniciar_pago(
 def capturar_paypal(
     data: CapturarPayPalSchema,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU16: Callback cuando el usuario vuelve exitosamente de PayPal."""
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
     return PagoController.capturar_pago_paypal(
         db=db,
         current_user=current_user,
         venta_id=data.venta_id,
         token_paypal=data.token,
+        tenant_id=tenant_id
     )
 
 
@@ -76,10 +80,11 @@ def capturar_paypal(
 def obtener_comprobante(
     venta_id: int,
     db: Session = Depends(get_db),
-    current_user: UsuarioModel = Depends(get_current_active_user)
+    current_user: UsuarioModel = Depends(get_current_tenant_user)
 ):
     """CU16: Retorna todos los datos de la factura/recibo oficial con código QR en Base64."""
-    return PagoController.obtener_comprobante_oficial(db=db, venta_id=venta_id)
+    tenant_id = getattr(current_user, 'tenant_id', 1) or 1
+    return PagoController.obtener_comprobante_oficial(db=db, venta_id=venta_id, tenant_id=tenant_id)
 
 
 @router.get("/{venta_id}/comprobante-html", response_class=HTMLResponse, summary="Ver comprobante listo para imprimir o descargar en PDF")

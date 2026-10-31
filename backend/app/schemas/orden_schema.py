@@ -57,11 +57,43 @@ class OrdenResponse(BaseModel):
     total: Decimal
     fecha: Optional[datetime] = None
     metodo_pago: Optional[str] = None
+    sucursal_nombre: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    recibo_id: Optional[int] = None
     mensaje: str = "¡Orden procesada y registrada exitosamente!"
     items: List[OrdenItemDetalleResponse] = []
 
     class Config:
         from_attributes = True
+
+
+class TrackingStep(BaseModel):
+    numero: int
+    titulo: str
+    descripcion: str
+    completado: bool
+    activo: bool
+    fecha: Optional[datetime] = None
+
+
+class OrdenTrackingResponse(BaseModel):
+    orden_id: int
+    codigoventa: str
+    estado: str
+    tipo_venta: str
+    total: Decimal
+    fecha: Optional[datetime] = None
+    sucursal_nombre: Optional[str] = None
+    cliente_nombre: Optional[str] = None
+    metodo_pago: Optional[str] = None
+    paso_actual: int
+    pasos: List[TrackingStep] = []
+    items: List[OrdenItemDetalleResponse] = []
+
+
+class ActualizarEstadoOrdenRequest(BaseModel):
+    nuevo_estado: str
+    comentario: Optional[str] = None
 
 
 class VentaPresencialCreate(BaseModel):
