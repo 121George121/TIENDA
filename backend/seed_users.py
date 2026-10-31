@@ -6,6 +6,7 @@ db = SessionLocal()
 try:
     admin_rol = db.query(RolModel).filter(RolModel.nombre == 'ADMIN').first()
     cliente_rol = db.query(RolModel).filter(RolModel.nombre == 'CLIENTE').first()
+    cajero_rol = db.query(RolModel).filter(RolModel.nombre.ilike('%CAJERO%')).first()
 
     users_to_create = [
         {
@@ -14,6 +15,7 @@ try:
             'apellido': 'Sistema',
             'password': 'Admin123.',
             'rolid': admin_rol.id if admin_rol else 1,
+            'sucursalid': None,
             'activo': True,
             'verificado': True
         },
@@ -23,6 +25,27 @@ try:
             'apellido': 'Mars',
             'password': 'Admin123.',
             'rolid': admin_rol.id if admin_rol else 1,
+            'sucursalid': None,
+            'activo': True,
+            'verificado': True
+        },
+        {
+            'email': 'jorgealanoca2005@gmail.com',
+            'nombre': 'Jorge',
+            'apellido': 'Alanoca',
+            'password': 'Admin123.',
+            'rolid': admin_rol.id if admin_rol else 1,
+            'sucursalid': None,
+            'activo': True,
+            'verificado': True
+        },
+        {
+            'email': 'cajero@tienda.com',
+            'nombre': 'Carlos',
+            'apellido': 'Cajero',
+            'password': 'Cajero123.',
+            'rolid': cajero_rol.id if cajero_rol else 3,
+            'sucursalid': 1,
             'activo': True,
             'verificado': True
         },
@@ -32,6 +55,7 @@ try:
             'apellido': 'Prueba',
             'password': 'Cliente123.',
             'rolid': cliente_rol.id if cliente_rol else 2,
+            'sucursalid': None,
             'activo': True,
             'verificado': True
         }
@@ -46,6 +70,7 @@ try:
                 apellido=u['apellido'],
                 passwordhash=get_password_hash(u['password']),
                 rolid=u['rolid'],
+                sucursalid=u.get('sucursalid'),
                 activo=u['activo'],
                 verificado=u['verificado']
             )
@@ -53,6 +78,8 @@ try:
             print(f"Usuario creado exitosamente: {u['email']}")
         else:
             exist.passwordhash = get_password_hash(u['password'])
+            if u.get('sucursalid') is not None:
+                exist.sucursalid = u['sucursalid']
             exist.activo = True
             exist.verificado = True
             print(f"Usuario actualizado exitosamente: {u['email']}")
