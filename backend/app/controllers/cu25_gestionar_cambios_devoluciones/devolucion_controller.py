@@ -10,6 +10,23 @@ from app.services.cu25_gestionar_cambios_devoluciones.devolucion_service import 
 
 
 class DevolucionController:
+    """
+    Controlador MVC para la gestión de cambios de talla/modelo y devoluciones comerciales.
+    """
+
+    @staticmethod
+    def validar_venta(
+        db: Session,
+        tenant_id: int,
+        venta_id: int,
+        plazo_dias: int = 15
+    ) -> Dict[str, Any]:
+        return DevolucionService.validar_venta_para_cambio(
+            db=db,
+            tenant_id=tenant_id,
+            venta_id=venta_id,
+            plazo_dias=plazo_dias
+        )
 
     @staticmethod
     def procesar_devolucion(
@@ -38,5 +55,27 @@ class DevolucionController:
         )
 
     @staticmethod
-    def listar_devoluciones(db: Session, tenant_id: int, sucursal_id: Optional[int] = None) -> List[Any]:
-        return DevolucionService.listar_devoluciones(db, tenant_id, sucursal_id)
+    def listar_devoluciones(
+        db: Session,
+        tenant_id: int,
+        sucursal_id: Optional[int] = None,
+        tipo: Optional[str] = None
+    ) -> List[Any]:
+        return DevolucionService.listar_devoluciones(
+            db=db,
+            tenant_id=tenant_id,
+            sucursal_id=sucursal_id,
+            tipo=tipo
+        )
+
+    @staticmethod
+    def obtener_kpis(
+        db: Session,
+        tenant_id: int,
+        plazo_dias: int = 15
+    ) -> Dict[str, Any]:
+        return DevolucionService.obtener_kpis(
+            db=db,
+            tenant_id=tenant_id,
+            plazo_dias=plazo_dias
+        )

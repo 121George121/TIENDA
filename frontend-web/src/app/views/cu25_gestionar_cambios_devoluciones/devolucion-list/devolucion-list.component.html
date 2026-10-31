@@ -1,0 +1,518 @@
+<div class="devolucion-container">
+  <!-- Toast Notification Feedback -->
+  <div *ngIf="ctrl.mensajeToast()" class="toast-banner" [ngClass]="ctrl.mensajeToast()?.tipo">
+    <div class="toast-content">
+      <mat-icon class="toast-icon">
+        {{ ctrl.mensajeToast()?.tipo === 'success' ? 'check_circle' : ctrl.mensajeToast()?.tipo === 'error' ? 'error' : 'info' }}
+      </mat-icon>
+      <span>{{ ctrl.mensajeToast()?.texto }}</span>
+    </div>
+    <button mat-icon-button (click)="ctrl.limpiarToast()" class="toast-close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Header Principal -->
+  <header class="devolucion-header">
+    <div class="header-titles">
+      <div class="badge-title-row">
+        <span class="module-tag">CU25</span>
+        <div class="guarantee-indicator">
+          <span class="pulsing-dot"></span>
+          <span class="indicator-text">PLAZO DE GARANTÍA: 15 DÍAS CALENDARIO</span>
+        </div>
+      </div>
+      <h1 class="page-title">Gestión de Cambios y Devoluciones de Prendas</h1>
+      <p class="page-subtitle">
+        Validación de compras previas, sustitución de tallas/modelos, inspección física de prendas y regularización automática en Kardex de inventario.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button 
+        mat-flat-button 
+        class="btn-new-return" 
+        (click)="ctrl.abrirModalNuevaSolicitud()"
+        id="btn-nuevo-cambio"
+      >
+        <mat-icon>swap_horizontal_circle</mat-icon>
+        <span>+ Registrar Nuevo Cambio o Devolución</span>
+      </button>
+
+      <button mat-stroked-button class="btn-refresh" (click)="ctrl.cargarTodo()" [disabled]="ctrl.cargando()">
+        <mat-icon [class.spin-icon]="ctrl.cargando()">refresh</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Métricas Ejecutivas (KPIs) -->
+  <section class="kpi-grid">
+    <div class="kpi-card card-total">
+      <div class="kpi-header">
+        <span class="kpi-label">TOTAL OPERACIONES</span>
+        <mat-icon class="kpi-icon">receipt_long</mat-icon>
+      </div>
+      <div class="kpi-value text-indigo-400">{{ ctrl.kpis()?.total_operaciones || 0 }}</div>
+      <div class="kpi-subtext">Histórico acumulado en tienda</div>
+    </div>
+
+    <div class="kpi-card card-exchanges">
+      <div class="kpi-header">
+        <span class="kpi-label">CAMBIOS DE TALLA / PRENDA</span>
+        <mat-icon class="kpi-icon text-cyan-400">swap_horiz</mat-icon>
+      </div>
+      <div class="kpi-value text-cyan-400">{{ ctrl.kpis()?.cambios_talla_prenda || 0 }}</div>
+      <div class="kpi-subtext">Sustitución de prendas en mostrador</div>
+    </div>
+
+    <div class="kpi-card card-restocked">
+      <div class="kpi-header">
+        <span class="kpi-label">PRENDAS REINTEGRADAS A VITRINA</span>
+        <mat-icon class="kpi-icon text-emerald-400">check_circle</mat-icon>
+      </div>
+      <div class="kpi-value text-emerald-400">{{ ctrl.kpis()?.prendas_aptas_reincorporadas || 0 }} unid.</div>
+      <div class="kpi-subtext">Aptas en perfecto estado</div>
+    </div>
+
+    <div class="kpi-card card-refunds">
+      <div class="kpi-header">
+        <span class="kpi-label">REEMBOLSOS / NOTAS DE CRÉDITO</span>
+        <mat-icon class="kpi-icon text-amber-400">paid</mat-icon>
+      </div>
+      <div class="kpi-value text-amber-400">Bs. {{ ctrl.kpis()?.monto_total_reembolsado_bob | number:'1.2-2' }}</div>
+      <div class="kpi-subtext">Mermas por defecto: {{ ctrl.kpis()?.prendas_baja_defecto || 0 }} unid.</div>
+    </div>
+  </section>
+
+  <!-- Filtros y Barra de Búsqueda -->
+  <section class="table-toolbar">
+    <div class="status-tabs">
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroTipo() === 'TODOS'"
+        (click)="ctrl.setFiltroTipo('TODOS')"
+      >
+        Todos ({{ ctrl.devoluciones().length }})
+      </button>
+      <button 
+        class="tab-btn text-cyan-400" 
+        [class.active]="ctrl.filtroTipo() === 'CAMBIO_TALLA'"
+        (click)="ctrl.setFiltroTipo('CAMBIO_TALLA')"
+      >
+        Cambios de Talla
+      </button>
+      <button 
+        class="tab-btn text-sky-400" 
+        [class.active]="ctrl.filtroTipo() === 'CAMBIO_PRENDA'"
+        (click)="ctrl.setFiltroTipo('CAMBIO_PRENDA')"
+      >
+        Cambios de Prenda
+      </button>
+      <button 
+        class="tab-btn text-amber-400" 
+        [class.active]="ctrl.filtroTipo() === 'REEMBOLSO_TOTAL'"
+        (click)="ctrl.setFiltroTipo('REEMBOLSO_TOTAL')"
+      >
+        Reembolsos
+      </button>
+      <button 
+        class="tab-btn text-indigo-400" 
+        [class.active]="ctrl.filtroTipo() === 'NOTA_CREDITO'"
+        (click)="ctrl.setFiltroTipo('NOTA_CREDITO')"
+      >
+        Notas de Crédito
+      </button>
+    </div>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input 
+        type="text" 
+        placeholder="Buscar por código comprobante, venta, cliente o motivo..." 
+        [value]="ctrl.filtroBusqueda()"
+        (input)="ctrl.setFiltroBusqueda($any($event.target).value)"
+      />
+    </div>
+  </section>
+
+  <!-- Tabla Histórica de Cambios y Devoluciones -->
+  <section class="table-container">
+    <div *ngIf="ctrl.cargando()" class="loading-state">
+      <mat-icon class="spin-icon">sync</mat-icon>
+      <span>Cargando registros de cambios y devoluciones...</span>
+    </div>
+
+    <div *ngIf="!ctrl.cargando() && ctrl.devolucionesFiltradas().length === 0" class="empty-state">
+      <mat-icon>sentiment_satisfied_alt</mat-icon>
+      <h3>No hay cambios ni devoluciones registradas</h3>
+      <p>Todas las ventas se encuentran en estado conforme o no coinciden con los filtros aplicados.</p>
+    </div>
+
+    <table *ngIf="!ctrl.cargando() && ctrl.devolucionesFiltradas().length > 0" class="devoluciones-table">
+      <thead>
+        <tr>
+          <th>Comprobante / Fecha</th>
+          <th>Venta Original</th>
+          <th>Cliente / Sucursal</th>
+          <th>Tipo Operación</th>
+          <th>Prendas Implicadas</th>
+          <th>Reembolso (Bs.)</th>
+          <th>Estado</th>
+          <th class="text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let dev of ctrl.devolucionesFiltradas()">
+          <td>
+            <div class="td-code">{{ dev.codigo_devolucion }}</div>
+            <div class="td-date">{{ dev.fecha_solicitud | date:'short' }}</div>
+          </td>
+
+          <td>
+            <span class="badge-sale">{{ dev.codigoventa || 'VTA-' + dev.venta_id }}</span>
+          </td>
+
+          <td>
+            <div class="td-strong">{{ dev.cliente_nombre || 'Cliente Mostrador' }}</div>
+            <div class="td-muted">{{ dev.sucursal_nombre }}</div>
+          </td>
+
+          <td>
+            <span class="badge-op" [ngClass]="dev.tipo_devolucion">
+              {{ dev.tipo_devolucion.replace('_', ' ') }}
+            </span>
+          </td>
+
+          <td>
+            <div *ngFor="let d of dev.detalles" class="text-xs text-slate-300">
+              <span class="font-bold">{{ d.producto_devuelto_nombre }}</span>
+              <span class="text-slate-400"> ({{ d.cantidad }} unid.)</span>
+              <span *ngIf="d.estado_prenda === 'PERFECTO_ESTADO'" class="text-emerald-400 font-semibold"> • Apto</span>
+              <span *ngIf="d.estado_prenda !== 'PERFECTO_ESTADO'" class="text-rose-400 font-semibold"> • Defecto</span>
+            </div>
+          </td>
+
+          <td>
+            <div class="td-refund">Bs. {{ dev.monto_reembolso | number:'1.2-2' }}</div>
+          </td>
+
+          <td>
+            <span class="status-pill APROBADA">
+              {{ dev.estado }}
+            </span>
+          </td>
+
+          <td class="text-right">
+            <button 
+              mat-icon-button 
+              class="btn-action-view" 
+              (click)="ctrl.abrirDetalle(dev)"
+              title="Ver comprobante y detalle de prendas"
+            >
+              <mat-icon>receipt</mat-icon>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Modal 1: Asistente para Registrar Cambio / Devolución -->
+  <div *ngIf="ctrl.modalNuevaSolicitudAbierto()" class="modal-backdrop" (click)="ctrl.cerrarModalNuevaSolicitud()">
+    <div class="modal-card modal-wizard" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-indigo-400">swap_horiz</mat-icon>
+          <div>
+            <h2 class="modal-title">Registrar Cambio o Devolución de Prenda</h2>
+            <p class="modal-subtitle">Asistente de validación de compra y reincorporación a Kardex</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarModalNuevaSolicitud()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Paso 1: Búsqueda y Validación de Venta -->
+        <div class="step-card">
+          <h4 class="step-title">Paso 1: Localizar Venta Original</h4>
+          <div class="search-sale-row">
+            <input 
+              type="number" 
+              class="form-input" 
+              placeholder="Ingrese el ID numérico de la venta (ej: 1, 6, 8...)"
+              [value]="ctrl.ventaIdBusqueda()"
+              (input)="ctrl.ventaIdBusqueda.set($any($event.target).value)"
+              (keyup.enter)="ctrl.validarVentaParaDevolucion()"
+            />
+            <button 
+              mat-flat-button 
+              class="btn-verify-sale" 
+              (click)="ctrl.validarVentaParaDevolucion()"
+              [disabled]="ctrl.validandoVenta()"
+            >
+              <mat-icon [class.spin-icon]="ctrl.validandoVenta()">search</mat-icon>
+              <span>{{ ctrl.validandoVenta() ? 'Validando...' : 'Verificar Venta' }}</span>
+            </button>
+          </div>
+
+          <!-- Resumen de Venta Validada -->
+          <div *ngIf="ctrl.ventaValidada()?.venta_valida" class="sale-validated-summary">
+            <div class="summary-meta">
+              <span class="font-bold text-sky-400">Venta: {{ ctrl.ventaValidada()?.codigoventa }}</span>
+              <span>Cliente: {{ ctrl.ventaValidada()?.cliente_nombre }}</span>
+              <span>Sucursal: {{ ctrl.ventaValidada()?.sucursal_nombre }}</span>
+              <span>Total: Bs. {{ ctrl.ventaValidada()?.total_venta | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="guarantee-status" [class.on-time]="ctrl.ventaValidada()?.dentro_de_plazo" [class.expired]="!ctrl.ventaValidada()?.dentro_de_plazo">
+              <mat-icon>{{ ctrl.ventaValidada()?.dentro_de_plazo ? 'check_circle' : 'warning' }}</mat-icon>
+              <span>{{ ctrl.ventaValidada()?.dias_transcurridos }} días transcurridos (Límite: {{ ctrl.ventaValidada()?.plazo_maximo_dias }} días)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 2: Selección de Prenda a Cambiar / Devolver -->
+        <div *ngIf="ctrl.ventaValidada()?.venta_valida" class="step-card">
+          <h4 class="step-title">Paso 2: Seleccionar Prenda de la Venta</h4>
+          <div class="items-selection-grid">
+            <div 
+              *ngFor="let it of ctrl.ventaValidada()?.items_comprados"
+              class="item-select-chip"
+              [class.selected]="ctrl.itemSeleccionadoParaCambio()?.variante_id === it.variante_id"
+              (click)="ctrl.seleccionarItemVenta(it)"
+            >
+              <div class="item-name font-bold">{{ it.producto_nombre }}</div>
+              <div class="item-details text-xs text-slate-400">
+                Talla: {{ it.talla }} | Color: {{ it.color }} | SKU: {{ it.sku }}
+              </div>
+              <div class="item-price text-sm text-emerald-400 font-bold mt-1">
+                Bs. {{ it.precio_unitario | number:'1.2-2' }} (Compradas: {{ it.cantidad_comprada }})
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 3: Configurar Tipo de Operación e Inspección -->
+        <div *ngIf="ctrl.itemSeleccionadoParaCambio()" class="step-card">
+          <h4 class="step-title">Paso 3: Parámetros del Cambio / Devolución</h4>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label">Tipo de Operación:</label>
+              <select 
+                class="form-select"
+                [value]="ctrl.tipoDevolucion()"
+                (change)="ctrl.tipoDevolucion.set($any($event.target).value)"
+              >
+                <option value="CAMBIO_TALLA">Cambio de Talla (Misma prenda, otra talla)</option>
+                <option value="CAMBIO_PRENDA">Cambio por Otro Modelo de Prenda</option>
+                <option value="REEMBOLSO_TOTAL">Reembolso Monetario en Efectivo</option>
+                <option value="NOTA_CREDITO">Emisión de Vale / Nota de Crédito</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Estado Físico de la Prenda Devuelta:</label>
+              <select 
+                class="form-select"
+                [value]="ctrl.estadoPrenda()"
+                (change)="ctrl.estadoPrenda.set($any($event.target).value)"
+              >
+                <option value="PERFECTO_ESTADO">Perfecto Estado (Con etiqueta -> Reingresa a stock)</option>
+                <option value="DEFECTUOSO_FABRICA">Defecto de Fábrica (Baja a merma de garantía)</option>
+                <option value="DAÑADO">Dañado por Uso (Merma)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Si es cambio de talla/prenda, ingresar ID de variante nueva entregada -->
+          <div *ngIf="ctrl.tipoDevolucion() === 'CAMBIO_TALLA' || ctrl.tipoDevolucion() === 'CAMBIO_PRENDA'" class="form-group mt-3">
+            <label class="form-label">ID de la Variante Nueva Entregada al Cliente:</label>
+            <input 
+              type="number" 
+              class="form-input" 
+              placeholder="Ej: 2, 5, 12... (Se descontará 1 unidad del inventario)"
+              [value]="ctrl.varianteNuevaId() || ''"
+              (input)="ctrl.varianteNuevaId.set($any($event.target).value ? +$any($event.target).value : null)"
+            />
+          </div>
+
+          <!-- Monto reembolso en caso de devolución o nota de crédito -->
+          <div *ngIf="ctrl.tipoDevolucion() === 'REEMBOLSO_TOTAL' || ctrl.tipoDevolucion() === 'NOTA_CREDITO'" class="form-group mt-3">
+            <label class="form-label">Monto a Devolver / Acreditar (Bs.):</label>
+            <input 
+              type="number" 
+              class="form-input" 
+              [value]="ctrl.montoReembolso()"
+              (input)="ctrl.montoReembolso.set(+$any($event.target).value)"
+            />
+          </div>
+
+          <div class="form-group mt-3">
+            <label class="form-label">Motivo o justificación detallada:</label>
+            <textarea 
+              class="form-textarea" 
+              rows="2" 
+              placeholder="Ej: Prenda le quedó ajustada de hombros, costura rota de fábrica, etc."
+              [value]="ctrl.motivoTexto()"
+              (input)="ctrl.motivoTexto.set($any($event.target).value)"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="ctrl.cerrarModalNuevaSolicitud()">Cancelar</button>
+        <button 
+          mat-flat-button 
+          class="btn-confirm-action" 
+          (click)="ctrl.procesarSolicitud()"
+          [disabled]="ctrl.guardando() || !ctrl.itemSeleccionadoParaCambio()"
+        >
+          {{ ctrl.guardando() ? 'Procesando en Kardex...' : '⚡ Procesar y Emitir Comprobante' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Comprobante Oficial Imprimible -->
+  <div *ngIf="ctrl.modalComprobanteAbierto() && ctrl.comprobanteCreado()" class="modal-backdrop" (click)="ctrl.cerrarComprobante()">
+    <div class="modal-card modal-ticket" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">Comprobante de Cambio / Devolución</h2>
+        <button mat-icon-button (click)="ctrl.cerrarComprobante()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body printable-area">
+        <div class="ticket-header">
+          <div class="ticket-brand">SHOPYN GOLDEN STORE</div>
+          <div class="ticket-tagline">Boutique de Moda & Confección</div>
+          <div class="ticket-code">{{ ctrl.comprobanteCreado()?.codigo_devolucion }}</div>
+          <div class="ticket-date">{{ ctrl.comprobanteCreado()?.fecha_solicitud | date:'medium' }}</div>
+        </div>
+
+        <div class="ticket-divider"></div>
+
+        <div class="ticket-meta">
+          <div><strong>Venta Origen:</strong> {{ ctrl.comprobanteCreado()?.codigoventa || 'VTA-' + ctrl.comprobanteCreado()?.venta_id }}</div>
+          <div><strong>Cliente:</strong> {{ ctrl.comprobanteCreado()?.cliente_nombre || 'Cliente Mostrador' }}</div>
+          <div><strong>Sucursal:</strong> {{ ctrl.comprobanteCreado()?.sucursal_nombre }}</div>
+          <div><strong>Tipo:</strong> {{ ctrl.comprobanteCreado()?.tipo_devolucion }}</div>
+          <div><strong>Motivo:</strong> {{ ctrl.comprobanteCreado()?.motivo }}</div>
+        </div>
+
+        <div class="ticket-divider"></div>
+
+        <div class="ticket-items">
+          <div *ngFor="let it of ctrl.comprobanteCreado()?.detalles" class="ticket-item-row">
+            <div>
+              <strong>Devuelta:</strong> {{ it.producto_devuelto_nombre }} ({{ it.estado_prenda }})
+            </div>
+            <div *ngIf="it.variante_nueva_id">
+              <strong>Entregada:</strong> Variante #{{ it.variante_nueva_id }}
+            </div>
+            <div class="text-right font-bold">Bs. {{ it.subtotal | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <div class="ticket-divider"></div>
+
+        <div class="ticket-total-row">
+          <span>MONTO REEMBOLSADO:</span>
+          <span>Bs. {{ ctrl.comprobanteCreado()?.monto_reembolso | number:'1.2-2' }}</span>
+        </div>
+
+        <div class="ticket-footer">
+          <p>¡Gracias por su preferencia! Las prendas cambiadas cuentan con 15 días de garantía.</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="ctrl.cerrarComprobante()">Cerrar</button>
+        <button mat-flat-button class="btn-print" (click)="ctrl.imprimirComprobante()">
+          <mat-icon>print</mat-icon>
+          <span>Imprimir Comprobante</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Detalle de Devolución Histórica -->
+  <div *ngIf="ctrl.modalDetalleAbierto() && ctrl.devolucionSeleccionada()" class="modal-backdrop" (click)="ctrl.cerrarDetalle()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-indigo-400">receipt</mat-icon>
+          <div>
+            <h2 class="modal-title">Detalle de Operación #{{ ctrl.devolucionSeleccionada()?.codigo_devolucion }}</h2>
+            <p class="modal-subtitle">Venta: {{ ctrl.devolucionSeleccionada()?.codigoventa }} | {{ ctrl.devolucionSeleccionada()?.sucursal_nombre }}</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarDetalle()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-summary-grid">
+          <div class="summary-item">
+            <span class="item-label">Cliente:</span>
+            <span class="item-value">{{ ctrl.devolucionSeleccionada()?.cliente_nombre }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Operador:</span>
+            <span class="item-value">{{ ctrl.devolucionSeleccionada()?.usuario_nombre }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Tipo:</span>
+            <span class="item-value font-bold text-sky-400">{{ ctrl.devolucionSeleccionada()?.tipo_devolucion }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Monto Reembolso:</span>
+            <span class="item-value text-amber-400 font-bold">Bs. {{ ctrl.devolucionSeleccionada()?.monto_reembolso | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="items-section">
+          <h4 class="section-title">Prendas Procesadas en la Operación</h4>
+          <table class="modal-items-table">
+            <thead>
+              <tr>
+                <th>Prenda Devuelta</th>
+                <th>Estado Físico</th>
+                <th>Prenda Nueva Entregada</th>
+                <th>Cant.</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of ctrl.devolucionSeleccionada()?.detalles">
+                <td class="font-bold">{{ it.producto_devuelto_nombre }}</td>
+                <td>
+                  <span *ngIf="it.estado_prenda === 'PERFECTO_ESTADO'" class="text-emerald-400 font-bold">Apto (Vitrina)</span>
+                  <span *ngIf="it.estado_prenda !== 'PERFECTO_ESTADO'" class="text-rose-400 font-bold">Baja por Defecto</span>
+                </td>
+                <td>{{ it.producto_nuevo_nombre || (it.variante_nueva_id ? 'Variante #' + it.variante_nueva_id : 'Ninguna (Devolución)') }}</td>
+                <td>{{ it.cantidad }} unid.</td>
+                <td class="text-right font-bold">Bs. {{ it.subtotal | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="motivo-box">
+          <span class="item-label">Motivo de la Operación:</span>
+          <p class="text-sm text-slate-300 mt-1">{{ ctrl.devolucionSeleccionada()?.motivo }}</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-flat-button class="btn-modal-close" (click)="ctrl.cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

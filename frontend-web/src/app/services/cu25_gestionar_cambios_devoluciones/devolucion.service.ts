@@ -1,9 +1,18 @@
-// CU25 - GESTIONAR CAMBIOS Y DEVOLUCIONES DE PRENDAS -> SERVICE
+// ==============================================================================
+// CU25 - GESTIONAR CAMBIOS Y DEVOLUCIONES DE PRENDAS -> SERVICIO HTTP (FRONTEND)
+// Ubicación: frontend-web/src/app/services/cu25_gestionar_cambios_devoluciones/devolucion.service.ts
+// ==============================================================================
+
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DevolucionDTO, SolicitudDevolucionDTO } from '../../models/cu25_gestionar_cambios_devoluciones/devolucion.model';
+import {
+  DevolucionResponse,
+  SolicitudDevolucionRequest,
+  ValidarVentaDevolucionResponse,
+  DevolucionKpisDTO
+} from '../../models/cu25_gestionar_cambios_devoluciones/devolucion.model';
 
 @Injectable({
   providedIn: 'root'
@@ -13,11 +22,37 @@ export class DevolucionService {
 
   constructor(private http: HttpClient) {}
 
-  listarDevoluciones(): Observable<{ exito: boolean; devoluciones: DevolucionDTO[] }> {
-    return this.http.get<{ exito: boolean; devoluciones: DevolucionDTO[] }>(`${this.apiUrl}/`);
+  /**
+   * Recupera el histórico de cambios de talla/modelo y devoluciones.
+   */
+  listarDevoluciones(sucursalId?: number, tipo?: string): Observable<DevolucionResponse[]> {
+    let params = new HttpParams();
+    if (sucursalId) params = params.set('sucursal_id', sucursalId.toString());
+    if (tipo && tipo !== 'TODOS') params = params.set('tipo', tipo);
+
+    return this.http.get<DevolucionResponse[]>(`${this.apiUrl}/`, { params });
   }
 
-  solicitarDevolucion(payload: SolicitudDevolucionDTO): Observable<{ exito: boolean; devolucion: DevolucionDTO }> {
-    return this.http.post<{ exito: boolean; devolucion: DevolucionDTO }>(`${this.apiUrl}/solicitar`, payload);
+  /**
+   * Registra y ejecuta la devolución o cambio de prendas.
+   */
+  solicitarDevolucion(payload: SolicitudDevolucionRequest): Observable<DevolucionResponse> {
+    return this.http.post<DevolucionResponse>(`${this.apiUrl}/solicitar`, payload);
+  }
+
+  /**
+   * Valida si una venta califica para cambio dentro del plazo de garantía (15 días).
+   */
+  validarVenta(ventaId: number, plazoDias: number = 15): Observable<ValidarVentaDevolucionResponse> {
+    const params = new HttpParams().set('plazo_dias', plazoDias.toString());
+    return this.http.get<ValidarVentaDevolucionResponse>(`${this.apiUrl}/validar-venta/${ventaId}`, { params });
+  }
+
+  /**
+   * Obtiene indicadores ejecutivos del módulo CU25.
+   */
+  obtenerKpis(plazoDias: number = 15): Observable<DevolucionKpisDTO> {
+    const params = new HttpParams().set('plazo_dias', plazoDias.toString());
+    return this.http.get<DevolucionKpisDTO>(`${this.apiUrl}/kpis`, { params });
   }
 }
