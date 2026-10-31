@@ -1,0 +1,426 @@
+<div class="dashboard-container">
+
+  <!-- ========================================== -->
+  <!-- HEADER EJECUTIVO MULTITENANT               -->
+  <!-- ========================================== -->
+  <header class="executive-header">
+    <div class="header-main">
+      <div class="header-titles">
+        <div class="title-with-badge">
+          <h1>Dashboard Ejecutivo & Analítica Global</h1>
+          <span class="badge-tenant">
+            <mat-icon>business</mat-icon>
+            {{ saas()?.tenant_nombre || 'Shopyn Golden Store' }}
+          </span>
+          <span class="badge-plan">
+            <mat-icon>verified</mat-icon>
+            {{ saas()?.plan_nombre || 'Plan Enterprise' }}
+          </span>
+        </div>
+        <p class="subtitle">
+          Centro de Mando C-Level · Consolidación Omnicanal (Boutiques POS + Digital + Contingencia Offline)
+        </p>
+      </div>
+
+      <div class="header-actions no-print">
+        <button class="btn-action btn-refresh" (click)="recargar()" [disabled]="cargando()" matTooltip="Actualizar analítica en tiempo real">
+          <mat-icon [class.spin]="cargando()">sync</mat-icon>
+          <span>Sincronizar</span>
+        </button>
+        <button class="btn-action btn-csv" (click)="exportarCSV()" matTooltip="Descargar reporte ejecutivo en formato CSV">
+          <mat-icon>file_download</mat-icon>
+          <span>Exportar CSV</span>
+        </button>
+        <button class="btn-action btn-print" (click)="imprimirReporte()" matTooltip="Imprimir reporte formal para Directorio">
+          <mat-icon>print</mat-icon>
+          <span>Imprimir</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- SELECTOR DE PERÍODO TEMPORAL -->
+    <div class="period-selector-bar no-print">
+      <span class="filter-label">
+        <mat-icon>calendar_today</mat-icon> Rango Temporal:
+      </span>
+      <div class="pills-group">
+        <button 
+          class="pill-btn" 
+          [class.active]="filtroActivo() === 'HOY'" 
+          (click)="cambiarPeriodo('HOY')">
+          Hoy (24h)
+        </button>
+        <button 
+          class="pill-btn" 
+          [class.active]="filtroActivo() === '7D'" 
+          (click)="cambiarPeriodo('7D')">
+          Últimos 7 días
+        </button>
+        <button 
+          class="pill-btn" 
+          [class.active]="filtroActivo() === 'MES'" 
+          (click)="cambiarPeriodo('MES')">
+          Este Mes
+        </button>
+        <button 
+          class="pill-btn" 
+          [class.active]="filtroActivo() === 'ANO'" 
+          (click)="cambiarPeriodo('ANO')">
+          Este Año
+        </button>
+        <button 
+          class="pill-btn" 
+          [class.active]="filtroActivo() === 'TODO'" 
+          (click)="cambiarPeriodo('TODO')">
+          Histórico Completo
+        </button>
+      </div>
+
+      <div class="last-sync-time" *ngIf="kpis()?.fecha_calculo">
+        <mat-icon>access_time</mat-icon>
+        <span>Cálculo: {{ kpis()?.fecha_calculo }}</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- LOADER SPINNER -->
+  <div class="loading-overlay" *ngIf="cargando()">
+    <div class="spinner-box">
+      <div class="pulse-ring"></div>
+      <mat-icon class="spin-icon">insights</mat-icon>
+      <p>Consolidando métricas ejecutivas de la base de datos...</p>
+    </div>
+  </div>
+
+  <!-- ALERTA DE ERROR -->
+  <div class="alert-error" *ngIf="error()">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ error() }}</span>
+  </div>
+
+  <div class="dashboard-content" *ngIf="consolidado()">
+
+    <!-- ========================================== -->
+    <!-- FILA 1: KPIs PRIMARIOS FINANCIEROS (4 CARDS)-->
+    <!-- ========================================== -->
+    <section class="kpi-primary-grid">
+      
+      <!-- CARD 1: INGRESOS BRUTOS Y NETOS -->
+      <div class="glass-card kpi-card gold-border">
+        <div class="card-icon gold-glow">
+          <mat-icon>payments</mat-icon>
+        </div>
+        <div class="card-info">
+          <span class="card-label">INGRESOS BRUTOS CONSOLIDADOS</span>
+          <div class="card-value gold-text">
+            {{ kpis()?.total_ingresos_bs | number:'1.2-2' }} <small>{{ saas()?.moneda_simbolo || 'Bs.' }}</small>
+          </div>
+          <div class="card-footer-metric">
+            <mat-icon>verified</mat-icon>
+            <span>Neto: <strong>{{ kpis()?.ingresos_netos_bs | number:'1.2-2' }} {{ saas()?.moneda_simbolo || 'Bs.' }}</strong> (tras reembolsos)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: TICKET PROMEDIO -->
+      <div class="glass-card kpi-card cyan-border">
+        <div class="card-icon cyan-glow">
+          <mat-icon>receipt_long</mat-icon>
+        </div>
+        <div class="card-info">
+          <span class="card-label">TICKET PROMEDIO (AOV)</span>
+          <div class="card-value cyan-text">
+            {{ kpis()?.ticket_promedio_bs | number:'1.2-2' }} <small>{{ saas()?.moneda_simbolo || 'Bs.' }}</small>
+          </div>
+          <div class="card-footer-metric">
+            <mat-icon>trending_up</mat-icon>
+            <span>Gasto medio por orden de compra omnicanal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: TOTAL TRANSACCIONES -->
+      <div class="glass-card kpi-card emerald-border">
+        <div class="card-icon emerald-glow">
+          <mat-icon>point_of_sale</mat-icon>
+        </div>
+        <div class="card-info">
+          <span class="card-label">TRANSACCIONES COMPLETADAS</span>
+          <div class="card-value emerald-text">
+            {{ kpis()?.total_transacciones | number }} <small>órdenes</small>
+          </div>
+          <div class="card-footer-metric">
+            <mat-icon>check_circle</mat-icon>
+            <span>POS Presencial + E-commerce + Offline</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: PRENDAS VENDIDAS -->
+      <div class="glass-card kpi-card purple-border">
+        <div class="card-icon purple-glow">
+          <mat-icon>checkroom</mat-icon>
+        </div>
+        <div class="card-info">
+          <span class="card-label">PRENDAS FÍSICAS VENDIDAS</span>
+          <div class="card-value purple-text">
+            {{ kpis()?.prendas_vendidas | number }} <small>piezas</small>
+          </div>
+          <div class="card-footer-metric">
+            <mat-icon>inventory_2</mat-icon>
+            <span>Piezas entregadas al cliente final</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- FILA 2: KPIs SECUNDARIOS OPERATIVOS (4 CARDS)-->
+    <!-- ========================================== -->
+    <section class="kpi-secondary-grid">
+
+      <!-- RESERVAS ACTIVAS -->
+      <div class="glass-card mini-card">
+        <div class="mini-icon blue-bg">
+          <mat-icon>schedule</mat-icon>
+        </div>
+        <div class="mini-content">
+          <div class="mini-label">Reservas Activas Boutique</div>
+          <div class="mini-value">{{ kpis()?.reservas_activas }} <small>pendientes</small></div>
+          <div class="mini-subtext">Compromiso de stock 48h (CU24)</div>
+        </div>
+      </div>
+
+      <!-- STOCK CRÍTICO -->
+      <div class="glass-card mini-card">
+        <div class="mini-icon red-bg">
+          <mat-icon>warning_amber</mat-icon>
+        </div>
+        <div class="mini-content">
+          <div class="mini-label">Prendas en Stock Crítico</div>
+          <div class="mini-value red-text">{{ kpis()?.articulos_stock_critico }} <small>modelos</small></div>
+          <div class="mini-subtext">Existencias bajo el umbral mínimo</div>
+        </div>
+      </div>
+
+      <!-- DEVOLUCIONES / CAMBIOS -->
+      <div class="glass-card mini-card">
+        <div class="mini-icon amber-bg">
+          <mat-icon>swap_horizontal_circle</mat-icon>
+        </div>
+        <div class="mini-content">
+          <div class="mini-label">Cambios y Devoluciones</div>
+          <div class="mini-value">{{ kpis()?.total_devoluciones }} <small>procesadas</small></div>
+          <div class="mini-subtext">Total reingresado: {{ kpis()?.monto_devoluciones_bs | number:'1.2-2' }} Bs. (CU25)</div>
+        </div>
+      </div>
+
+      <!-- SINCRONIZACIÓN OFFLINE -->
+      <div class="glass-card mini-card">
+        <div class="mini-icon teal-bg">
+          <mat-icon>cloud_sync</mat-icon>
+        </div>
+        <div class="mini-content">
+          <div class="mini-label">Contingencia Sincronizada</div>
+          <div class="mini-value teal-text">{{ kpis()?.operaciones_offline_sincronizadas }} <small>operaciones</small></div>
+          <div class="mini-subtext">Sync Engine Offline auditado (CU23)</div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- FILA 3: OMNICANALIDAD & UTILIZACIÓN SAAS   -->
+    <!-- ========================================== -->
+    <section class="analytics-row">
+      
+      <!-- CANALES DE VENTA -->
+      <div class="glass-card analytics-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <mat-icon>hub</mat-icon>
+            <h3>Distribución Omnicanal de Ingresos</h3>
+          </div>
+          <span class="panel-tag">POS vs Web vs Offline</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="channel-list">
+            <div class="channel-item" *ngFor="let c of ventasCanal()">
+              <div class="channel-info-row">
+                <span class="channel-name">
+                  <mat-icon *ngIf="c.canal.includes('Presencial')">storefront</mat-icon>
+                  <mat-icon *ngIf="c.canal.includes('Digital')">shopping_bag</mat-icon>
+                  <mat-icon *ngIf="c.canal.includes('Offline')">wifi_off</mat-icon>
+                  {{ c.canal }}
+                </span>
+                <span class="channel-stats">
+                  <strong>{{ c.total_bs | number:'1.2-2' }} {{ saas()?.moneda_simbolo || 'Bs.' }}</strong>
+                  <small>({{ c.transacciones }} ventas · {{ c.porcentaje }}%)</small>
+                </span>
+              </div>
+              <div class="progress-track">
+                <div 
+                  class="progress-fill" 
+                  [class.fill-gold]="c.canal.includes('Presencial')"
+                  [class.fill-cyan]="c.canal.includes('Digital')"
+                  [class.fill-teal]="c.canal.includes('Offline')"
+                  [style.width.%]="c.porcentaje">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CUOTAS Y RECURSOS SAAS TENANT -->
+      <div class="glass-card analytics-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <mat-icon>cloud_done</mat-icon>
+            <h3>Utilización de Recursos SaaS del Tenant</h3>
+          </div>
+          <span class="status-pill status-active">
+            {{ saas()?.suscripcion_estado || 'ACTIVA' }}
+          </span>
+        </div>
+
+        <div class="panel-body saas-body">
+          <div class="saas-metrics-grid">
+
+            <!-- Sucursales -->
+            <div class="saas-metric-box">
+              <div class="saas-box-header">
+                <span>Sucursales Activas</span>
+                <strong>{{ saas()?.sucursales_activas }} / {{ saas()?.limite_sucursales }}</strong>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-blue" [style.width.%]="calcularPorcentaje(saas()?.sucursales_activas || 0, saas()?.limite_sucursales || 1)"></div>
+              </div>
+              <span class="saas-box-hint">Límite según suscripción {{ saas()?.plan_nombre }}</span>
+            </div>
+
+            <!-- Usuarios Operadores -->
+            <div class="saas-metric-box">
+              <div class="saas-box-header">
+                <span>Usuarios Operadores</span>
+                <strong>{{ saas()?.usuarios_activos }} / {{ saas()?.limite_usuarios }}</strong>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill fill-purple" [style.width.%]="calcularPorcentaje(saas()?.usuarios_activos || 0, saas()?.limite_usuarios || 1)"></div>
+              </div>
+              <span class="saas-box-hint">Cajeros, administradores y personal</span>
+            </div>
+
+          </div>
+
+          <div class="saas-feature-banner" [class.feature-active]="saas()?.vestidor_ia_habilitado">
+            <mat-icon>auto_awesome</mat-icon>
+            <div class="feature-text">
+              <strong>Vestidor Virtual con IA (CU12)</strong>
+              <span>
+                {{ saas()?.vestidor_ia_habilitado ? 'Habilitado y activo para clientes de este Tenant.' : 'No contratado en el plan actual.' }}
+              </span>
+            </div>
+            <span class="badge-feature">{{ saas()?.vestidor_ia_habilitado ? 'HABILITADO' : 'BLOQUEADO' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- FILA 4: SUCURSALES & TOP 5 PRENDAS         -->
+    <!-- ========================================== -->
+    <section class="analytics-row">
+
+      <!-- COMPARATIVA POR SUCURSAL FÍSICA -->
+      <div class="glass-card analytics-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <mat-icon>store</mat-icon>
+            <h3>Rendimiento por Sucursal Boutique</h3>
+          </div>
+          <span class="panel-tag">{{ ventasSucursal().length }} Boutiques activas</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="table-responsive">
+            <table class="executive-table">
+              <thead>
+                <tr>
+                  <th>Sucursal</th>
+                  <th>Ciudad</th>
+                  <th>Transacciones</th>
+                  <th>Ingresos (BOB)</th>
+                  <th>Participación</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of ventasSucursal()">
+                  <td>
+                    <div class="branch-name-cell">
+                      <mat-icon class="branch-icon">location_on</mat-icon>
+                      <strong>{{ s.sucursal_nombre }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ s.ciudad }}</td>
+                  <td><span class="pill-count">{{ s.transacciones }}</span></td>
+                  <td><strong class="gold-text">{{ s.total_bs | number:'1.2-2' }} Bs.</strong></td>
+                  <td>
+                    <div class="share-cell">
+                      <span>{{ s.porcentaje }}%</span>
+                      <div class="mini-progress">
+                        <div class="mini-fill" [style.width.%]="s.porcentaje"></div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="ventasSucursal().length === 0">
+                  <td colspan="5" class="empty-state">No se registraron ventas en sucursales en este periodo.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP 5 PRENDAS BOUTIQUE -->
+      <div class="glass-card analytics-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <mat-icon>star</mat-icon>
+            <h3>Top 5 Prendas Más Vendidas</h3>
+          </div>
+          <span class="panel-tag">Mayor demanda en boutique</span>
+        </div>
+
+        <div class="panel-body">
+          <div class="top-garments-list">
+            <div class="garment-card" *ngFor="let p of topPrendas(); let idx = index">
+              <div class="rank-badge" [class.gold-rank]="idx === 0" [class.silver-rank]="idx === 1" [class.bronze-rank]="idx === 2">
+                #{{ idx + 1 }}
+              </div>
+              <div class="garment-info">
+                <strong class="garment-title">{{ p.nombre_producto }}</strong>
+                <span class="garment-sku">SKU: {{ p.sku }} · Unitario: {{ p.precio_unitario | number:'1.2-2' }} Bs.</span>
+              </div>
+              <div class="garment-metrics">
+                <span class="garment-units">{{ p.unidades_vendidas }} <small>vendidas</small></span>
+                <strong class="garment-total gold-text">{{ p.recaudacion_bs | number:'1.2-2' }} Bs.</strong>
+              </div>
+            </div>
+
+            <div class="empty-state" *ngIf="topPrendas().length === 0">
+              No se registran productos vendidos en el periodo seleccionado.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+</div>
