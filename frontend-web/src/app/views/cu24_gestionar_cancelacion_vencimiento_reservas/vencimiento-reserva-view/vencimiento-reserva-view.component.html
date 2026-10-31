@@ -1,0 +1,433 @@
+<div class="vencimiento-container">
+  <!-- Toast Notification Feedback -->
+  <div *ngIf="ctrl.mensajeToast()" class="toast-banner" [ngClass]="ctrl.mensajeToast()?.tipo">
+    <div class="toast-content">
+      <mat-icon class="toast-icon">
+        {{ ctrl.mensajeToast()?.tipo === 'success' ? 'check_circle' : ctrl.mensajeToast()?.tipo === 'error' ? 'error' : 'info' }}
+      </mat-icon>
+      <span>{{ ctrl.mensajeToast()?.texto }}</span>
+    </div>
+    <button mat-icon-button (click)="ctrl.limpiarToast()" class="toast-close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Header Principal -->
+  <header class="vencimiento-header">
+    <div class="header-titles">
+      <div class="badge-title-row">
+        <span class="module-tag">CU24</span>
+        <div class="policy-indicator">
+          <span class="pulsing-dot"></span>
+          <span class="indicator-text">POLÍTICA COMERCIAL: {{ ctrl.horasPolitica() }} HORAS MÁXIMO</span>
+        </div>
+      </div>
+      <h1 class="page-title">Gestión de Cancelación y Vencimiento de Reservas</h1>
+      <p class="page-subtitle">
+        Auditoría automatizada del plazo de recogida en boutique, descompromiso inmediato de prendas en Kardex e información proactiva al cliente.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button 
+        mat-flat-button 
+        class="btn-purge-action" 
+        (click)="ctrl.ejecutarPurga()"
+        [disabled]="ctrl.purgando()"
+        id="btn-purgar-vencidas"
+      >
+        <mat-icon [class.spin-icon]="ctrl.purgando()">timer_off</mat-icon>
+        <span>{{ ctrl.purgando() ? 'Auditoria en curso...' : '⚡ Ejecutar Auditoría 48h y Purgar Vencidas' }}</span>
+      </button>
+
+      <button mat-stroked-button class="btn-refresh" (click)="ctrl.cargarTodo()" [disabled]="ctrl.cargando()">
+        <mat-icon [class.spin-icon]="ctrl.cargando()">refresh</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Barra de Configuración de Tolerancia -->
+  <section class="threshold-card">
+    <div class="threshold-info">
+      <div class="threshold-icon-box">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div>
+        <h3 class="threshold-title">Plazo Máximo de Tolerancia para Retiro en Tienda</h3>
+        <p class="threshold-desc">
+          Las reservas que excedan esta antigüedad serán automáticamente canceladas, notificando al cliente y reincorporando las prendas a la vitrina comercial:
+        </p>
+      </div>
+    </div>
+
+    <div class="threshold-selector">
+      <button 
+        class="thresh-btn" 
+        [class.selected]="ctrl.horasPolitica() === 24" 
+        (click)="ctrl.setHorasPolitica(24)"
+      >
+        24 Horas (Alta Rotación)
+      </button>
+      <button 
+        class="thresh-btn" 
+        [class.selected]="ctrl.horasPolitica() === 48" 
+        (click)="ctrl.setHorasPolitica(48)"
+      >
+        48 Horas (Estándar Boutique)
+      </button>
+      <button 
+        class="thresh-btn" 
+        [class.selected]="ctrl.horasPolitica() === 72" 
+        (click)="ctrl.setHorasPolitica(72)"
+      >
+        72 Horas (Fin de Semana)
+      </button>
+    </div>
+  </section>
+
+  <!-- Métricas Ejecutivas (KPIs) -->
+  <section class="kpi-grid">
+    <div class="kpi-card card-active">
+      <div class="kpi-header">
+        <span class="kpi-label">RESERVAS ACTIVAS</span>
+        <mat-icon class="kpi-icon">pending</mat-icon>
+      </div>
+      <div class="kpi-value text-indigo-400">{{ ctrl.kpis()?.total_reservas_activas || 0 }}</div>
+      <div class="kpi-subtext">En espera de retiro físico</div>
+    </div>
+
+    <div class="kpi-card card-risk">
+      <div class="kpi-header">
+        <span class="kpi-label">EN RIESGO DE VENCIMIENTO</span>
+        <mat-icon class="kpi-icon text-rose-400">warning</mat-icon>
+      </div>
+      <div class="kpi-value text-rose-400">{{ ctrl.kpis()?.reservas_en_riesgo || 0 }}</div>
+      <div class="kpi-subtext">Menos de 12 horas restantes</div>
+    </div>
+
+    <div class="kpi-card card-released">
+      <div class="kpi-header">
+        <span class="kpi-label">PRENDAS REINTEGRADAS A STOCK</span>
+        <mat-icon class="kpi-icon text-emerald-400">inventory_2</mat-icon>
+      </div>
+      <div class="kpi-value text-emerald-400">{{ ctrl.kpis()?.total_prendas_reintegradas || 0 }}</div>
+      <div class="kpi-subtext">Liberadas de reservas canceladas</div>
+    </div>
+
+    <div class="kpi-card card-money">
+      <div class="kpi-header">
+        <span class="kpi-label">VALOR ECONÓMICO RECUPERADO</span>
+        <mat-icon class="kpi-icon text-amber-400">monetization_on</mat-icon>
+      </div>
+      <div class="kpi-value text-amber-400">Bs. {{ ctrl.kpis()?.valor_total_liberado_bob | number:'1.2-2' }}</div>
+      <div class="kpi-subtext">Vencidas: {{ ctrl.kpis()?.reservas_vencidas_historicas || 0 }} | Manual: {{ ctrl.kpis()?.reservas_canceladas_manual || 0 }}</div>
+    </div>
+  </section>
+
+  <!-- Filtros y Barra de Búsqueda -->
+  <section class="table-toolbar">
+    <div class="status-tabs">
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroRiesgo() === 'TODAS'"
+        (click)="ctrl.setFiltroRiesgo('TODAS')"
+      >
+        Todas ({{ ctrl.reservas().length }})
+      </button>
+      <button 
+        class="tab-btn text-rose-400" 
+        [class.active]="ctrl.filtroRiesgo() === 'EXPIRADAS'"
+        (click)="ctrl.setFiltroRiesgo('EXPIRADAS')"
+      >
+        Expiradas (>{{ ctrl.horasPolitica() }}h)
+      </button>
+      <button 
+        class="tab-btn text-amber-400" 
+        [class.active]="ctrl.filtroRiesgo() === 'EN_RIESGO'"
+        (click)="ctrl.setFiltroRiesgo('EN_RIESGO')"
+      >
+        En Riesgo (&lt;12h)
+      </button>
+      <button 
+        class="tab-btn text-emerald-400" 
+        [class.active]="ctrl.filtroRiesgo() === 'VIGENTES'"
+        (click)="ctrl.setFiltroRiesgo('VIGENTES')"
+      >
+        Vigentes
+      </button>
+    </div>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input 
+        type="text" 
+        placeholder="Buscar por código de reserva, cliente o sucursal..." 
+        [value]="ctrl.filtroBusqueda()"
+        (input)="ctrl.setBusqueda($any($event.target).value)"
+      />
+    </div>
+  </section>
+
+  <!-- Tabla de Reservas Activas con Temporizador -->
+  <section class="table-container">
+    <div *ngIf="ctrl.cargando()" class="loading-state">
+      <mat-icon class="spin-icon">sync</mat-icon>
+      <span>Evaluando reservas activas en tienda...</span>
+    </div>
+
+    <div *ngIf="!ctrl.cargando() && ctrl.reservasFiltradas().length === 0" class="empty-state">
+      <mat-icon>check_circle</mat-icon>
+      <h3>No hay reservas pendientes bajo el criterio actual</h3>
+      <p>Todas las reservas se encuentran recogidas, canceladas o el stock ya ha sido reintegrado exitosamente.</p>
+    </div>
+
+    <table *ngIf="!ctrl.cargando() && ctrl.reservasFiltradas().length > 0" class="reservas-table">
+      <thead>
+        <tr>
+          <th>Código / Creación</th>
+          <th>Cliente / Contacto</th>
+          <th>Sucursal Retiro</th>
+          <th>Tiempo Restante (Tolerancia)</th>
+          <th>Prendas</th>
+          <th>Monto Estimado</th>
+          <th class="text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let res of ctrl.reservasFiltradas()">
+          <td>
+            <div class="td-code">{{ res.codigoreserva }}</div>
+            <div class="td-date">{{ res.fechareserva | date:'short' }}</div>
+          </td>
+
+          <td>
+            <div class="td-strong">{{ res.cliente_nombre }}</div>
+            <div class="td-muted">{{ res.cliente_email || 'Sin correo' }}</div>
+          </td>
+
+          <td>
+            <span class="branch-tag">{{ res.sucursal_nombre }}</span>
+          </td>
+
+          <td>
+            <!-- Badge de Estado de Vencimiento -->
+            <div *ngIf="res.es_expirada" class="time-badge badge-expired">
+              <mat-icon>timer_off</mat-icon>
+              <span>EXPIRADA ({{ res.horas_restantes }}h)</span>
+            </div>
+
+            <div *ngIf="res.en_riesgo && !res.es_expirada" class="time-badge badge-risk">
+              <mat-icon>warning</mat-icon>
+              <span>Expira en {{ res.horas_restantes }}h</span>
+            </div>
+
+            <div *ngIf="!res.en_riesgo && !res.es_expirada" class="time-badge badge-safe">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ res.horas_restantes }}h restantes</span>
+            </div>
+          </td>
+
+          <td>
+            <span class="badge-items">{{ res.total_prendas }} unid.</span>
+          </td>
+
+          <td>
+            <div class="td-price">Bs. {{ res.monto_total_estimado | number:'1.2-2' }}</div>
+          </td>
+
+          <td class="text-right">
+            <button 
+              mat-icon-button 
+              class="btn-action-view" 
+              (click)="ctrl.abrirDetalle(res)"
+              title="Ver detalle de prendas reservadas"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+
+            <button 
+              mat-button 
+              class="btn-action-cancel" 
+              (click)="ctrl.abrirModalCancelar(res)"
+              title="Cancelar reserva y devolver prendas al stock"
+            >
+              <mat-icon>cancel</mat-icon>
+              <span>Cancelar</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Modal 1: Detalle de Prendas de la Reserva -->
+  <div *ngIf="ctrl.modalDetalleAbierto() && ctrl.reservaSeleccionada()" class="modal-backdrop" (click)="ctrl.cerrarDetalle()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-indigo-400">shopping_bag</mat-icon>
+          <div>
+            <h2 class="modal-title">Prendas de la Reserva #{{ ctrl.reservaSeleccionada()?.codigoreserva }}</h2>
+            <p class="modal-subtitle">Cliente: {{ ctrl.reservaSeleccionada()?.cliente_nombre }} | {{ ctrl.reservaSeleccionada()?.sucursal_nombre }}</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarDetalle()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-summary-grid">
+          <div class="summary-item">
+            <span class="item-label">Fecha Creación:</span>
+            <span class="item-value">{{ ctrl.reservaSeleccionada()?.fechareserva | date:'medium' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Fecha Expiración:</span>
+            <span class="item-value text-rose-300">{{ ctrl.reservaSeleccionada()?.fecha_expiracion | date:'medium' }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Estado:</span>
+            <span class="item-value font-bold">{{ ctrl.reservaSeleccionada()?.estado }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Monto Estimado:</span>
+            <span class="item-value text-emerald-400 font-bold">Bs. {{ ctrl.reservaSeleccionada()?.monto_total_estimado | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="items-section">
+          <h4 class="section-title">Prendas Comprometidas en Inventario</h4>
+          <table class="modal-items-table">
+            <thead>
+              <tr>
+                <th>SKU / Variante</th>
+                <th>Producto</th>
+                <th>Talla / Color</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of ctrl.reservaSeleccionada()?.detalles">
+                <td class="font-mono text-xs text-sky-400">{{ it.sku || '#' + it.variante_id }}</td>
+                <td class="font-bold">{{ it.producto_nombre }}</td>
+                <td>{{ it.talla || 'M' }} / {{ it.color || 'Estándar' }}</td>
+                <td>{{ it.cantidad }} unid.</td>
+                <td>Bs. {{ it.precio_unitario | number:'1.2-2' }}</td>
+                <td class="text-right font-bold">Bs. {{ it.subtotal | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-flat-button class="btn-modal-close" (click)="ctrl.cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Cancelación Manual de Reserva -->
+  <div *ngIf="ctrl.modalCancelarAbierto() && ctrl.reservaSeleccionada()" class="modal-backdrop" (click)="ctrl.cerrarModalCancelar()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-rose-400">warning</mat-icon>
+          <div>
+            <h2 class="modal-title">Confirmar Cancelación de Reserva</h2>
+            <p class="modal-subtitle">{{ ctrl.reservaSeleccionada()?.codigoreserva }} ({{ ctrl.reservaSeleccionada()?.cliente_nombre }})</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarModalCancelar()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="alert-info-box">
+          <mat-icon class="text-amber-400">info</mat-icon>
+          <p>
+            Al cancelar la reserva, las <strong>{{ ctrl.reservaSeleccionada()?.total_prendas }} prendas</strong> 
+            serán devueltas de forma inmediata al stock comercial de 
+            <strong>{{ ctrl.reservaSeleccionada()?.sucursal_nombre }}</strong> y el cliente recibirá una notificación en su panel.
+          </p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Motivo o justificación de la cancelación:</label>
+          <textarea 
+            class="form-textarea" 
+            rows="3" 
+            placeholder="Ej: Cliente desistió por cambio de modelo, solicitud telefónica, cambio de sucursal..."
+            [value]="ctrl.motivoCancelacion()"
+            (input)="ctrl.motivoCancelacion.set($any($event.target).value)"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="ctrl.cerrarModalCancelar()">Volver</button>
+        <button 
+          mat-flat-button 
+          class="btn-confirm-cancel" 
+          (click)="ctrl.confirmarCancelacionManual()"
+          [disabled]="ctrl.cargando()"
+        >
+          {{ ctrl.cargando() ? 'Cancelando...' : 'Confirmar Cancelación y Devolver Stock' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Resultado de la Purga 48h -->
+  <div *ngIf="ctrl.modalPurgaAbierto() && ctrl.ultimoResultadoPurga()" class="modal-backdrop" (click)="ctrl.cerrarModalPurga()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-emerald-400">verified</mat-icon>
+          <div>
+            <h2 class="modal-title">Resultado de la Auditoría 48h</h2>
+            <p class="modal-subtitle">Ejecutado: {{ ctrl.ultimoResultadoPurga()?.fecha_ejecucion | date:'medium' }}</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarModalPurga()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="purge-results-grid">
+          <div class="purge-stat-card">
+            <span class="stat-label">Reservas Vencidas Canceladas</span>
+            <div class="stat-number text-rose-400">{{ ctrl.ultimoResultadoPurga()?.reservas_vencidas_canceladas }}</div>
+          </div>
+          <div class="purge-stat-card">
+            <span class="stat-label">Prendas Reintegradas a Vitrina</span>
+            <div class="stat-number text-emerald-400">{{ ctrl.ultimoResultadoPurga()?.prendas_liberadas_al_stock }}</div>
+          </div>
+          <div class="purge-stat-card col-span-2">
+            <span class="stat-label">Valor Monetario Reincorporado</span>
+            <div class="stat-number text-amber-400">Bs. {{ ctrl.ultimoResultadoPurga()?.valor_monetario_liberado_bob | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <div *ngIf="ctrl.ultimoResultadoPurga()?.detalles && ctrl.ultimoResultadoPurga()!.detalles!.length > 0" class="purge-list-box">
+          <h4 class="section-title">Detalle de Reservas Procesadas</h4>
+          <ul class="purge-details-list">
+            <li *ngFor="let d of ctrl.ultimoResultadoPurga()?.detalles" class="purge-detail-item">
+              <span class="font-bold">{{ d.codigo }}</span>
+              <span>{{ d.prendas_liberadas }} prendas</span>
+              <span class="text-emerald-400 font-bold">Bs. {{ d.monto_estimado_bob | number:'1.2-2' }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-flat-button class="btn-modal-close" (click)="ctrl.cerrarModalPurga()">Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>
