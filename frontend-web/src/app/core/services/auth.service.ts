@@ -23,7 +23,7 @@ export class AuthService {
   iniciarSesion(email: string, password: string, tenantSlug?: string): Observable<any> {
     const payload = {
       email: email.trim().toLowerCase(),
-      password: password,
+      password: (password || '').trim(),
       tenant_slug: tenantSlug
     };
     return this.http.post(`${this.apiUrl}/login/json`, payload);

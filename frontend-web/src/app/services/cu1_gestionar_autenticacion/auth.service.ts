@@ -31,7 +31,7 @@ export class AuthService {
   iniciarSesion(email: string, password: string, tenantSlug?: string): Observable<RespuestaAutenticacionDTO> {
     const payload: CredencialesLoginDTO = {
       email: email.trim().toLowerCase(),
-      password: password,
+      password: (password || '').trim(),
       tenant_slug: tenantSlug ? tenantSlug.trim() : undefined
     };
     return this.http.post<RespuestaAutenticacionDTO>(`${this.apiUrl}/login/json`, payload);
