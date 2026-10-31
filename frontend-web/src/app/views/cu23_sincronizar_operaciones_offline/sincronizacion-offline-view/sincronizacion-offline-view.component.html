@@ -1,0 +1,414 @@
+<div class="sync-container">
+  <!-- Toast Notification Feedback -->
+  <div *ngIf="ctrl.mensajeToast()" class="toast-banner" [ngClass]="ctrl.mensajeToast()?.tipo">
+    <div class="toast-content">
+      <mat-icon class="toast-icon">
+        {{ ctrl.mensajeToast()?.tipo === 'success' ? 'check_circle' : ctrl.mensajeToast()?.tipo === 'error' ? 'error' : 'info' }}
+      </mat-icon>
+      <span>{{ ctrl.mensajeToast()?.texto }}</span>
+    </div>
+    <button mat-icon-button (click)="ctrl.limpiarToast()" class="toast-close">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Header Principal -->
+  <header class="sync-header">
+    <div class="header-titles">
+      <div class="badge-title-row">
+        <span class="module-tag">CU23</span>
+        <div class="online-indicator">
+          <span class="pulsing-dot"></span>
+          <span class="indicator-text">MOTOR ACTIVO EN LÍNEA</span>
+        </div>
+      </div>
+      <h1 class="page-title">Sincronización Offline y Resolución de Conflictos</h1>
+      <p class="page-subtitle">
+        Reconciliación transaccional diferida, mitigación automática de discrepancias en inventario (Kardex) y prevención de colisiones por idempotencia UUID.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button 
+        mat-flat-button 
+        class="btn-sync-action" 
+        (click)="ctrl.sincronizarTodoAhora()"
+        [disabled]="ctrl.sincronizando()"
+        id="btn-sincronizar-todo"
+      >
+        <mat-icon [class.spin-icon]="ctrl.sincronizando()">sync</mat-icon>
+        <span>{{ ctrl.sincronizando() ? 'Sincronizando...' : '⚡ Sincronizar Todo Ahora' }}</span>
+      </button>
+
+      <button mat-stroked-button class="btn-refresh" (click)="ctrl.cargarTodo()" [disabled]="ctrl.cargando()">
+        <mat-icon [class.spin-icon]="ctrl.cargando()">refresh</mat-icon>
+      </button>
+    </div>
+  </header>
+
+  <!-- Selector de Política de Resolución de Conflictos -->
+  <section class="policy-card">
+    <div class="policy-info">
+      <div class="policy-icon-box">
+        <mat-icon>gavel</mat-icon>
+      </div>
+      <div>
+        <h3 class="policy-title">Política Activa de Reconciliación de Stock</h3>
+        <p class="policy-desc">
+          Estrategia a aplicar cuando un producto vendido físicamente sin conexión ya no cuenta con stock disponible en el servidor central:
+        </p>
+      </div>
+    </div>
+
+    <div class="policy-options">
+      <label 
+        class="policy-chip" 
+        [class.selected]="ctrl.estrategiaPreferida() === 'PRIORIZAR_TIENDA_FISICA'"
+        (click)="ctrl.setEstrategiaPreferida('PRIORIZAR_TIENDA_FISICA')"
+      >
+        <input type="radio" name="politica" value="PRIORIZAR_TIENDA_FISICA" [checked]="ctrl.estrategiaPreferida() === 'PRIORIZAR_TIENDA_FISICA'" />
+        <span class="chip-content">
+          <strong>Priorizar Tienda Física (Recomendada)</strong>
+          <small>El cliente en boutique ya se llevó la prenda; consolida venta y ajusta inventario.</small>
+        </span>
+      </label>
+
+      <label 
+        class="policy-chip" 
+        [class.selected]="ctrl.estrategiaPreferida() === 'AJUSTE_KARDEX'"
+        (click)="ctrl.setEstrategiaPreferida('AJUSTE_KARDEX')"
+      >
+        <input type="radio" name="politica" value="AJUSTE_KARDEX" [checked]="ctrl.estrategiaPreferida() === 'AJUSTE_KARDEX'" />
+        <span class="chip-content">
+          <strong>Ajuste Kardex</strong>
+          <small>Deduce existencia remanente y emite apunte de regularización en almacén.</small>
+        </span>
+      </label>
+
+      <label 
+        class="policy-chip" 
+        [class.selected]="ctrl.estrategiaPreferida() === 'BLOQUEAR'"
+        (click)="ctrl.setEstrategiaPreferida('BLOQUEAR')"
+      >
+        <input type="radio" name="politica" value="BLOQUEAR" [checked]="ctrl.estrategiaPreferida() === 'BLOQUEAR'" />
+        <span class="chip-content">
+          <strong>Retener para Aprobación Manual</strong>
+          <small>Deja la transacción en estado pendiente de resolución gerencial.</small>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Métricas Ejecutivas (KPIs) -->
+  <section class="kpi-grid">
+    <div class="kpi-card card-engine">
+      <div class="kpi-header">
+        <span class="kpi-label">ESTADO DEL MOTOR</span>
+        <mat-icon class="kpi-icon">lan</mat-icon>
+      </div>
+      <div class="kpi-value text-emerald-400">ACTIVO</div>
+      <div class="kpi-subtext">Protección Idempotente UUID</div>
+    </div>
+
+    <div class="kpi-card card-synced">
+      <div class="kpi-header">
+        <span class="kpi-label">TRANSACCIONES SINCRONIZADAS</span>
+        <mat-icon class="kpi-icon">verified</mat-icon>
+      </div>
+      <div class="kpi-value text-indigo-400">{{ ctrl.kpis()?.sincronizadas || 0 }}</div>
+      <div class="kpi-subtext">Total procesadas: {{ ctrl.kpis()?.total_operaciones || 0 }}</div>
+    </div>
+
+    <div class="kpi-card card-conflicts">
+      <div class="kpi-header">
+        <span class="kpi-label">DISCREPANCIAS RESUELTAS</span>
+        <mat-icon class="kpi-icon">alt_route</mat-icon>
+      </div>
+      <div class="kpi-value text-cyan-400">{{ ctrl.kpis()?.conflictos_resueltos || 0 }}</div>
+      <div class="kpi-subtext">Ajustadas vía política comercial</div>
+    </div>
+
+    <div class="kpi-card card-pending">
+      <div class="kpi-header">
+        <span class="kpi-label">COBROS EN COLA OFFLINE</span>
+        <mat-icon class="kpi-icon">pending_actions</mat-icon>
+      </div>
+      <div class="kpi-value text-amber-400">{{ ctrl.kpis()?.cobros_pendientes_en_cola || 0 }}</div>
+      <div class="kpi-subtext">Por consolidar: Bs. {{ ctrl.kpis()?.monto_pendiente_en_cola || '0.00' }}</div>
+    </div>
+  </section>
+
+  <!-- Filtros y Barra de Búsqueda -->
+  <section class="table-toolbar">
+    <div class="status-tabs">
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroEstado() === 'TODOS'"
+        (click)="ctrl.setFiltroEstado('TODOS')"
+      >
+        Todos ({{ ctrl.logs().length }})
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroEstado() === 'SINCRONIZADO'"
+        (click)="ctrl.setFiltroEstado('SINCRONIZADO')"
+      >
+        Sincronizados
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroEstado() === 'CONFLICTO_RESUELTO'"
+        (click)="ctrl.setFiltroEstado('CONFLICTO_RESUELTO')"
+      >
+        Conflictos Resueltos
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroEstado() === 'CONFLICTO_PENDIENTE'"
+        (click)="ctrl.setFiltroEstado('CONFLICTO_PENDIENTE')"
+      >
+        Pendientes de Aprobación
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="ctrl.filtroEstado() === 'ERROR'"
+        (click)="ctrl.setFiltroEstado('ERROR')"
+      >
+        Errores
+      </button>
+    </div>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input 
+        type="text" 
+        placeholder="Buscar por UUID, sucursal, recibo o cajero..." 
+        [value]="ctrl.filtroBusqueda()"
+        (input)="ctrl.setFiltroBusqueda($any($event.target).value)"
+      />
+    </div>
+  </section>
+
+  <!-- Tabla Histórica de Transacciones Sincronizadas -->
+  <section class="table-container">
+    <div *ngIf="ctrl.cargando()" class="loading-state">
+      <mat-icon class="spin-icon">sync</mat-icon>
+      <span>Cargando transacciones sincronizadas...</span>
+    </div>
+
+    <div *ngIf="!ctrl.cargando() && ctrl.logsFiltrados().length === 0" class="empty-state">
+      <mat-icon>cloud_done</mat-icon>
+      <h3>No hay transacciones registradas</h3>
+      <p>Todo el inventario y cobros diferidos se encuentran sincronizados y consistentes con la base de datos central.</p>
+    </div>
+
+    <table *ngIf="!ctrl.cargando() && ctrl.logsFiltrados().length > 0" class="sync-table">
+      <thead>
+        <tr>
+          <th>ID / Fecha</th>
+          <th>Sucursal / Cajero</th>
+          <th>Operación</th>
+          <th>Clave Idempotencia (UUID)</th>
+          <th>Resolución Aplicada</th>
+          <th>Estado</th>
+          <th class="text-right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of ctrl.logsFiltrados()">
+          <td>
+            <div class="td-id">#{{ log.id }}</div>
+            <div class="td-date">{{ log.fecha_operacion_origen | date:'short' }}</div>
+          </td>
+
+          <td>
+            <div class="td-strong">{{ log.sucursal_nombre || 'Sucursal ' + log.sucursal_id }}</div>
+            <div class="td-muted">{{ log.usuario_nombre || 'Cajero Offline' }}</div>
+          </td>
+
+          <td>
+            <span class="badge-op">{{ log.tipo_operacion }}</span>
+          </td>
+
+          <td>
+            <div class="uuid-code" title="{{ log.uuid_operacion }}">
+              {{ log.uuid_operacion.substring(0, 18) }}...
+            </div>
+          </td>
+
+          <td>
+            <span class="strategy-badge" [ngClass]="log.estrategia_conflicto">
+              {{ log.estrategia_conflicto || 'STOCK_SUFICIENTE' }}
+            </span>
+          </td>
+
+          <td>
+            <span class="status-pill" [ngClass]="log.estado">
+              {{ log.estado }}
+            </span>
+          </td>
+
+          <td class="text-right">
+            <button 
+              mat-icon-button 
+              class="btn-action-view" 
+              (click)="ctrl.abrirDetalle(log)"
+              title="Ver datos del payload y prendas"
+            >
+              <mat-icon>visibility</mat-icon>
+            </button>
+
+            <button 
+              *ngIf="log.estado === 'CONFLICTO_PENDIENTE' || log.estado === 'ERROR'" 
+              mat-button 
+              class="btn-action-resolve" 
+              (click)="ctrl.abrirResolucion(log)"
+            >
+              Resolver
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Modal 1: Detalle del Payload Sincronizado -->
+  <div *ngIf="ctrl.modalDetalleAbierto() && ctrl.logSeleccionado()" class="modal-backdrop" (click)="ctrl.cerrarDetalle()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-indigo-400">receipt_long</mat-icon>
+          <div>
+            <h2 class="modal-title">Detalle de Operación Sincronizada #{{ ctrl.logSeleccionado()?.id }}</h2>
+            <p class="modal-subtitle">UUID: {{ ctrl.logSeleccionado()?.uuid_operacion }}</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarDetalle()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-summary-grid">
+          <div class="summary-item">
+            <span class="item-label">Sucursal:</span>
+            <span class="item-value">{{ ctrl.logSeleccionado()?.sucursal_nombre }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Operador:</span>
+            <span class="item-value">{{ ctrl.logSeleccionado()?.usuario_nombre }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Estado:</span>
+            <span class="status-pill" [ngClass]="ctrl.logSeleccionado()?.estado">
+              {{ ctrl.logSeleccionado()?.estado }}
+            </span>
+          </div>
+          <div class="summary-item">
+            <span class="item-label">Estrategia Aplicada:</span>
+            <span class="item-value font-mono">{{ ctrl.logSeleccionado()?.estrategia_conflicto || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="ctrl.logSeleccionado()?.payload?.items" class="items-section">
+          <h4 class="section-title">Prendas / Variantes Vendidas en Contingencia</h4>
+          <table class="modal-items-table">
+            <thead>
+              <tr>
+                <th>Variante ID</th>
+                <th>Descripción</th>
+                <th>Cant.</th>
+                <th>Precio Unit.</th>
+                <th class="text-right">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of ctrl.logSeleccionado()?.payload?.items">
+                <td>#{{ it.variante_id }}</td>
+                <td>{{ it.producto_nombre || 'Prenda de Boutique' }}</td>
+                <td>{{ it.cantidad }}</td>
+                <td>Bs. {{ it.precio_unitario | number:'1.2-2' }}</td>
+                <td class="text-right font-bold">Bs. {{ it.subtotal | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="json-viewer-section">
+          <h4 class="section-title">Payload JSON Crudo (Auditoría)</h4>
+          <pre class="json-code">{{ ctrl.logSeleccionado()?.payload | json }}</pre>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-flat-button class="btn-modal-close" (click)="ctrl.cerrarDetalle()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Resolución Manual de Conflicto -->
+  <div *ngIf="ctrl.modalResolucionAbierto() && ctrl.logSeleccionado()" class="modal-backdrop" (click)="ctrl.cerrarResolucion()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <mat-icon class="text-amber-400">warning</mat-icon>
+          <div>
+            <h2 class="modal-title">Resolver Discrepancia Manualmente</h2>
+            <p class="modal-subtitle">Operación #{{ ctrl.logSeleccionado()?.id }} en {{ ctrl.logSeleccionado()?.sucursal_nombre }}</p>
+          </div>
+        </div>
+        <button mat-icon-button (click)="ctrl.cerrarResolucion()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p class="text-sm text-slate-300 mb-4">
+          Seleccione la resolución para validar la transacción y consolidar el stock en Kardex:
+        </p>
+
+        <div class="resolution-options">
+          <button 
+            mat-stroked-button 
+            class="btn-res-opt" 
+            (click)="ctrl.resolverConflictoManual(ctrl.logSeleccionado()!.id, 'PRIORIZAR_TIENDA_FISICA', 'Aprobado manualmente por encargado de tienda')"
+          >
+            <mat-icon class="text-emerald-400">store</mat-icon>
+            <div class="text-left">
+              <strong>Priorizar Venta Física</strong>
+              <small class="block text-slate-400">Reconoce la entrega real en mostrador y regulariza stock</small>
+            </div>
+          </button>
+
+          <button 
+            mat-stroked-button 
+            class="btn-res-opt" 
+            (click)="ctrl.resolverConflictoManual(ctrl.logSeleccionado()!.id, 'AJUSTE_KARDEX', 'Ajuste de inventario por regularización')"
+          >
+            <mat-icon class="text-cyan-400">inventory</mat-icon>
+            <div class="text-left">
+              <strong>Ajuste Compensatorio en Kardex</strong>
+              <small class="block text-slate-400">Emite un movimiento correctivo en almacén</small>
+            </div>
+          </button>
+
+          <button 
+            mat-stroked-button 
+            class="btn-res-opt" 
+            (click)="ctrl.resolverConflictoManual(ctrl.logSeleccionado()!.id, 'DESCARTAR', 'Descartada por duplicidad o error')"
+          >
+            <mat-icon class="text-rose-400">cancel</mat-icon>
+            <div class="text-left">
+              <strong>Descartar Transacción</strong>
+              <small class="block text-slate-400">Anula la operación en cola y registra el motivo</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button (click)="ctrl.cerrarResolucion()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
