@@ -108,7 +108,7 @@ class RolController:
         CACHE_PERMISOS_ROL[nuevo_rol.id] = permisos
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_ROL",
@@ -169,7 +169,7 @@ class RolController:
         CACHE_PERMISOS_ROL[rol_id] = list(set(permisos))
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="MODIFICAR_PERMISOS",
@@ -213,7 +213,7 @@ class RolController:
         CACHE_PERMISOS_ROL.pop(rol_id, None)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ELIMINAR_ROL",

@@ -158,7 +158,7 @@ class AuthController:
 
         # Registro en Bitácora con ámbito de tenant
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="LOGIN",

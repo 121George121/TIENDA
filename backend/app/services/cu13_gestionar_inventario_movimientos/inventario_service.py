@@ -28,7 +28,7 @@ from app.schemas.inventario_schema import (
     StockMinimoUpdate,
     TrasladoStockRequest,
 )
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
 
 
 class InventarioService:

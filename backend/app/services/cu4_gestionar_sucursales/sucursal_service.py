@@ -129,7 +129,7 @@ class SucursalService:
 
         # 4. Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_SUCURSAL",
@@ -193,7 +193,7 @@ class SucursalService:
         db.refresh(sucursal)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ACTUALIZAR_SUCURSAL",
@@ -244,7 +244,7 @@ class SucursalService:
         db.refresh(sucursal)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO_SUCURSAL",

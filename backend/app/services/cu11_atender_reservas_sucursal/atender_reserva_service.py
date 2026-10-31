@@ -25,7 +25,7 @@ from app.services.cu10_gestionar_reservas_prendas.reserva_service import (
     ReservaService,
     formatear_reserva,
 )
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import (
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import (
     BitacoraController,
 )
 

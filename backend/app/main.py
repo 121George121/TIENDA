@@ -30,7 +30,7 @@ from app.views.cu17_consultar_historial_compras_reservas import historial_views
 from app.views.cu18_gestionar_recomendaciones_ia import recomendacion_views
 from app.views.cu19_gestionar_notificaciones import notificacion_views
 from app.views.cu20_generar_reportes_dashboards import reporte_views
-from app.views.cu20_gestionar_bitacora import bitacora_views
+from app.views.cu26_gestionar_bitacora import bitacora_views
 
 # CU20 a CU27 - Nuevos Casos de Uso del Sistema
 from app.views.cu20_generar_reportes_generativos_ia import reporte_generativo_views
@@ -39,7 +39,6 @@ from app.views.cu22_registrar_cobros_contado_offline import cobro_offline_views
 from app.views.cu23_sincronizar_operaciones_offline import sincronizacion_offline_views
 from app.views.cu24_gestionar_cancelacion_vencimiento_reservas import vencimiento_reserva_views
 from app.views.cu25_gestionar_cambios_devoluciones import devolucion_views
-from app.views.cu26_gestionar_bitacora import bitacora_views as bitacora_cu26_views
 from app.views.cu27_dashboard_ejecutivo import dashboard_views as dashboard_cu27_views
 
 app = FastAPI(
@@ -142,7 +141,6 @@ app.include_router(cobro_offline_views.router, prefix=settings.API_V1_STR)
 app.include_router(sincronizacion_offline_views.router, prefix=settings.API_V1_STR)
 app.include_router(vencimiento_reserva_views.router, prefix=settings.API_V1_STR)
 app.include_router(devolucion_views.router, prefix=settings.API_V1_STR)
-app.include_router(bitacora_cu26_views.router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_cu27_views.router, prefix=settings.API_V1_STR)
 
 

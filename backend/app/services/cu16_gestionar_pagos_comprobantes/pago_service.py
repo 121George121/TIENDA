@@ -24,7 +24,7 @@ from app.models.models import (
     TenantModel
 )
 from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
 
 
 def generar_qr_base64(texto: str) -> str:

@@ -33,7 +33,7 @@ from app.models.cu4_gestionar_sucursales.sucursal_model import SucursalModel
 from app.models.cu3_gestionar_clientes.cliente_model import ClienteModel
 from app.models.saas_tenant.tenant_model import Tenant
 from app.schemas.orden_schema import VentaPresencialCreate
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
 
 
 class VentaPresencialService:

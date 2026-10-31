@@ -19,7 +19,7 @@ import aiohttp
 
 from app.core.config import settings
 from app.models.saas_tenant.tenant_model import Tenant
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
 
 # SDK oficial de Google GenAI
 genai = None

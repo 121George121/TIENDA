@@ -1,6 +1,6 @@
 # ==============================================================================
-# CU20 - GESTIONAR BITACORA Y AUDITORIA -> CAPA ESQUEMAS (MVC - SCHEMA)
-# Ubicacion: backend/app/schemas/cu20_gestionar_bitacora/bitacora_schema.py
+# CU26 - GESTIONAR BITACORA Y AUDITORIA -> CAPA ESQUEMAS (MVC - SCHEMA)
+# Ubicación: backend/app/schemas/cu26_gestionar_bitacora/bitacora_schema.py
 # ==============================================================================
 
 from pydantic import BaseModel

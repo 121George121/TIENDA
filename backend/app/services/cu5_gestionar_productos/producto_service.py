@@ -153,7 +153,7 @@ class ProductoService:
 
         # 5. Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_PRODUCTO",
@@ -204,7 +204,7 @@ class ProductoService:
         db.refresh(producto)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ACTUALIZAR_PRODUCTO",
@@ -252,7 +252,7 @@ class ProductoService:
         db.refresh(producto)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO_PRODUCTO",
@@ -333,7 +333,7 @@ class ProductoService:
         db.commit()
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ELIMINAR_PRODUCTO",

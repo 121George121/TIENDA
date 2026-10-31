@@ -20,7 +20,7 @@ from app.models.saas_tenant.tenant_model import Tenant
 from app.schemas.reserva_schema import (
     ReservaCreate, ReservaResponse, ReservaDetalleResponse, ReservaSucursalResponse
 )
-from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
 
 
 def generar_codigo_reserva(db: Session, tenant_id: int = 1) -> str:

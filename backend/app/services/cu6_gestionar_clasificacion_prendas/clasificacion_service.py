@@ -87,7 +87,7 @@ class CategoriaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_CATEGORIA",
@@ -135,7 +135,7 @@ class CategoriaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ACTUALIZAR_CATEGORIA",
@@ -163,7 +163,7 @@ class CategoriaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO_CATEGORIA",
@@ -203,7 +203,7 @@ class CategoriaService:
 
             # Auditoría en Bitácora (CU20)
             try:
-                from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+                from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
                 BitacoraController.registrar_evento(
                     db=db,
                     accion="ELIMINAR_CATEGORIA",
@@ -293,7 +293,7 @@ class TemporadaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_TEMPORADA",
@@ -345,7 +345,7 @@ class TemporadaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ACTUALIZAR_TEMPORADA",
@@ -373,7 +373,7 @@ class TemporadaService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO_TEMPORADA",
@@ -413,7 +413,7 @@ class TemporadaService:
 
             # Auditoría en Bitácora (CU20)
             try:
-                from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+                from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
                 BitacoraController.registrar_evento(
                     db=db,
                     accion="ELIMINAR_TEMPORADA",
@@ -518,7 +518,7 @@ class ColeccionService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR_COLECCION",
@@ -570,7 +570,7 @@ class ColeccionService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ACTUALIZAR_COLECCION",
@@ -598,7 +598,7 @@ class ColeccionService:
 
         # Auditoría en Bitácora (CU20)
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO_COLECCION",
@@ -626,7 +626,7 @@ class ColeccionService:
 
             # Auditoría en Bitácora (CU20)
             try:
-                from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+                from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
                 BitacoraController.registrar_evento(
                     db=db,
                     accion="ELIMINAR_COLECCION",

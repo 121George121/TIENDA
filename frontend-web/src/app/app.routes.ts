@@ -84,7 +84,7 @@ import { VencimientoReservaViewComponent } from './views/cu24_gestionar_cancelac
 import { DevolucionListComponent } from './views/cu25_gestionar_cambios_devoluciones/devolucion-list/devolucion-list.component';
 
 // CU26: Bitácora y Auditoría del Sistema
-import { BitacoraListComponent } from './views/cu20_gestionar_bitacora/bitacora/bitacora-list/bitacora-list.component';
+import { BitacoraListComponent } from './views/cu26_gestionar_bitacora/bitacora-list/bitacora-list.component';
 
 // CU27: Dashboard Ejecutivo
 import { DashboardEjecutivoComponent } from './views/cu27_dashboard_ejecutivo/dashboard-ejecutivo/dashboard-ejecutivo.component';

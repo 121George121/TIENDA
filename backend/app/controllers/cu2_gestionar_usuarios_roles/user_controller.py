@@ -177,7 +177,7 @@ class UsuarioController:
 
         # 5. Registro de auditoría en Bitácora
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CREAR",
@@ -240,7 +240,7 @@ class UsuarioController:
 
         # Auditoría
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="MODIFICAR",
@@ -284,7 +284,7 @@ class UsuarioController:
         db.refresh(usuario)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ESTADO",
@@ -320,7 +320,7 @@ class UsuarioController:
         db.refresh(usuario)
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="CAMBIO_ROL",
@@ -399,7 +399,7 @@ class UsuarioController:
         db.commit()
 
         try:
-            from app.controllers.cu20_gestionar_bitacora.bitacora_controller import BitacoraController
+            from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
                 accion="ELIMINAR",
