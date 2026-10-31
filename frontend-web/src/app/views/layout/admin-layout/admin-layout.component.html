@@ -107,7 +107,43 @@
         <span matListItemTitle>Histórico de Ventas</span>
       </a>
 
+      <a mat-list-item routerLink="/admin/devoluciones" routerLinkActive="active-link" id="nav-devoluciones">
+        <mat-icon matListItemIcon>swap_horiz</mat-icon>
+        <span matListItemTitle>Cambios y Devoluciones (CU25)</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/vencimiento-reservas" routerLinkActive="active-link" id="nav-vencimientos">
+        <mat-icon matListItemIcon>timer_off</mat-icon>
+        <span matListItemTitle>Vencimiento Reservas (CU24)</span>
+      </a>
     </mat-nav-list>
+
+    <mat-divider></mat-divider>
+
+    <!-- Módulo IA & Sync Engine -->
+    <div class="nav-section-title">INTELIGENCIA ARTIFICIAL & CONTINGENCIA</div>
+    <mat-nav-list class="nav-list">
+      <a mat-list-item routerLink="/admin/reportes-ia" routerLinkActive="active-link" id="nav-reportes-ia">
+        <mat-icon matListItemIcon>auto_awesome</mat-icon>
+        <span matListItemTitle>Reportes con IA (CU20)</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/suscripciones-tenants" routerLinkActive="active-link" id="nav-suscripciones">
+        <mat-icon matListItemIcon>domain</mat-icon>
+        <span matListItemTitle>Planes SaaS & Tenants (CU21)</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/cobros-offline" routerLinkActive="active-link" id="nav-cobros-offline">
+        <mat-icon matListItemIcon>payments</mat-icon>
+        <span matListItemTitle>Cobros Offline (CU22)</span>
+      </a>
+
+      <a mat-list-item routerLink="/admin/sincronizacion-offline" routerLinkActive="active-link" id="nav-sync-offline">
+        <mat-icon matListItemIcon>sync</mat-icon>
+        <span matListItemTitle>Sincronización Offline (CU23)</span>
+      </a>
+    </mat-nav-list>
+
 
 
     <div class="sidenav-footer">

@@ -65,12 +65,33 @@ import { RecomendacionesViewComponent } from './views/cu18_gestionar_recomendaci
 // CU19: Gestionar Notificaciones
 import { NotificacionesViewComponent } from './views/cu19_gestionar_notificaciones/notificaciones/notificaciones-view.component';
 
-// CU20: Bitácora y Auditoría del Sistema
+// CU20: Generar Reportes Generativos con IA
+import { ReporteGenerativoComponent } from './views/cu20_generar_reportes_generativos_ia/reporte-generativo/reporte-generativo.component';
+
+// CU21: Administrar Planes de Suscripción y Tenants
+import { SuscripcionTenantListComponent } from './views/cu21_administrar_planes_suscripcion_tenants/suscripcion-tenant-list/suscripcion-tenant-list.component';
+
+// CU22: Registrar Cobros de Contado Offline
+import { CobroOfflineListComponent } from './views/cu22_registrar_cobros_contado_offline/cobro-offline-list/cobro-offline-list.component';
+
+// CU23: Sincronizar Operaciones Offline y Resolver Conflictos
+import { SincronizacionOfflineViewComponent } from './views/cu23_sincronizar_operaciones_offline/sincronizacion-offline-view/sincronizacion-offline-view.component';
+
+// CU24: Gestionar Cancelación y Vencimiento de Reservas
+import { VencimientoReservaViewComponent } from './views/cu24_gestionar_cancelacion_vencimiento_reservas/vencimiento-reserva-view/vencimiento-reserva-view.component';
+
+// CU25: Gestionar Cambios y Devoluciones de Prendas
+import { DevolucionListComponent } from './views/cu25_gestionar_cambios_devoluciones/devolucion-list/devolucion-list.component';
+
+// CU26: Bitácora y Auditoría del Sistema
 import { BitacoraListComponent } from './views/cu20_gestionar_bitacora/bitacora/bitacora-list/bitacora-list.component';
 
+// CU27: Dashboard Ejecutivo
+import { DashboardEjecutivoComponent } from './views/cu27_dashboard_ejecutivo/dashboard-ejecutivo/dashboard-ejecutivo.component';
 
 import { adminGuard } from './core/guards/admin.guard';
 import { authGuard } from './core/guards/auth.guard';
+
 
 export const routes: Routes = [
   // CU1: Autenticación
@@ -81,6 +102,7 @@ export const routes: Routes = [
 
   // Dashboard de Reportes y KPIs (Exclusivo Administrador)
   { path: 'dashboard', component: DashboardComponent, canActivate: [adminGuard] },
+  { path: 'reportes-ia', redirectTo: 'admin/reportes-ia', pathMatch: 'full' },
   { path: 'atencion-reservas', redirectTo: 'admin/reservas', pathMatch: 'full' },
 
   // Tienda y Portal del Cliente (Layout Omnicanal Boutique)
@@ -145,6 +167,20 @@ export const routes: Routes = [
       { path: 'recomendaciones', component: RecomendacionesViewComponent },
       // CU19: Gestión de Notificaciones
       { path: 'notificaciones', component: NotificacionesViewComponent },
+      // CU20: Generar Reportes Generativos con IA
+      { path: 'reportes-ia', component: ReporteGenerativoComponent },
+      // CU21: Planes de Suscripción y Tenants
+      { path: 'suscripciones-tenants', component: SuscripcionTenantListComponent },
+      // CU22: Cobros Contado Offline
+      { path: 'cobros-offline', component: CobroOfflineListComponent },
+      // CU23: Sincronización Offline
+      { path: 'sincronizacion-offline', component: SincronizacionOfflineViewComponent },
+      // CU24: Vencimiento de Reservas
+      { path: 'vencimiento-reservas', component: VencimientoReservaViewComponent },
+      // CU25: Cambios y Devoluciones
+      { path: 'devoluciones', component: DevolucionListComponent },
+      // CU27: Dashboard Ejecutivo
+      { path: 'dashboard-ejecutivo', component: DashboardEjecutivoComponent },
       { path: '', redirectTo: 'users', pathMatch: 'full' }
     ]
   },

@@ -1,0 +1,241 @@
+<div class="reportes-ia-container">
+  <!-- Encabezado Senior de la Suite Analítica -->
+  <header class="ia-header">
+    <div class="header-content">
+      <div class="badge-ia">
+        <span class="sparkle">✨</span> Gemini 2.0 Flash BI Engine
+      </div>
+      <h1 class="title">Generador de Reportes Generativos con IA</h1>
+      <p class="subtitle">
+        Consulta el rendimiento de ventas, stock crítico, sucursales y finanzas utilizando procesamiento de lenguaje natural y modelos generativos avanzados.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-history" (click)="ctrl.cargarHistorial()">
+        <i class="icon">🕒</i> Historial ({{ ctrl.historial().length }})
+      </button>
+    </div>
+  </header>
+
+  <!-- Barra de Consulta en Lenguaje Natural -->
+  <section class="prompt-section">
+    <div class="prompt-bar-wrapper">
+      <div class="input-icon">💡</div>
+      <input
+        type="text"
+        class="prompt-input"
+        placeholder="Ej: ¿Cuáles son las poleras más vendidas este mes y qué sucursal tuvo mayores ingresos?"
+        [(ngModel)]="promptInput"
+        (keyup.enter)="enviarConsulta()"
+        [disabled]="ctrl.cargando()"
+      />
+      <button
+        class="btn-generate"
+        (click)="enviarConsulta()"
+        [disabled]="ctrl.cargando() || !promptInput.trim()"
+      >
+        <span *ngIf="!ctrl.cargando()">Analizar con IA ⚡</span>
+        <span *ngIf="ctrl.cargando()" class="spinner-inline">Sintetizando métricas...</span>
+      </button>
+    </div>
+
+    <!-- Chips de Consultas Sugeridas -->
+    <div class="chips-container" *ngIf="ctrl.sugerencias().length > 0">
+      <span class="chips-label">Consultas rápidas:</span>
+      <button
+        *ngFor="let sug of ctrl.sugerencias()"
+        class="chip-btn"
+        (click)="aplicarSugerencia(sug.prompt)"
+      >
+        <span class="chip-icon">{{ sug.icono }}</span>
+        <span>{{ sug.titulo }}</span>
+      </button>
+    </div>
+
+    <!-- Filtros de Alcance -->
+    <div class="filters-row">
+      <span class="filter-label">Alcance territorial:</span>
+      <button
+        class="filter-pill"
+        [class.active]="ctrl.filtroActual() === 'General'"
+        (click)="cambiarFiltro('General')"
+      >
+        Consolidado Empresa
+      </button>
+      <button
+        class="filter-pill"
+        [class.active]="ctrl.filtroActual() === 'Sucursal Equipetrol'"
+        (click)="cambiarFiltro('Sucursal Equipetrol')"
+      >
+        Boutique Central
+      </button>
+      <button
+        class="filter-pill"
+        [class.active]="ctrl.filtroActual() === 'Tienda Online'"
+        (click)="cambiarFiltro('Tienda Online')"
+      >
+        Canal Digital
+      </button>
+    </div>
+
+    <!-- Mensaje de Error si aplica -->
+    <div class="alert-error" *ngIf="ctrl.errorMensaje()">
+      <span>⚠️ {{ ctrl.errorMensaje() }}</span>
+    </div>
+  </section>
+
+  <!-- Estado de Carga con Animación IA -->
+  <div class="loading-state" *ngIf="ctrl.cargando()">
+    <div class="ai-loader">
+      <div class="loader-circle"></div>
+      <div class="loader-pulse"></div>
+    </div>
+    <h3>Generando análisis multidimensional...</h3>
+    <p>Conectando con Google Gemini, cruzando inventarios de sucursales y estructurando KPIs.</p>
+  </div>
+
+  <!-- Vista del Reporte Generado -->
+  <main class="report-content" *ngIf="ctrl.reporteActual() && !ctrl.cargando()">
+    <!-- Barra de Metadatos y Acciones de Exportación -->
+    <div class="report-toolbar">
+      <div class="toolbar-left">
+        <span class="tag-model">🤖 {{ ctrl.reporteActual()?.modelo_usado || 'Gemini 2.0 Flash' }}</span>
+        <span class="tag-date">📅 {{ ctrl.reporteActual()?.fecha_generacion | date:'medium' }}</span>
+      </div>
+
+      <div class="toolbar-actions">
+        <button
+          class="btn-favorite"
+          [class.favorited]="ctrl.reporteActual()?.es_favorito"
+          (click)="ctrl.alternarFavorito()"
+        >
+          {{ ctrl.reporteActual()?.es_favorito ? '⭐ Favorito' : '☆ Guardar Favorito' }}
+        </button>
+        <button class="btn-export-csv" (click)="ctrl.exportarCSV()">
+          📊 Exportar Excel/CSV
+        </button>
+        <button class="btn-export-pdf" (click)="ctrl.imprimirPDF()">
+          📄 Imprimir / PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Título y Resumen Ejecutivo -->
+    <div class="card-executive-summary">
+      <h2 class="report-title">{{ ctrl.reporteActual()?.titulo }}</h2>
+      <div class="summary-box">
+        <div class="summary-icon">📝</div>
+        <p class="summary-text">{{ ctrl.reporteActual()?.resumen_ejecutivo }}</p>
+      </div>
+    </div>
+
+    <!-- Cuadrícula de KPIs Ejecutivos -->
+    <div class="kpis-grid" *ngIf="ctrl.reporteActual()?.kpis?.length">
+      <div
+        *ngFor="let kpi of ctrl.reporteActual()?.kpis"
+        class="kpi-card"
+        [ngClass]="'kpi-' + kpi.tipo"
+      >
+        <div class="kpi-header">
+          <span class="kpi-title">{{ kpi.etiqueta }}</span>
+          <span class="kpi-trend">{{ kpi.variacion }}</span>
+        </div>
+        <div class="kpi-value">{{ kpi.valor }}</div>
+      </div>
+    </div>
+
+    <!-- Sección de Gráfico Sintetizado y Datos -->
+    <div class="analytics-split">
+      <!-- Visualizador de Gráfico -->
+      <div class="card-chart">
+        <div class="card-head">
+          <h3>Distribución Visual ({{ ctrl.reporteActual()?.tipo_grafico_sugerido }})</h3>
+          <span class="chart-type-badge">{{ ctrl.reporteActual()?.tipo_grafico_sugerido }}</span>
+        </div>
+
+        <div class="chart-visual-bars" *ngIf="ctrl.reporteActual()?.grafico">
+          <div
+            *ngFor="let label of ctrl.reporteActual()?.grafico?.labels; let i = index"
+            class="bar-item"
+          >
+            <div class="bar-info">
+              <span class="bar-name">{{ label }}</span>
+              <span class="bar-val">
+                {{ ctrl.reporteActual()?.grafico?.datasets?.[0]?.data?.[i] || 0 }}
+              </span>
+            </div>
+            <div class="bar-track">
+              <div
+                class="bar-fill"
+                [style.width.%]="((ctrl.reporteActual()?.grafico?.datasets?.[0]?.data?.[i] || 1) / 100) * 100"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recomendaciones Estratégicas del Asistente -->
+      <div class="card-recommendations">
+        <div class="card-head">
+          <h3>🎯 Recomendaciones Tácticas IA</h3>
+        </div>
+        <ul class="rec-list">
+          <li *ngFor="let rec of ctrl.reporteActual()?.recomendaciones_estrategicas">
+            <span class="check-bullet">✔</span>
+            <span class="rec-text">{{ rec }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tabla Detallada de Registros -->
+    <div class="card-table" *ngIf="ctrl.reporteActual()?.tabla_filas?.length">
+      <div class="card-head">
+        <h3>Matriz Detallada de Transacciones</h3>
+        <span class="table-count">{{ ctrl.reporteActual()?.tabla_filas?.length }} filas analizadas</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th *ngFor="let col of ctrl.reporteActual()?.tabla_columnas">{{ col }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of ctrl.reporteActual()?.tabla_filas">
+              <td *ngFor="let cell of row">{{ cell }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Historial de Consultas Recientes (Sidebar / Drawer Inferior) -->
+  <aside class="history-section" *ngIf="ctrl.historial().length > 0">
+    <div class="section-title-row">
+      <h3>Historial de Reportes Generados</h3>
+      <span class="badge-total">{{ ctrl.historial().length }} consultas</span>
+    </div>
+
+    <div class="history-grid">
+      <div
+        *ngFor="let item of ctrl.historial()"
+        class="history-card"
+        (click)="ctrl.seleccionarDeHistorial(item.id)"
+      >
+        <div class="h-card-top">
+          <span class="h-title">{{ item.titulo }}</span>
+          <span class="h-fav" *ngIf="item.es_favorito">⭐</span>
+        </div>
+        <p class="h-prompt">"{{ item.prompt }}"</p>
+        <div class="h-footer">
+          <span class="h-date">{{ item.fecha }}</span>
+          <span class="h-graph-tag">{{ item.tipo_grafico }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>

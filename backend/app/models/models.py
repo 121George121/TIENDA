@@ -76,9 +76,48 @@ from app.models.cu19_gestionar_notificaciones.notificacion_model import (
     Notificacion, NotificacionModel, notificacion
 )
 
-# CU20 - Bitácora y Auditoría
-from app.models.cu20_gestionar_bitacora.bitacora_model import (
+# CU20 - Reportes Generativos con IA
+from app.models.cu20_generar_reportes_generativos_ia.reporte_generativo_model import (
+    ReporteGenerativoIA, ReporteGenerativoModel, reporte_generativo
+)
+
+# CU21 - Planes de Suscripción y Tenants
+from app.models.cu21_administrar_planes_suscripcion_tenants.suscripcion_tenant_model import (
+    PlanSuscripcion, PlanSuscripcionModel,
+    Tenant, TenantModel,
+    TenantConfiguracion, TenantConfiguracionModel,
+    TenantSuscripcion, TenantSuscripcionModel
+)
+
+# CU22 - Cobros Offline
+from app.models.cu22_registrar_cobros_contado_offline.cobro_offline_model import (
+    CobroOffline, CobroOfflineModel, cobro_offline
+)
+
+# CU23 - Sincronización Offline
+from app.models.cu23_sincronizar_operaciones_offline.sincronizacion_offline_model import (
+    OperacionOfflineSync, OperacionOfflineSyncModel, sincronizacion_offline
+)
+
+# CU24 - Cancelación y Vencimiento de Reservas
+from app.models.cu24_gestionar_cancelacion_vencimiento_reservas.vencimiento_reserva_model import (
+    Reserva, ReservaModel, ReservaDetalle, ReservaDetalleModel
+)
+
+# CU25 - Cambios y Devoluciones
+from app.models.cu25_gestionar_cambios_devoluciones.devolucion_model import (
+    Devolucion, DevolucionModel, DetalleDevolucion, DetalleDevolucionModel,
+    devolucion, detalle_devolucion
+)
+
+# CU26 - Bitácora y Auditoría
+from app.models.cu26_gestionar_bitacora.bitacora_model import (
     Bitacora, BitacoraModel, bitacora
+)
+
+# CU27 - Dashboard Ejecutivo
+from app.models.cu27_dashboard_ejecutivo.dashboard_model import (
+    MetricaDashboard, DashboardMetricaModel, dashboard_metrica
 )
 
 # SaaS Multi-Tenant & Diagrama UML
@@ -121,6 +160,12 @@ _MODEL_MAP = {
     "ReservaDetalleModel": ReservaDetalle,
     "NotificacionModel": Notificacion,
     "BitacoraModel": Bitacora,
+    "ReporteGenerativoModel": ReporteGenerativoIA,
+    "CobroOfflineModel": CobroOffline,
+    "OperacionOfflineSyncModel": OperacionOfflineSync,
+    "DevolucionModel": Devolucion,
+    "DetalleDevolucionModel": DetalleDevolucion,
+    "DashboardMetricaModel": MetricaDashboard,
     "PlanSuscripcionModel": PlanSuscripcion,
     "TenantModel": Tenant,
     "TenantConfiguracionModel": TenantConfiguracion,
@@ -134,3 +179,4 @@ _MODEL_MAP = {
 if hasattr(Base, "registry") and hasattr(Base.registry, "_class_registry"):
     for alias_name, model_cls in _MODEL_MAP.items():
         Base.registry._class_registry[alias_name] = model_cls
+
