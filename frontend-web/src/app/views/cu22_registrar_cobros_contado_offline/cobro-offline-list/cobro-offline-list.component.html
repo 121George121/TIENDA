@@ -1,0 +1,534 @@
+<div class="offline-container">
+
+  <!-- Header Superior -->
+  <header class="view-header">
+    <div class="header-title-group">
+      <div class="header-icon-box" [class.icon-offline]="ctrl.enModoOffline()">
+        <mat-icon>{{ ctrl.enModoOffline() ? 'wifi_off' : 'point_of_sale' }}</mat-icon>
+      </div>
+      <div>
+        <div class="badge-module">CASO DE USO 22 (CU22)</div>
+        <h1 class="page-title">Cobros de Contado Offline (Contingencia POS)</h1>
+        <p class="page-subtitle">Emisión de recibos provisionales y resguardo en almacenamiento local ante cortes de conectividad</p>
+      </div>
+    </div>
+
+    <!-- Acciones y Simulador -->
+    <div class="header-actions">
+      <!-- Simulador de Desconexión de Red -->
+      <button 
+        class="btn btn-simulator" 
+        [class.btn-simulator-active]="ctrl.modoOfflineForzado()"
+        (click)="ctrl.toggleSimuladorOffline()"
+        title="Simular pérdida de internet para pruebas de contingencia">
+        <mat-icon>{{ ctrl.modoOfflineForzado() ? 'signal_wifi_off' : 'network_check' }}</mat-icon>
+        <span>{{ ctrl.modoOfflineForzado() ? 'Modo Offline: ACTIVADO' : 'Simular Pérdida de Red' }}</span>
+      </button>
+
+      <!-- Sincronización Manual -->
+      <button 
+        class="btn btn-secondary" 
+        (click)="ctrl.sincronizarLoteLocal()" 
+        [disabled]="ctrl.sincronizando() || ctrl.enModoOffline()"
+        title="Subir cobros guardados localmente hacia el servidor central">
+        <mat-icon [class.spin-icon]="ctrl.sincronizando()">sync</mat-icon>
+        <span>{{ ctrl.sincronizando() ? 'Sincronizando...' : 'Sincronizar a Servidor (CU23)' }}</span>
+      </button>
+
+      <!-- Nuevo Cobro de Contingencia -->
+      <button class="btn btn-primary" (click)="abrirModalNuevoCobro()" id="btn-nuevo-cobro-offline">
+        <mat-icon>add_card</mat-icon>
+        <span>+ Cobro de Contado Offline</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Banner de Estado de Conexión -->
+  <div class="connectivity-banner" [class.banner-offline]="ctrl.enModoOffline()" [class.banner-online]="!ctrl.enModoOffline()">
+    <div class="connectivity-status">
+      <span class="status-pulse" [class.pulse-offline]="ctrl.enModoOffline()"></span>
+      <div class="connectivity-text">
+        <strong>{{ ctrl.enModoOffline() ? 'MODO CONTINGENCIA OFFLINE ACTIVO' : 'SISTEMA EN LÍNEA CON SERVIDOR CENTRAL' }}</strong>
+        <span>
+          {{ ctrl.enModoOffline() 
+              ? 'Los cobros se firman con folio provisional y se resguardan en este terminal localmente (LocalStorage / IndexedDB).' 
+              : 'Conexión estable. Las operaciones se validan y auditan inmediatamente en la base de datos central.' }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas del Sistema -->
+  <div *ngIf="ctrl.mensajeExito()" class="alert-banner alert-success">
+    <mat-icon>check_circle</mat-icon>
+    <span>{{ ctrl.mensajeExito() }}</span>
+  </div>
+
+  <div *ngIf="ctrl.error()" class="alert-banner alert-warning">
+    <mat-icon>info</mat-icon>
+    <span>{{ ctrl.error() }}</span>
+    <button class="btn-close-alert" (click)="ctrl.error.set(null)">✕</button>
+  </div>
+
+  <!-- Tarjetas KPI de Caja y Contingencia -->
+  <section class="kpi-grid">
+    <div class="kpi-card card-total">
+      <div class="kpi-icon-box">
+        <mat-icon>receipt_long</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Recibos Emitidos</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value">{{ ctrl.cobros().length }}</span>
+          <span class="kpi-subtext">operaciones</span>
+        </div>
+        <span class="kpi-hint">Modo mostrador</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-monto">
+      <div class="kpi-icon-box">
+        <mat-icon>payments</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Efectivo Recaudado</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value">Bs. {{ calcularTotalMonto() | number:'1.2-2' }}</span>
+        </div>
+        <span class="kpi-subtext">En caja mostrador</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-pendientes">
+      <div class="kpi-icon-box">
+        <mat-icon>sync_problem</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Pendientes de Sync</span>
+        <div class="kpi-value-row">
+          <span class="kpi-value text-amber">{{ calcularPendientesCount() }}</span>
+          <span class="kpi-subtext">por consolidar</span>
+        </div>
+        <span class="kpi-hint text-amber">Listos para CU23</span>
+      </div>
+    </div>
+
+    <div class="kpi-card card-audit">
+      <div class="kpi-icon-box">
+        <mat-icon>verified</mat-icon>
+      </div>
+      <div class="kpi-content">
+        <span class="kpi-label">Seguridad & Auditoría</span>
+        <div class="kpi-value-row">
+          <span class="badge-status badge-active">CU26 AUDITADO</span>
+        </div>
+        <span class="kpi-subtext">Hash SHA-256 e idempotencia</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Barra de Filtros y Búsqueda -->
+  <div class="filter-bar">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input 
+        type="text" 
+        placeholder="Buscar por folio provisional, cliente, NIT o sucursal..." 
+        [value]="ctrl.filtroTexto()"
+        (input)="actualizarFiltro($event)" />
+      <button *ngIf="ctrl.filtroTexto()" class="btn-clear" (click)="ctrl.filtroTexto.set('')">✕</button>
+    </div>
+
+    <div class="filter-actions">
+      <label class="custom-checkbox">
+        <input 
+          type="checkbox" 
+          [checked]="ctrl.filtroSoloPendientes()" 
+          (change)="ctrl.filtroSoloPendientes.set(!ctrl.filtroSoloPendientes())" />
+        <span>Ver solo pendientes de sincronización</span>
+      </label>
+
+      <span class="filter-counter">
+        Mostrando <strong>{{ ctrl.cobrosFiltrados().length }}</strong> cobros
+      </span>
+    </div>
+  </div>
+
+  <!-- Spinner de Carga -->
+  <div *ngIf="ctrl.cargando()" class="loading-state">
+    <mat-icon class="spin-icon">autorenew</mat-icon>
+    <p>Cargando registros de cobros offline...</p>
+  </div>
+
+  <!-- Tabla de Cobros Offline -->
+  <div *ngIf="!ctrl.cargando()" class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>RECIBO PROVISIONAL</th>
+          <th>FECHA / HORA</th>
+          <th>SUCURSAL & CAJERO</th>
+          <th>CLIENTE & NIT</th>
+          <th>MONTO TOTAL</th>
+          <th>ESTADO SYNC</th>
+          <th class="text-right">ACCIONES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of ctrl.cobrosFiltrados()">
+          <!-- Folio Provisional -->
+          <td>
+            <div class="receipt-folio-box">
+              <span class="folio-text">{{ c.nro_recibo_provisional }}</span>
+              <span class="local-tag" *ngIf="c.almacenado_local" title="Almacenado exclusivamente en el navegador local">
+                <mat-icon class="mini-icon">save</mat-icon> Local
+              </span>
+            </div>
+          </td>
+
+          <!-- Fecha y Hora -->
+          <td>
+            <span class="date-text">{{ c.fecha_cobro | date:'dd/MM/yyyy HH:mm' }}</span>
+          </td>
+
+          <!-- Sucursal & Cajero -->
+          <td>
+            <div class="meta-cell">
+              <span class="cell-primary">{{ c.sucursal_nombre || 'Boutique Central' }}</span>
+              <span class="cell-sub">
+                <mat-icon class="mini-icon">person</mat-icon> {{ c.cajero_nombre || 'Cajero #1' }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Cliente -->
+          <td>
+            <div class="meta-cell">
+              <span class="cell-primary">{{ c.cliente_nombre || 'Cliente Mostrador' }}</span>
+              <span class="cell-sub" *ngIf="c.cliente_nit && c.cliente_nit !== '0'">NIT: {{ c.cliente_nit }}</span>
+            </div>
+          </td>
+
+          <!-- Monto y Efectivo -->
+          <td>
+            <div class="monto-box">
+              <span class="monto-valor">Bs. {{ c.monto | number:'1.2-2' }}</span>
+              <span class="monto-detalle" *ngIf="c.efectivo_recibido">
+                Pagó: Bs. {{ c.efectivo_recibido }} | Cambio: Bs. {{ c.cambio || 0 }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Estado de Sincronización -->
+          <td>
+            <span 
+              class="badge-status" 
+              [class.badge-active]="c.sincronizado" 
+              [class.badge-pending]="!c.sincronizado">
+              {{ c.sincronizado ? 'SINCRONIZADO' : 'PENDIENTE SYNC' }}
+            </span>
+          </td>
+
+          <!-- Acciones -->
+          <td class="text-right">
+            <div class="action-buttons">
+              <button 
+                class="btn-icon btn-ticket" 
+                title="Ver e Imprimir Ticket Térmico de Contingencia"
+                (click)="ctrl.verTicket(c)">
+                <mat-icon>receipt</mat-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+
+        <tr *ngIf="ctrl.cobrosFiltrados().length === 0">
+          <td colspan="7" class="empty-row">
+            <mat-icon>receipt_long</mat-icon>
+            <p>No se registran cobros de contingencia con los filtros aplicados.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: REGISTRAR COBRO DE CONTADO OFFLINE                               -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalNuevoCobro()">
+    <div class="modal-card modal-wide">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>point_of_sale</mat-icon>
+          <h3>Registrar Cobro de Contado (Contingencia Offline)</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalNuevoCobro()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- Alerta de Contingencia -->
+        <div class="contingency-notice">
+          <mat-icon>warning_amber</mat-icon>
+          <div>
+            <strong>Régimen de Cobro en Contingencia:</strong>
+            <span> Se emitirá un recibo provisional con código de auditoría para el cliente. La transacción se sincronizará automáticamente al restablecerse la red.</span>
+          </div>
+        </div>
+
+        <div class="form-grid mt-3">
+          <!-- Sucursal -->
+          <div class="form-group">
+            <label>Sucursal de Venta *</label>
+            <select [(ngModel)]="cobroForm.sucursal_id">
+              <option [value]="1">Boutique Central Equipetrol (Sucursal #1)</option>
+              <option [value]="2">Boutique Mall Las Brisas (Sucursal #2)</option>
+              <option [value]="3">Boutique Ventura Mall (Sucursal #3)</option>
+            </select>
+          </div>
+
+          <!-- Folio Provisional -->
+          <div class="form-group">
+            <label>Folio Provisional de Seguridad *</label>
+            <input type="text" [(ngModel)]="cobroForm.nro_recibo_provisional" readonly class="input-readonly font-mono" />
+          </div>
+
+          <!-- Cliente Nombre -->
+          <div class="form-group">
+            <label>Nombre del Cliente</label>
+            <input type="text" [(ngModel)]="cobroForm.cliente_nombre" placeholder="Ej. Juan Pérez (o Cliente Mostrador)" />
+          </div>
+
+          <!-- Cliente NIT -->
+          <div class="form-group">
+            <label>NIT / CI del Cliente</label>
+            <input type="text" [(ngModel)]="cobroForm.cliente_nit" placeholder="Ej. 1029384019 o 0" />
+          </div>
+        </div>
+
+        <hr class="modal-divider" />
+
+        <!-- Desglose de Prendas Vendidas -->
+        <div class="items-section">
+          <div class="items-header">
+            <h4>Poleras / Prendas a Cobrar</h4>
+            <div class="add-item-box">
+              <select [(ngModel)]="itemSeleccionadoIdx">
+                <option *ngFor="let cat of catalogoPrendas; let i = index" [value]="i">
+                  {{ cat.nombre }} (Talla: {{ cat.talla }}, Color: {{ cat.color }}) — Bs. {{ cat.precio }}
+                </option>
+              </select>
+              <button class="btn btn-secondary btn-sm" (click)="agregarPrendaSeleccionada()">
+                <mat-icon>add</mat-icon> Agregar
+              </button>
+            </div>
+          </div>
+
+          <!-- Lista de items seleccionados -->
+          <table class="items-table" *ngIf="cobroForm.items && cobroForm.items.length > 0">
+            <thead>
+              <tr>
+                <th>PRENDA / MODELO</th>
+                <th>TALLA / COLOR</th>
+                <th>CANT.</th>
+                <th>P. UNIT (BS.)</th>
+                <th>SUBTOTAL</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let it of cobroForm.items; let idx = index">
+                <td class="font-bold">{{ it.producto_nombre }}</td>
+                <td><span class="chip-sm">{{ it.talla }}</span> {{ it.color }}</td>
+                <td>
+                  <input 
+                    type="number" 
+                    [(ngModel)]="it.cantidad" 
+                    min="1" 
+                    (input)="recalcularTotales()" 
+                    class="input-qty" />
+                </td>
+                <td>Bs. {{ it.precio_unitario }}</td>
+                <td class="font-bold text-emerald">Bs. {{ (it.cantidad * it.precio_unitario) | number:'1.2-2' }}</td>
+                <td>
+                  <button class="btn-remove" (click)="eliminarItem(idx)" title="Quitar item">✕</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Cálculo de Caja y Cambio -->
+        <div class="cash-calc-panel">
+          <div class="cash-row total-highlight">
+            <span>TOTAL A COBRAR EN EFECTIVO:</span>
+            <strong>Bs. {{ cobroForm.monto | number:'1.2-2' }}</strong>
+          </div>
+
+          <div class="cash-inputs-grid">
+            <div class="form-group">
+              <label>Efectivo Recibido en Mano (Bs.) *</label>
+              <input 
+                type="number" 
+                [(ngModel)]="cobroForm.efectivo_recibido" 
+                (input)="calcularCambio()" 
+                min="0" 
+                step="5" 
+                placeholder="0.00" 
+                class="input-lg text-emerald" />
+            </div>
+
+            <div class="form-group">
+              <label>Cambio a Devolver al Cliente</label>
+              <div class="change-display" [class.change-negative]="(cobroForm.cambio || 0) < 0">
+                <span>Bs. {{ (cobroForm.cambio || 0) | number:'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalNuevoCobro()">Cancelar</button>
+        <button 
+          class="btn btn-primary" 
+          [disabled]="ctrl.guardando() || cobroForm.monto <= 0 || (cobroForm.efectivo_recibido || 0) < cobroForm.monto"
+          (click)="confirmarCobroOffline()">
+          <mat-icon *ngIf="!ctrl.guardando()">print</mat-icon>
+          <mat-icon *ngIf="ctrl.guardando()" class="spin-icon">autorenew</mat-icon>
+          <span>{{ ctrl.guardando() ? 'Emitiendo Recibo...' : 'Emitir Recibo Provisional de Contingencia' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: TICKET TÉRMICO DE CONTINGENCIA (80MM TICKET)                     -->
+  <!-- ========================================================================= -->
+  <div class="modal-backdrop" *ngIf="ctrl.modalTicket()">
+    <div class="modal-card modal-ticket-wrapper">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <mat-icon>receipt</mat-icon>
+          <h3>Recibo Térmico de Contingencia Offline</h3>
+        </div>
+        <button class="modal-btn-close" (click)="ctrl.cerrarModalTicket()">✕</button>
+      </div>
+
+      <div class="modal-body ticket-scroll" *ngIf="ctrl.reciboSeleccionado() as r">
+        
+        <!-- Recibo Formato POS 80mm -->
+        <div class="thermal-ticket" id="thermal-ticket-print">
+          <div class="ticket-header">
+            <h2 class="store-name">SHOPYN GOLDEN STORE</h2>
+            <p class="store-sub">Boutique & Retail de Poleras Exclusivas</p>
+            <p class="store-nit">NIT: 1029384029 | Casa Matriz: Santa Cruz</p>
+            <div class="contingency-tag">*** RÉGIMEN DE CONTINGENCIA OFFLINE ***</div>
+            <p class="receipt-type">DOCUMENTO PROVISIONAL DE ENTREGA</p>
+          </div>
+
+          <div class="ticket-meta">
+            <div class="meta-row">
+              <span>FOLIO PROVISIONAL:</span>
+              <strong>{{ r.nro_recibo_provisional }}</strong>
+            </div>
+            <div class="meta-row">
+              <span>FECHA / HORA:</span>
+              <span>{{ r.fecha_cobro | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+            </div>
+            <div class="meta-row">
+              <span>SUCURSAL:</span>
+              <span>{{ r.sucursal_nombre || 'Boutique Central Equipetrol' }}</span>
+            </div>
+            <div class="meta-row">
+              <span>CAJERO:</span>
+              <span>{{ r.cajero_nombre || 'Admin Sistema' }}</span>
+            </div>
+            <div class="ticket-dashed-line"></div>
+            <div class="meta-row">
+              <span>CLIENTE:</span>
+              <span>{{ r.cliente_nombre || 'Cliente Mostrador' }}</span>
+            </div>
+            <div class="meta-row">
+              <span>NIT / CI:</span>
+              <span>{{ r.cliente_nit || '0' }}</span>
+            </div>
+          </div>
+
+          <div class="ticket-dashed-line"></div>
+
+          <!-- Items del Ticket -->
+          <div class="ticket-items">
+            <div class="ticket-items-head">
+              <span class="th-desc">DESCRIPCIÓN</span>
+              <span class="th-qty">CANT</span>
+              <span class="th-total">TOTAL</span>
+            </div>
+            
+            <div class="ticket-item-row" *ngFor="let it of r.items">
+              <div class="item-desc-col">
+                <span class="item-name">{{ it.producto_nombre }}</span>
+                <span class="item-sub">Talla: {{ it.talla }} | Color: {{ it.color }}</span>
+              </div>
+              <span class="item-qty-col">{{ it.cantidad }}</span>
+              <span class="item-total-col">Bs. {{ (it.cantidad * it.precio_unitario) | number:'1.2-2' }}</span>
+            </div>
+
+            <div class="ticket-item-row" *ngIf="!r.items || r.items.length === 0">
+              <div class="item-desc-col">
+                <span class="item-name">Venta Contado en Mostrador</span>
+              </div>
+              <span class="item-qty-col">1</span>
+              <span class="item-total-col">Bs. {{ r.monto | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <div class="ticket-dashed-line"></div>
+
+          <!-- Totales -->
+          <div class="ticket-totals">
+            <div class="total-row grand-total">
+              <span>TOTAL EFECTIVO:</span>
+              <span>Bs. {{ r.monto | number:'1.2-2' }}</span>
+            </div>
+            <div class="total-row" *ngIf="r.efectivo_recibido">
+              <span>EFECTIVO RECIBIDO:</span>
+              <span>Bs. {{ r.efectivo_recibido | number:'1.2-2' }}</span>
+            </div>
+            <div class="total-row" *ngIf="r.cambio">
+              <span>CAMBIO DEVUELTO:</span>
+              <span>Bs. {{ r.cambio | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <div class="ticket-dashed-line"></div>
+
+          <!-- Código Hash de Contingencia -->
+          <div class="ticket-hash-box">
+            <span class="hash-label">UUID DE AUDITORÍA OFFLINE:</span>
+            <span class="hash-code">{{ r.uuid_operacion }}</span>
+          </div>
+
+          <div class="ticket-footer">
+            <p class="legal-text">
+              "Comprobante temporal emitido bajo régimen de contingencia por desconexión de red.
+              Válido para la entrega inmediata de mercadería y canje por factura fiscal definitiva."
+            </p>
+            <p class="thank-you">¡GRACIAS POR SU COMPRA!</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="ctrl.cerrarModalTicket()">Cerrar</button>
+        <button class="btn btn-primary" (click)="ctrl.imprimirTicket()">
+          <mat-icon>print</mat-icon>
+          <span>Imprimir Ticket (80mm)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
