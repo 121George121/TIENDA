@@ -28,6 +28,8 @@ export interface Reserva {
   id: number;
   codigo_reserva: string;
   fecha_reserva: string;
+  fecha_expiracion?: string;
+  horas_restantes?: number;
   estado: 'PENDIENTE' | 'CONFIRMADA' | 'ENTREGADA' | 'CANCELADA' | 'EXPIRADA' | string;
   observaciones?: string;
   cliente_id?: number;

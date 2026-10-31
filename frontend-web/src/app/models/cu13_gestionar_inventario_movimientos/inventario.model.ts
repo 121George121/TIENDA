@@ -41,3 +41,24 @@ export interface MovimientoInventarioItem {
   stockresultante?: number;
   usuario_nombre?: string;
 }
+
+export interface TrasladoStockDTO {
+  sucursal_destino_id: number;
+  cantidad: number;
+  motivo?: string;
+  referencia?: string;
+}
+
+export interface TrasladoStockResponseDTO {
+  mensaje: string;
+  inventario_origen_id: number;
+  inventario_destino_id: number;
+  sucursal_origen_id: number;
+  sucursal_destino_id: number;
+  sucursal_origen_nombre?: string;
+  sucursal_destino_nombre?: string;
+  cantidad_trasladada: number;
+  stock_origen_restante: number;
+  stock_destino_actual: number;
+}
+

@@ -150,7 +150,11 @@
               <mat-icon *ngIf="res.estado === 'CONFIRMADA'">done</mat-icon>
               <mat-icon *ngIf="res.estado === 'ENTREGADA'">verified</mat-icon>
               <mat-icon *ngIf="res.estado === 'CANCELADA'">cancel</mat-icon>
+              <mat-icon *ngIf="res.estado === 'EXPIRADA'">timer_off</mat-icon>
               {{ res.estado }}
+            </span>
+            <span *ngIf="res.estado === 'PENDIENTE' && res.horas_restantes !== undefined && res.horas_restantes !== null" class="hours-badge">
+              ⏱️ {{ res.horas_restantes }}h restantes
             </span>
           </div>
         </div>

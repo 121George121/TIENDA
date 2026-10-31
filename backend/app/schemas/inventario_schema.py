@@ -102,6 +102,26 @@ class MovimientoInventarioResponse(BaseModel):
         from_attributes = True
 
 
+class TrasladoStockRequest(BaseModel):
+    sucursal_destino_id: int = Field(..., description="ID de la sucursal de destino dentro del mismo tenant")
+    cantidad: int = Field(..., ge=1, description="Cantidad de unidades a transferir")
+    motivo: Optional[str] = Field(None, max_length=200, description="Motivo del traslado inter-sucursal")
+    referencia: Optional[str] = Field(None, max_length=100, description="Nro de guía de remisión o traslado")
+
+
+class TrasladoStockResponse(BaseModel):
+    mensaje: str
+    inventario_origen_id: int
+    inventario_destino_id: int
+    sucursal_origen_id: int
+    sucursal_destino_id: int
+    sucursal_origen_nombre: Optional[str] = None
+    sucursal_destino_nombre: Optional[str] = None
+    cantidad_trasladada: int
+    stock_origen_restante: int
+    stock_destino_actual: int
+
+
 class InventarioResponse(BaseModel):
     id: int
     sucursal_id: int
@@ -119,6 +139,7 @@ class InventarioResponse(BaseModel):
     sku: Optional[str] = None
     stockfisico: int
     stockreservado: int
+    stockdisponible: Optional[int] = None
     stockminimo: int
     estado_stock: str  # 'NORMAL', 'BAJO_STOCK', 'AGOTADO'
     imagen_url: Optional[str] = None

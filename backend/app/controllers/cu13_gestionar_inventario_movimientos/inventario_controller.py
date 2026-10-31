@@ -3,284 +3,143 @@
 # Ubicación: backend/app/controllers/cu13_gestionar_inventario_movimientos/inventario_controller.py
 # ==============================================================================
 
-from datetime import datetime
-from decimal import Decimal
 from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from fastapi import HTTPException, status
 
-from app.models.models import (
-    UsuarioModel,
-    InventarioModel,
-    MovimientoInventarioModel,
-    SucursalModel,
-    ProductoModel,
-    ColorModel,
-    TallaModel,
-    VarianteProductoModel
+from app.models.models import UsuarioModel
+from app.schemas.inventario_schema import (
+    MovimientoInventarioCreate,
+    StockMinimoUpdate,
+    TrasladoStockRequest,
 )
-from app.schemas.inventario_schema import MovimientoInventarioCreate, StockMinimoUpdate
+from app.services.cu13_gestionar_inventario_movimientos.inventario_service import (
+    InventarioService,
+)
 
 
 class InventarioController:
+    """
+    Controlador MVC para el Caso de Uso CU13: Gestionar Inventario y Movimientos.
+    Orquesta las solicitudes de la vista API y delega la lógica de negocio al
+    InventarioService con soporte multi-tenant y trazabilidad en Bitácora.
+    """
 
-    @staticmethod
-    def _asegurar_variantes_e_inventario(db: Session):
-        """
-        Garantiza que todos los productos registrados tengan al menos una variante y fila en
-        la tabla inventario para cada sucursal activa, sin alterar la base de datos PostgreSQL.
-        """
-        sucursales = db.query(SucursalModel).filter(SucursalModel.activo == True).all()
-        if not sucursales:
-            return
+    @classmethod
+    def _asegurar_variantes_e_inventario(cls, db: Session, tenant_id: int = 1) -> None:
+        return InventarioService.asegurar_variantes_e_inventario(db, tenant_id=tenant_id)
 
-        productos = db.query(ProductoModel).filter(ProductoModel.activo == True).all()
-        color_default = db.query(ColorModel).first()
-        if not color_default:
-            color_default = ColorModel(nombre="Estándar", codigohex="#111827", activo=True)
-            db.add(color_default)
-            db.flush()
-
-        talla_default = db.query(TallaModel).first()
-        if not talla_default:
-            talla_default = TallaModel(nombre="Única (M)", grupoedad="Adultos", orden=1, activo=True)
-            db.add(talla_default)
-            db.flush()
-
-        for p in productos:
-            variante = db.query(VarianteProductoModel).filter(
-                VarianteProductoModel.productoid == p.id,
-                VarianteProductoModel.activo == True
-            ).first()
-
-            if not variante:
-                variante = VarianteProductoModel(
-                    productoid=p.id,
-                    colorid=color_default.id,
-                    tallaid=talla_default.id,
-                    sku=f"POL-{p.id}-{color_default.id}-{talla_default.id}",
-                    precioventa=p.preciobase,
-                    activo=True
-                )
-                db.add(variante)
-                db.flush()
-
-            # Asegurar inventario en cada sucursal activa
-            for suc in sucursales:
-                inv = db.query(InventarioModel).filter(
-                    InventarioModel.sucursalid == suc.id,
-                    InventarioModel.varianteid == variante.id
-                ).first()
-
-                if not inv:
-                    inv = InventarioModel(
-                        sucursalid=suc.id,
-                        varianteid=variante.id,
-                        stockfisico=20, # Stock inicial de cortesía
-                        stockreservado=0,
-                        stockminimo=5
-                    )
-                    db.add(inv)
-                    db.flush()
-
-        db.commit()
-
-    @staticmethod
+    @classmethod
     def listar_inventario(
+        cls,
         db: Session,
         sucursal_id: Optional[int] = None,
         search: Optional[str] = None,
         solo_bajo_stock: Optional[bool] = False,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        tenant_id: int = 1,
     ) -> List[Dict]:
-        InventarioController._asegurar_variantes_e_inventario(db)
+        return InventarioService.listar_inventario(
+            db=db,
+            sucursal_id=sucursal_id,
+            search=search,
+            solo_bajo_stock=solo_bajo_stock,
+            skip=skip,
+            limit=limit,
+            tenant_id=tenant_id,
+        )
 
-        query = db.query(InventarioModel).join(SucursalModel).join(VarianteProductoModel).join(ProductoModel)
+    @classmethod
+    def obtener_detalle_inventario(
+        cls,
+        db: Session,
+        inventario_id: int,
+        tenant_id: int = 1,
+    ) -> Dict:
+        return InventarioService.obtener_detalle_inventario(
+            db=db,
+            inventario_id=inventario_id,
+            tenant_id=tenant_id,
+        )
 
-        if sucursal_id:
-            query = query.filter(InventarioModel.sucursalid == sucursal_id)
-
-        if search:
-            patron = f"%{search}%"
-            query = query.filter(
-                or_(
-                    ProductoModel.nombre.ilike(patron),
-                    ProductoModel.marca.ilike(patron),
-                    VarianteProductoModel.sku.ilike(patron),
-                    SucursalModel.nombre.ilike(patron)
-                )
-            )
-
-        if solo_bajo_stock:
-            query = query.filter(InventarioModel.stockfisico <= InventarioModel.stockminimo)
-
-        items = query.order_by(InventarioModel.id.desc()).offset(skip).limit(limit).all()
-
-        resultado = []
-        for inv in items:
-            p = inv.variante.producto
-            color = inv.variante.color
-            talla = inv.variante.talla
-
-            color_nombre = color.nombre if color else None
-            color_hex = color.codigohex if color else None
-            talla_nombre = talla.nombre if talla else None
-
-            # Si el color es genérico o nulo, inferir del nombre del producto
-            if not color_nombre or color_nombre in ("Único", "Estándar", "--"):
-                p_lower = (p.nombre or "").lower()
-                if "beige" in p_lower:
-                    color_nombre = "Beige"
-                    color_hex = "#D4B996"
-                elif "blanc" in p_lower:
-                    color_nombre = "Blanco"
-                    color_hex = "#FFFFFF"
-                elif "roj" in p_lower:
-                    color_nombre = "Rojo"
-                    color_hex = "#DC2626"
-                elif "negr" in p_lower:
-                    color_nombre = "Negro"
-                    color_hex = "#1E293B"
-                elif "verd" in p_lower:
-                    color_nombre = "Verde"
-                    color_hex = "#059669"
-                elif "azul" in p_lower:
-                    color_nombre = "Azul"
-                    color_hex = "#2563EB"
-                elif "amarill" in p_lower:
-                    color_nombre = "Amarillo"
-                    color_hex = "#EAB308"
-                elif "gris" in p_lower:
-                    color_nombre = "Gris"
-                    color_hex = "#64748B"
-                elif "terracota" in p_lower:
-                    color_nombre = "Terracota"
-                    color_hex = "#B45309"
-                else:
-                    color_nombre = "Rojo" if "roja" in p_lower else "Negro"
-                    color_hex = "#DC2626" if "roja" in p_lower else "#1E293B"
-
-            if not talla_nombre or talla_nombre == "--":
-                talla_nombre = "M"
-
-            estado_stock = "NORMAL"
-            if inv.stockfisico <= 0:
-                estado_stock = "AGOTADO"
-            elif inv.stockfisico <= inv.stockminimo:
-                estado_stock = "BAJO_STOCK"
-
-            resultado.append({
-                "id": inv.id,
-                "sucursal_id": inv.sucursalid,
-                "sucursal_nombre": inv.sucursal.nombre if inv.sucursal else "Sucursal Central",
-                "variante_id": inv.varianteid,
-                "producto_id": p.id,
-                "producto_nombre": p.nombre,
-                "producto_marca": p.marca,
-                "producto_precio": Decimal(str(inv.variante.precioventa or p.preciobase)),
-                "color_nombre": color_nombre,
-                "color_hex": color_hex,
-                "talla_nombre": talla_nombre,
-                "color": color_nombre,
-                "talla": talla_nombre,
-                "sku": inv.variante.sku or f"SKU-{p.id}",
-                "stockfisico": inv.stockfisico,
-                "stockreservado": inv.stockreservado,
-                "stockminimo": inv.stockminimo,
-                "estado_stock": estado_stock,
-                "imagen_url": p.imagenprincipal or (getattr(p, 'imagen_url', None)),
-                "fechaactualizacion": inv.fechaactualizacion
-            })
-
-        return resultado
-
-    @staticmethod
+    @classmethod
     def registrar_movimiento(
+        cls,
         db: Session,
         current_user: UsuarioModel,
         inventario_id: int,
-        data: MovimientoInventarioCreate
+        data: MovimientoInventarioCreate,
+        tenant_id: int = 1,
+        ip_origen: str = "127.0.0.1",
     ) -> Dict:
-        inv = db.query(InventarioModel).filter(InventarioModel.id == inventario_id).first()
-        if not inv:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registro de inventario no encontrado")
-
-        tipo = data.tipo_normalizado
-        cant = data.cantidad
-
-        if tipo == "Entrada":
-            inv.stockfisico += cant
-        elif tipo == "Salida":
-            if inv.stockfisico < cant:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Stock insuficiente. Stock actual: {inv.stockfisico}, cantidad a retirar: {cant}"
-                )
-            inv.stockfisico -= cant
-        elif tipo == "Ajuste":
-            inv.stockfisico = cant
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Tipo de movimiento inválido. Use 'Entrada', 'Salida' o 'Ajuste'."
-            )
-
-        inv.fechaactualizacion = datetime.utcnow()
-
-        movimiento = MovimientoInventarioModel(
-            tipomovimiento=tipo,
-            cantidad=cant,
-            motivo=data.motivo or f"Operación manual de {tipo}",
-            referencia=data.referencia,
-            fecha=datetime.utcnow(),
-            inventarioid=inv.id,
-            usuarioid=current_user.id
+        return InventarioService.registrar_movimiento(
+            db=db,
+            inventario_id=inventario_id,
+            data=data,
+            usuario_id=current_user.id,
+            tenant_id=tenant_id,
+            ip_origen=ip_origen,
         )
-        db.add(movimiento)
-        db.commit()
-        db.refresh(inv)
 
-        return {
-            "mensaje": f"Movimiento de {tipo} registrado exitosamente",
-            "stock_actual": inv.stockfisico,
-            "stock_actualizado": inv.stockfisico,
-            "inventario_id": inv.id
-        }
+    @classmethod
+    def trasladar_stock(
+        cls,
+        db: Session,
+        current_user: UsuarioModel,
+        inventario_origen_id: int,
+        data: TrasladoStockRequest,
+        tenant_id: int = 1,
+        ip_origen: str = "127.0.0.1",
+    ) -> Dict:
+        return InventarioService.trasladar_stock(
+            db=db,
+            inventario_origen_id=inventario_origen_id,
+            data=data,
+            usuario_id=current_user.id,
+            tenant_id=tenant_id,
+            ip_origen=ip_origen,
+        )
 
-    @staticmethod
-    def actualizar_stock_minimo(db: Session, inventario_id: int, data: StockMinimoUpdate) -> Dict:
-        inv = db.query(InventarioModel).filter(InventarioModel.id == inventario_id).first()
-        if not inv:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registro de inventario no encontrado")
+    @classmethod
+    def actualizar_stock_minimo(
+        cls,
+        db: Session,
+        inventario_id: int,
+        data: StockMinimoUpdate,
+        current_user: Optional[UsuarioModel] = None,
+        tenant_id: int = 1,
+        ip_origen: str = "127.0.0.1",
+    ) -> Dict:
+        usuario_id = current_user.id if current_user else 1
+        return InventarioService.actualizar_stock_minimo(
+            db=db,
+            inventario_id=inventario_id,
+            data=data,
+            usuario_id=usuario_id,
+            tenant_id=tenant_id,
+            ip_origen=ip_origen,
+        )
 
-        inv.stockminimo = data.stockminimo
-        inv.fechaactualizacion = datetime.utcnow()
-        db.commit()
-        db.refresh(inv)
+    @classmethod
+    def obtener_kardex(
+        cls,
+        db: Session,
+        inventario_id: int,
+        limit: int = 50,
+        tenant_id: int = 1,
+    ) -> List[Dict]:
+        return InventarioService.obtener_kardex(
+            db=db,
+            inventario_id=inventario_id,
+            limit=limit,
+            tenant_id=tenant_id,
+        )
 
-        return {"mensaje": "Nivel de stock mínimo actualizado", "stockminimo": inv.stockminimo}
 
-    @staticmethod
-    def obtener_kardex(db: Session, inventario_id: int, limit: int = 50) -> List[Dict]:
-        inv = db.query(InventarioModel).filter(InventarioModel.id == inventario_id).first()
-        if not inv:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registro de inventario no encontrado")
-
-        movimientos = db.query(MovimientoInventarioModel).filter(
-            MovimientoInventarioModel.inventarioid == inventario_id
-        ).order_by(MovimientoInventarioModel.id.desc()).limit(limit).all()
-
-        resultado = []
-        for m in movimientos:
-            resultado.append({
-                "id": m.id,
-                "tipomovimiento": m.tipomovimiento,
-                "cantidad": m.cantidad,
-                "motivo": m.motivo,
-                "referencia": m.referencia,
-                "fecha": m.fecha,
-                "usuario_nombre": f"{m.usuario.nombre} {m.usuario.apellido or ''}".strip() if m.usuario else "Sistema"
-            })
-        return resultado
+# ==============================================================================
+# ALIASES DE COMPATIBILIDAD (CONVENCIONES EN ESPAÑOL Y DIAGRAMAS)
+# ==============================================================================
+InventarioController.listar = InventarioController.listar_inventario
+InventarioController.movimiento = InventarioController.registrar_movimiento
+InventarioController.traslado = InventarioController.trasladar_stock
+InventarioController.kardex = InventarioController.obtener_kardex

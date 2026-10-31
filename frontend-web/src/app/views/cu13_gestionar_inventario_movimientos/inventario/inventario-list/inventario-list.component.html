@@ -35,6 +35,16 @@
       </div>
     </div>
 
+    <div class="kpi-card">
+      <div class="kpi-icon-box bg-purple">
+        <mat-icon>bookmark</mat-icon>
+      </div>
+      <div class="kpi-data">
+        <span class="kpi-value">{{ totalUnidadesReservadas }}</span>
+        <span class="kpi-label">Unidades en Reserva</span>
+      </div>
+    </div>
+
     <div class="kpi-card" [class.alert-card]="itemsBajoStock > 0">
       <div class="kpi-icon-box" [ngClass]="itemsBajoStock > 0 ? 'bg-rose' : 'bg-slate'">
         <mat-icon>{{ itemsBajoStock > 0 ? 'warning' : 'check_circle' }}</mat-icon>
@@ -143,8 +153,28 @@
               <span class="stock-num" [class.danger]="row.stockfisico <= row.stockminimo">
                 {{ row.stockfisico }}
               </span>
-              <span class="stock-unit">unidades</span>
+              <span class="stock-unit">un.</span>
             </div>
+          </td>
+        </ng-container>
+
+        <!-- Stock Reservado Column -->
+        <ng-container matColumnDef="stockreservado">
+          <th mat-header-cell *matHeaderCellDef>Reservado</th>
+          <td mat-cell *matCellDef="let row" class="reserved-cell">
+            <span class="badge-reserved" [class.has-reserved]="(row.stockreservado || 0) > 0">
+              {{ row.stockreservado || 0 }} un.
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Stock Disponible Column -->
+        <ng-container matColumnDef="stockdisponible">
+          <th mat-header-cell *matHeaderCellDef>Disponible</th>
+          <td mat-cell *matCellDef="let row" class="available-cell">
+            <span class="badge-available" [class.zero-stock]="(row.stockdisponible !== undefined ? row.stockdisponible : (row.stockfisico - (row.stockreservado || 0))) <= 0">
+              {{ row.stockdisponible !== undefined ? row.stockdisponible : (row.stockfisico - (row.stockreservado || 0)) }} un.
+            </span>
           </td>
         </ng-container>
 
@@ -154,6 +184,9 @@
           <td mat-cell *matCellDef="let row" class="min-stock-cell">
             <div class="min-stock-inline-box">
               <span class="min-stock-badge">{{ row.stockminimo }} un.</span>
+              <button mat-icon-button class="btn-edit-min" (click)="editarStockMinimo(row)" matTooltip="Modificar umbral de seguridad">
+                <mat-icon>edit</mat-icon>
+              </button>
             </div>
           </td>
         </ng-container>
@@ -182,6 +215,11 @@
               <button mat-stroked-button color="primary" class="btn-action" (click)="openMovimientoDialog(row)" matTooltip="Registrar Entrada, Salida o Ajuste">
                 <mat-icon>swap_vert</mat-icon>
                 <span>Movimiento</span>
+              </button>
+
+              <button mat-stroked-button class="btn-traslado" (click)="openTrasladoDialog(row)" matTooltip="Trasladar existencias a otra sucursal">
+                <mat-icon>local_shipping</mat-icon>
+                <span>Traslado</span>
               </button>
 
               <button mat-icon-button class="btn-kardex" (click)="openKardexDialog(row)" matTooltip="Ver Historial Kardex">

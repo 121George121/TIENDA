@@ -48,7 +48,8 @@ class BitacoraController:
         ip: Optional[str] = None,
         datos_previos: Optional[Any] = None,
         datos_nuevos: Optional[Any] = None,
-        fechahora: Optional[datetime] = None
+        fechahora: Optional[datetime] = None,
+        tenant_id: int = 1
     ) -> Optional[BitacoraModel]:
         """
         Registra una nueva entrada de auditoría de forma atómica y protegida en hora boliviana.
@@ -60,6 +61,7 @@ class BitacoraController:
             fecha_efectiva = fechahora or get_bolivia_now()
 
             registro = BitacoraModel(
+                tenant_id=tenant_id,
                 usuarioid=usuario_id,
                 accion=accion.strip().upper(),
                 modulo=modulo.strip().upper(),
@@ -77,6 +79,32 @@ class BitacoraController:
             db.rollback()
             print(f"[AUDIT WARN] Error al registrar evento en bitácora: {e}")
             return None
+
+    @classmethod
+    def registrar_accion(
+        cls,
+        db: Session,
+        usuario_id: Optional[int],
+        accion: str,
+        detalle: Optional[str] = None,
+        modulo: str = "INVENTARIO",
+        ip_origen: Optional[str] = None,
+        tenant_id: int = 1,
+        datos_previos: Optional[Any] = None,
+        datos_nuevos: Optional[Any] = None,
+    ) -> Optional[BitacoraModel]:
+        """Alias simplificado para registrar acciones auditadas por módulo"""
+        return cls.registrar_evento(
+            db=db,
+            accion=accion,
+            modulo=modulo,
+            usuario_id=usuario_id,
+            detalle=detalle,
+            ip=ip_origen,
+            datos_previos=datos_previos,
+            datos_nuevos=datos_nuevos,
+            tenant_id=tenant_id,
+        )
 
     @staticmethod
     def listar(

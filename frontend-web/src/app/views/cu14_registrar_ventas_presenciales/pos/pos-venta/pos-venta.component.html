@@ -43,8 +43,9 @@
           [class.out-of-stock]="prod.stockfisico <= 0"
           (click)="addToCart(prod)"
         >
-          <div class="card-badge-stock" [class.danger]="prod.stockfisico <= prod.stockminimo">
-            {{ prod.stockfisico }} un.
+          <div class="card-badge-stock" [class.danger]="getStockDisponible(prod) <= prod.stockminimo">
+            <span>{{ getStockDisponible(prod) }} disp.</span>
+            <small *ngIf="(prod.stockreservado || 0) > 0" class="badge-reservado-pos">({{ prod.stockreservado }} res.)</small>
           </div>
 
           <div class="product-icon-container">
@@ -60,7 +61,7 @@
             </div>
             <div class="prod-footer">
               <span class="prod-price">Bs. {{ (prod.producto_precio || 85) | number:'1.2-2' }}</span>
-              <button mat-mini-fab color="primary" class="btn-add-mini" [disabled]="prod.stockfisico <= 0">
+              <button mat-mini-fab color="primary" class="btn-add-mini" [disabled]="getStockDisponible(prod) <= 0">
                 <mat-icon>add</mat-icon>
               </button>
             </div>

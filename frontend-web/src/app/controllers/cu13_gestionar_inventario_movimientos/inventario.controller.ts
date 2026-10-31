@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, tap, finalize } from 'rxjs';
-import { InventarioItem, MovimientoInventarioCreateDTO, MovimientoInventarioItem } from '../../models/cu13_gestionar_inventario_movimientos/inventario.model';
+import {
+  InventarioItem,
+  MovimientoInventarioCreateDTO,
+  MovimientoInventarioItem,
+  TrasladoStockDTO,
+  TrasladoStockResponseDTO
+} from '../../models/cu13_gestionar_inventario_movimientos/inventario.model';
 import { InventarioService } from '../../services/cu13_gestionar_inventario_movimientos/inventario.service';
 
 @Injectable({
@@ -25,7 +31,7 @@ export class InventarioController {
       .pipe(finalize(() => this.loadingSubject.next(false)))
       .subscribe({
         next: (items) => this.inventarioSubject.next(items),
-        error: (err) => console.error('Error al cargar inventario:', err)
+        error: (err: any) => console.error('Error al cargar inventario:', err)
       });
   }
 
@@ -33,20 +39,50 @@ export class InventarioController {
     this.loadingSubject.next(true);
     return this.inventarioService.registrarMovimiento(inventarioId, dto).pipe(
       tap((res) => {
-        // Actualizar el item en el subject
         const current = this.inventarioSubject.value;
         const index = current.findIndex(i => i.id === inventarioId);
         if (index !== -1) {
           const updatedList = [...current];
-            const newStock = res.stock_actualizado ?? res.stock_actual ?? current[index].stockfisico;
-            updatedList[index] = {
-              ...updatedList[index],
-              stockfisico: newStock,
-              stockdisponible: newStock
+          const newStock = res.stock_actualizado ?? res.stock_actual ?? current[index].stockfisico;
+          const reservado = current[index].stockreservado || 0;
+          updatedList[index] = {
+            ...updatedList[index],
+            stockfisico: newStock,
+            stockdisponible: Math.max(0, newStock - reservado)
+          };
+          this.inventarioSubject.next(updatedList);
+        }
+      }),
+      finalize(() => this.loadingSubject.next(false))
+    );
+  }
+
+  trasladarStock(inventarioId: number, dto: TrasladoStockDTO): Observable<TrasladoStockResponseDTO> {
+    this.loadingSubject.next(true);
+    return this.inventarioService.trasladarStock(inventarioId, dto).pipe(
+      tap((res) => {
+        const current = this.inventarioSubject.value;
+        const updatedList = current.map(item => {
+          if (item.id === res.inventario_origen_id) {
+            const reservado = item.stockreservado || 0;
+            return {
+              ...item,
+              stockfisico: res.stock_origen_restante,
+              stockdisponible: Math.max(0, res.stock_origen_restante - reservado)
             };
-            this.inventarioSubject.next(updatedList);
           }
-        }),
+          if (item.id === res.inventario_destino_id) {
+            const reservado = item.stockreservado || 0;
+            return {
+              ...item,
+              stockfisico: res.stock_destino_actual,
+              stockdisponible: Math.max(0, res.stock_destino_actual - reservado)
+            };
+          }
+          return item;
+        });
+        this.inventarioSubject.next(updatedList);
+      }),
       finalize(() => this.loadingSubject.next(false))
     );
   }
@@ -69,3 +105,4 @@ export class InventarioController {
     return this.inventarioService.getKardex(inventarioId);
   }
 }
+

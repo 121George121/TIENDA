@@ -4,7 +4,7 @@
 # ==============================================================================
 
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from datetime import datetime
 from app.core.database import Base
 
@@ -18,6 +18,7 @@ class Carrito(Base):
     fechacreacion = Column(DateTime, default=datetime.utcnow, nullable=False)
     fechaactualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     clienteid = Column(Integer, ForeignKey("usuario.id"), nullable=False)
+    usuarioid = synonym("clienteid")
     sucursalid = Column(Integer, ForeignKey("sucursal.id"), nullable=True)
 
     items = relationship("CarritoItem", back_populates="carrito", cascade="all, delete-orphan")

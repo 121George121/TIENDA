@@ -28,14 +28,14 @@ export class VentaController {
       .pipe(finalize(() => this.loadingSubject.next(false)))
       .subscribe({
         next: (ventas) => this.ventasSubject.next(ventas),
-        error: (err) => console.error('Error al cargar ventas:', err)
+        error: (err: any) => console.error('Error al cargar ventas:', err)
       });
   }
 
   loadMetodosPago(): void {
     this.ventaService.getMetodosPago().subscribe({
       next: (metodos) => this.metodosPagoSubject.next(metodos),
-      error: (err) => console.error('Error al cargar métodos de pago:', err)
+      error: (err: any) => console.error('Error al cargar métodos de pago:', err)
     });
   }
 

@@ -33,6 +33,8 @@ class ReservaResponse(BaseModel):
     id: int
     codigo_reserva: str
     fecha_reserva: datetime
+    fecha_expiracion: Optional[datetime] = None
+    horas_restantes: Optional[int] = None
     estado: str
     observaciones: Optional[str] = None
     cliente_id: Optional[int] = None

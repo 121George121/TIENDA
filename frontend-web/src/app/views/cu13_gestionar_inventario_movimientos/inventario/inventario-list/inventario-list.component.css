@@ -67,6 +67,7 @@
 
 .bg-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
 .bg-emerald { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+.bg-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
 .bg-rose { background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%); }
 .bg-slate { background: linear-gradient(135deg, #64748b 0%, #334155 100%); }
 
@@ -480,3 +481,71 @@
   height: 40px;
   margin-bottom: 8px;
 }
+
+/* Badges de Reservado y Disponible */
+.badge-reserved {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.badge-reserved.has-reserved {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.badge-available {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-available.zero-stock {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
+}
+
+.btn-edit-min {
+  width: 26px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  color: #94a3b8;
+  margin-left: 4px;
+}
+
+.btn-edit-min mat-icon {
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.btn-edit-min:hover {
+  color: #2563eb;
+}
+
+.btn-traslado {
+  color: #7c3aed !important;
+  border-color: #ddd6fe !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  height: 34px;
+}
+
+.btn-traslado:hover {
+  background: #f5f3ff !important;
+}
+

@@ -50,7 +50,7 @@ export class VentaDetailDialogComponent implements OnInit {
         this.venta = data;
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al cargar detalle de venta:', err);
         this.loading = false;
       }

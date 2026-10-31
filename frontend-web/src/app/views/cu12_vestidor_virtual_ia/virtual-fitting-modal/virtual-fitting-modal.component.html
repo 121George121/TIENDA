@@ -1,0 +1,258 @@
+<!-- ==============================================================================
+     CAPA VISTA (MVC - VIEW EN ANGULAR 18)
+     Módulo: CU12 - Utilizar Vestidor Virtual mediante IA
+     Ubicación: frontend-web/src/app/views/cu12_vestidor_virtual_ia/virtual-fitting-modal/virtual-fitting-modal.component.html
+     ============================================================================== -->
+
+<div *ngIf="visible && producto" class="modal-backdrop" (click)="onCerrar()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <!-- Cabecera del Probador Virtual -->
+    <header class="modal-header">
+      <div class="header-title-row">
+        <div class="icon-sparkle">
+          <mat-icon>auto_awesome</mat-icon>
+        </div>
+        <div>
+          <h2>Probador Virtual con Inteligencia Artificial <span class="badge-cu">CU12</span></h2>
+          <p class="subtitle">Prueba fotorrealista de prendas y asesoría anatómica personalizada con Google Gemini AI</p>
+        </div>
+      </div>
+      <button type="button" class="btn-close" (click)="onCerrar()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="modal-body-grid">
+      <!-- Columna Izquierda: Prenda y Foto del Usuario -->
+      <section class="left-col">
+        <!-- Prenda Seleccionada -->
+        <div class="garment-card">
+          <div class="garment-preview-box">
+            <img
+              [src]="vestidorService.obtenerPrendaTransparenteUrl(producto.imagen_url || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=500')"
+              [alt]="producto.nombre"
+              class="garment-isolated-img"
+            />
+            <span class="ai-badge-isolated">
+              <mat-icon>layers</mat-icon>
+              <span>Fondo Removido con IA</span>
+            </span>
+          </div>
+
+          <div class="garment-details">
+            <span class="garment-brand">{{ producto.marca || 'Boutique Collection' }}</span>
+            <h3 class="garment-title">{{ producto.nombre }}</h3>
+            <span class="garment-price">Bs. {{ (producto.preciobase || producto.precio || 0) | number:'1.2-2' }}</span>
+
+            <!-- Selector de Tallas para Probar -->
+            <div class="fitting-selector-group">
+              <label>Seleccionar Talla a Probar:</label>
+              <div class="sizes-row">
+                <button
+                  *ngFor="let s of ['S', 'M', 'L', 'XL', 'XXL']"
+                  type="button"
+                  class="size-pill"
+                  [class.active]="tallaSeleccionada === s"
+                  (click)="tallaSeleccionada = s"
+                >
+                  {{ s }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Selector de Color -->
+            <div class="fitting-selector-group" *ngIf="producto.variantes && producto.variantes.length > 0">
+              <label>Color:</label>
+              <div class="colors-row">
+                <button
+                  *ngFor="let v of producto.variantes"
+                  type="button"
+                  class="color-pill"
+                  [class.active]="colorSeleccionado === v.color"
+                  (click)="colorSeleccionado = v.color || 'Único'; codigoHexSeleccionado = v.codigohex || '#333'"
+                >
+                  <span class="dot" [style.backgroundColor]="v.codigohex || '#555'"></span>
+                  <span>{{ v.color || 'Color' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zona de Carga de Foto del Usuario -->
+        <div class="photo-upload-card">
+          <h4 class="card-heading">
+            <mat-icon>account_circle</mat-icon>
+            <span>Tu Fotografía para el Probador</span>
+          </h4>
+
+          <div *ngIf="!fotoUsuarioPreview" class="dropzone-box">
+            <input type="file" id="userPhotoInput" (change)="onFileSelected($event)" accept="image/*" class="file-input-hidden" />
+            <label for="userPhotoInput" class="dropzone-label">
+              <mat-icon class="upload-icon">add_photo_alternate</mat-icon>
+              <span>Subir una fotografía de cuerpo entero o torso</span>
+              <small>Formatos: JPG, PNG, WEBP (Hasta 10MB)</small>
+            </label>
+            <div class="or-divider"><span>o también</span></div>
+            <button type="button" class="btn-avatar-sample" (click)="usarModeloEjemplo()">
+              <mat-icon>accessibility_new</mat-icon>
+              <span>Usar Modelo Avatar Predeterminado</span>
+            </button>
+          </div>
+
+          <div *ngIf="fotoUsuarioPreview" class="photo-preview-box">
+            <img [src]="fotoUsuarioPreview" alt="Tu Fotografía" class="user-photo-img" />
+            <div class="photo-controls">
+              <span class="photo-source-tag">
+                <mat-icon>{{ usarManiqui ? 'accessibility' : 'person' }}</mat-icon>
+                <span>{{ usarManiqui ? 'Modelo Avatar de Ejemplo' : 'Tu Fotografía' }}</span>
+              </span>
+              <button type="button" class="btn-change-photo" (click)="fotoUsuarioPreview = null; fotoUsuarioFile = null">
+                <mat-icon>refresh</mat-icon>
+                <span>Cambiar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Diagnóstico Ergonómico y Síntesis Try-On -->
+      <section class="right-col">
+        <!-- Tarjeta de Diagnóstico Fisonómico con Google Gemini AI -->
+        <div class="ai-box diagnosis-card">
+          <div class="ai-box-header">
+            <div class="badge-gemini">
+              <mat-icon>psychology</mat-icon>
+              <span>Google Gemini AI</span>
+            </div>
+            <h4>Asesoría de Estilo y Ergonomía</h4>
+          </div>
+
+          <!-- Spinner análisis -->
+          <div *ngIf="analizandoFisonomia" class="ai-loading">
+            <div class="spinner"></div>
+            <p>Gemini Vision AI analizando proporciones de hombros, torso y caída textil...</p>
+          </div>
+
+          <!-- Estado inicial sin análisis -->
+          <div *ngIf="!analizandoFisonomia && !analisisResultado" class="ai-prompt-callout">
+            <mat-icon>insights</mat-icon>
+            <div>
+              <strong>Diagnóstico de Talla Inteligente</strong>
+              <p>Analiza tu estructura anatómica y descubre qué talla te queda mejor con 96% de precisión.</p>
+            </div>
+            <button type="button" class="btn-run-analysis" (click)="ejecutarAnalisisFisonomia()">
+              <mat-icon>fingerprint</mat-icon>
+              <span>Analizar Fisonomía</span>
+            </button>
+          </div>
+
+          <!-- Resultado del Análisis -->
+          <div *ngIf="!analizandoFisonomia && analisisResultado" class="diagnosis-results">
+            <div class="stats-grid">
+              <div class="stat-pill">
+                <span class="stat-lbl">Contextura</span>
+                <strong class="stat-val">{{ analisisResultado.contextura_detectada }}</strong>
+              </div>
+              <div class="stat-pill highlight">
+                <span class="stat-lbl">Talla Sugerida</span>
+                <strong class="stat-val size-val">{{ analisisResultado.talla_recomendada }}</strong>
+                <button
+                  *ngIf="tallaSeleccionada !== analisisResultado.talla_recomendada"
+                  type="button"
+                  class="btn-apply-size"
+                  (click)="aplicarTallaSugerida(analisisResultado.talla_recomendada)"
+                >
+                  Aplicar
+                </button>
+              </div>
+              <div class="stat-pill">
+                <span class="stat-lbl">Índice de Calce</span>
+                <strong class="stat-val score-val">{{ analisisResultado.porcentaje_calce }}%</strong>
+              </div>
+            </div>
+
+            <div class="advice-quote">
+              <mat-icon class="quote-icon">format_quote</mat-icon>
+              <p>{{ analisisResultado.consejo_estilista }}</p>
+            </div>
+
+            <span class="ai-engine-footnote">
+              <mat-icon>verified</mat-icon>
+              <span>{{ analisisResultado.fuente || 'Inferencia Gemini Vision' }}</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Prueba Virtual Fotorrealista (Virtual Try-On) -->
+        <div class="ai-box tryon-card">
+          <div class="ai-box-header">
+            <div class="badge-vton">
+              <mat-icon>view_in_ar</mat-icon>
+              <span>Virtual Try-On 2.0</span>
+            </div>
+            <h4>Resultado Fotorrealista</h4>
+          </div>
+
+          <!-- Spinner generación fotorrealista -->
+          <div *ngIf="generandoTryon" class="tryon-loading">
+            <div class="pulsing-circle">
+              <mat-icon>checkroom</mat-icon>
+            </div>
+            <h4>{{ pasoGeneracionTexto }}</h4>
+            <p>Fusionando prenda textil en alta resolución con drapeado adaptativo...</p>
+          </div>
+
+          <!-- Sin generar aún -->
+          <div *ngIf="!generandoTryon && !tryonResultado" class="tryon-placeholder">
+            <mat-icon class="hang-icon">checkroom</mat-icon>
+            <p>Pulsa el botón para generar la prueba fotorrealista de cómo te quedará la prenda en talla <strong>{{ tallaSeleccionada }}</strong>.</p>
+            <button type="button" class="btn-generate-tryon" (click)="ejecutarTryOn()">
+              <mat-icon>auto_fix_high</mat-icon>
+              <span>Probarme esta Prenda Ahora</span>
+            </button>
+          </div>
+
+          <!-- Resultado Generado -->
+          <div *ngIf="!generandoTryon && tryonResultado" class="tryon-result-view">
+            <div class="tryon-img-wrapper">
+              <img [src]="tryonResultado.imagen_base64" alt="Look Final Probador Virtual" class="tryon-final-img" />
+              <div class="tryon-overlay-badge">
+                <mat-icon>verified</mat-icon>
+                <span>{{ tryonResultado.calidad }}</span>
+              </div>
+            </div>
+
+            <div class="tryon-summary-bar">
+              <div>
+                <strong>Talla: {{ tryonResultado.talla_aplicada }}</strong> • Color: {{ tryonResultado.color_aplicado }}
+                <span class="motor-tag">Motor: {{ tryonResultado.motor }}</span>
+              </div>
+              <button type="button" class="btn-retry-tryon" (click)="ejecutarTryOn()" matTooltip="Volver a generar">
+                <mat-icon>refresh</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Barra de Acciones Inferior -->
+    <footer class="modal-footer">
+      <div class="footer-left">
+        <span class="price-summary">Total: <strong>Bs. {{ (producto.preciobase || producto.precio || 0) | number:'1.2-2' }}</strong></span>
+        <span class="selection-summary">Talla: <strong>{{ tallaSeleccionada }}</strong> | Color: <strong>{{ colorSeleccionado }}</strong></span>
+      </div>
+
+      <div class="footer-actions">
+        <button type="button" class="btn-cancel" (click)="onCerrar()">
+          Cerrar
+        </button>
+        <button type="button" class="btn-add-cart-primary" (click)="agregarPrendaProbada()">
+          <mat-icon>add_shopping_cart</mat-icon>
+          <span>Agregar Prenda Probada al Carrito (CU09)</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+</div>

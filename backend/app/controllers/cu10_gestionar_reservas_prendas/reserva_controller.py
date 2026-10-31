@@ -1,474 +1,102 @@
 # ==============================================================================
 # CU10 - GESTIONAR RESERVAS DE PRENDAS -> CAPA CONTROLADOR (MVC - CONTROLLER)
+# Arquitectura: Multi-Tenant SaaS con Vencimiento 48h y Bloqueo de Stock
 # Ubicación: backend/app/controllers/cu10_gestionar_reservas_prendas/reserva_controller.py
 # ==============================================================================
 
+from typing import Optional, List
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-from typing import List, Optional
-from datetime import datetime
-import random
-import string
-
-from app.models.models import (
-    ReservaModel,
-    ReservaDetalleModel,
-    CarritoModel,
-    CarritoItemModel,
-    InventarioSucursalModel,
-    SucursalModel,
-    VarianteProductoModel,
-    UsuarioModel,
+from app.services.cu10_gestionar_reservas_prendas.reserva_service import (
+    ReservaService, formatear_reserva, generar_codigo_reserva
 )
-from app.schemas.reserva_schema import (
-    ReservaCreate,
-    ReservaResponse,
-    ReservaDetalleResponse,
-    ReservaSucursalResponse,
-)
-
-
-def generar_codigo_reserva(db: Session) -> str:
-    """Genera un código único alfanumérico para la reserva (ej: RES-7X9K2M)."""
-    while True:
-        sufijo = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-        codigo = f"RES-{sufijo}"
-        existente = db.query(ReservaModel).filter(ReservaModel.codigoreserva == codigo).first()
-        if not existente:
-            return codigo
-
-
-def formatear_reserva(reserva: ReservaModel) -> ReservaResponse:
-    """Convierte un modelo de SQLAlchemy ReservaModel a un schema Pydantic enriquecido."""
-    sucursal_resp = None
-    if reserva.sucursal:
-        sucursal_resp = ReservaSucursalResponse(
-            id=reserva.sucursal.id,
-            nombre=reserva.sucursal.nombre,
-            ciudad=reserva.sucursal.ciudad,
-            direccion=reserva.sucursal.direccion,
-            telefono=reserva.sucursal.telefono,
-        )
-
-    # Datos del Cliente
-    cliente_nombre = None
-    cliente_email = None
-    cliente_tel = None
-    if reserva.cliente:
-        cliente_nombre = f"{reserva.cliente.nombre} {reserva.cliente.apellido or ''}".strip()
-        cliente_email = reserva.cliente.email
-        cliente_tel = reserva.cliente.telefono
-
-    detalles_resp: List[ReservaDetalleResponse] = []
-    total_items = 0
-    total_estimado = 0.0
-
-    for d in reserva.detalles:
-        variante = d.variante
-        prod = variante.producto if variante else None
-
-        prod_nombre = prod.nombre if prod else "Prenda"
-        talla_nombre = variante.talla.nombre if variante and variante.talla else None
-        color_nombre = variante.color.nombre if variante and variante.color else None
-        color_hex = variante.color.codigohex if variante and variante.color else None
-        imagen_url = (variante.imagenurl if variante and variante.imagenurl else None) or (prod.imagenprincipal if prod else None)
-
-        precio = float(variante.precioventa if variante and variante.precioventa else (prod.preciobase if prod else 0.0))
-        subtotal = round(precio * d.cantidad, 2)
-
-        detalles_resp.append(
-            ReservaDetalleResponse(
-                variante_id=d.varianteid,
-                producto_nombre=prod_nombre,
-                talla=talla_nombre,
-                color=color_nombre,
-                codigo_hex=color_hex,
-                imagen_url=imagen_url,
-                precio_unitario=precio,
-                cantidad=d.cantidad,
-                subtotal=subtotal,
-            )
-        )
-        total_items += d.cantidad
-        total_estimado += subtotal
-
-    return ReservaResponse(
-        id=reserva.id,
-        codigo_reserva=reserva.codigoreserva,
-        fecha_reserva=reserva.fechareserva,
-        estado=reserva.estado,
-        observaciones=reserva.observaciones,
-        cliente_id=reserva.clienteid,
-        cliente_nombre=cliente_nombre,
-        cliente_email=cliente_email,
-        cliente_telefono=cliente_tel,
-        sucursal=sucursal_resp,
-        detalles=detalles_resp,
-        total_items=total_items,
-        total_estimado=round(total_estimado, 2),
-    )
+from app.schemas.reserva_schema import ReservaCreate, ReservaResponse
 
 
 class ReservaController:
+    """
+    Controlador MVC para la administración de Reservas de prendas físicas.
+    Orquesta la lógica de negocio, validaciones multitenant y trazabilidad de estados.
+    """
 
     @staticmethod
-    def _obtener_o_crear_cliente(db: Session, usuario_id: int):
-        from app.models.models import ClienteModel, UsuarioModel
-        # 1. ¿usuario_id es ya el ID de un ClienteModel (cliente.id)?
-        cliente = db.query(ClienteModel).filter(ClienteModel.id == usuario_id).first()
-        if cliente:
-            return cliente
-
-        # 2. ¿usuario_id es el ID de un UsuarioModel (usuario.id)?
-        cliente = db.query(ClienteModel).filter(ClienteModel.usuarioid == usuario_id).first()
-        if cliente:
-            return cliente
-
-        # 3. Si existe el usuario en tabla usuario, crear su perfil cliente
-        user = db.query(UsuarioModel).filter(UsuarioModel.id == usuario_id).first()
-        if user:
-            cliente = ClienteModel(
-                nombre=user.nombre,
-                apellido=user.apellido or "",
-                email=user.email,
-                telefono=user.telefono or "",
-                usuarioid=user.id,
-                activo=True
-            )
-            db.add(cliente)
-            db.commit()
-            db.refresh(cliente)
-            return cliente
-
-        # 4. Fallback al primer cliente de la BD
-        return db.query(ClienteModel).first()
-
-    @classmethod
-    def crear_reserva_desde_carrito(cls, db: Session, usuario_id: int, datos: ReservaCreate) -> ReservaResponse:
-        """
-        CU10: Convierte el carrito activo del cliente o los ítems enviados en una Reserva física con código único.
-        Reserva el stock físico incrementando 'stockreservado' en inventario_sucursal.
-        """
-        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
-
-        # 1. Determinar la sucursal física (con fallback a la primera sucursal activa)
-        sucursal_id = datos.sucursal_id
-        carrito = None
-        if not sucursal_id:
-            carrito = (
-                db.query(CarritoModel)
-                .filter(
-                    (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
-                    CarritoModel.estado == "ACTIVO"
-                )
-                .first()
-            )
-            if carrito and carrito.sucursalid:
-                sucursal_id = carrito.sucursalid
-
-        if not sucursal_id:
-            primera_suc = db.query(SucursalModel).filter(SucursalModel.activo == True).first()
-            if primera_suc:
-                sucursal_id = primera_suc.id
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Debe seleccionar la sucursal física donde retirará sus prendas reservadas.",
-                )
-
-        sucursal = db.query(SucursalModel).filter(SucursalModel.id == sucursal_id, SucursalModel.activo == True).first()
-        if not sucursal:
-            sucursal = db.query(SucursalModel).filter(SucursalModel.activo == True).first()
-            if sucursal:
-                sucursal_id = sucursal.id
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="No se encontró una sucursal física activa disponible.",
-                )
-
-        # 2. Recolectar prendas a apartar (desde datos.items o desde CarritoModel en BD)
-        inventarios_afectados = []
-        nombres_prendas = []
-
-        if datos.items and len(datos.items) > 0:
-            for it in datos.items:
-                variante = None
-                if it.variante_id:
-                    variante = db.query(VarianteProductoModel).filter(VarianteProductoModel.id == it.variante_id).first()
-                elif it.producto_id:
-                    variante = db.query(VarianteProductoModel).filter(VarianteProductoModel.productoid == it.producto_id).first()
-
-                if not variante:
-                    continue
-
-                inv = (
-                    db.query(InventarioSucursalModel)
-                    .filter(
-                        InventarioSucursalModel.varianteid == variante.id,
-                        InventarioSucursalModel.sucursalid == sucursal_id,
-                    )
-                    .first()
-                )
-
-                if not inv:
-                    inv = InventarioSucursalModel(
-                        varianteid=variante.id,
-                        sucursalid=sucursal_id,
-                        cantidad=10,
-                        stockreservado=0
-                    )
-                    db.add(inv)
-                    db.flush()
-
-                prod_nombre = variante.producto.nombre if variante.producto else "Prenda"
-                disp = max(0, inv.cantidad - (inv.stockreservado or 0))
-                if it.cantidad > disp:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Stock insuficiente para apartar {prod_nombre}. Disponibles en tienda: {disp} uds."
-                    )
-
-                nombres_prendas.append(prod_nombre)
-                inventarios_afectados.append((inv, it.cantidad))
-        else:
-            if not carrito:
-                carrito = (
-                    db.query(CarritoModel)
-                    .filter(
-                        (CarritoModel.clienteid == cliente.id) | (CarritoModel.clienteid == usuario_id),
-                        CarritoModel.estado == "ACTIVO"
-                    )
-                    .first()
-                )
-
-            if not carrito or not carrito.items:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="El carrito está vacío. Agregue prendas al carrito antes de generar una reserva.",
-                )
-
-            for item in carrito.items:
-                inv = (
-                    db.query(InventarioSucursalModel)
-                    .filter(
-                        InventarioSucursalModel.varianteid == item.varianteid,
-                        InventarioSucursalModel.sucursalid == sucursal_id,
-                    )
-                    .first()
-                )
-
-                if not inv:
-                    inv = InventarioSucursalModel(
-                        varianteid=item.varianteid,
-                        sucursalid=sucursal_id,
-                        cantidad=10,
-                        stockreservado=0
-                    )
-                    db.add(inv)
-                    db.flush()
-
-                nombre_prenda = (
-                    item.variante.producto.nombre if item.variante and item.variante.producto else f"Variante #{item.varianteid}"
-                )
-                disp = max(0, inv.cantidad - (inv.stockreservado or 0))
-                if item.cantidad > disp:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Stock insuficiente para apartar {nombre_prenda}. Disponibles en tienda: {disp} uds."
-                    )
-
-                nombres_prendas.append(nombre_prenda)
-                inventarios_afectados.append((inv, item.cantidad))
-
-        if not inventarios_afectados:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se encontraron prendas válidas para apartar.",
-            )
-
-        # 3. Crear código único de reserva
-        codigo = generar_codigo_reserva(db)
-
-        # 4. Crear la cabecera de la Reserva
-        nueva_reserva = ReservaModel(
-            codigoreserva=codigo,
-            fechareserva=datetime.utcnow(),
-            estado="PENDIENTE",
-            observaciones=datos.observaciones,
-            sucursalid=sucursal_id,
-            clienteid=cliente.id,
+    def crear_reserva(
+        db: Session,
+        usuario_id: int,
+        datos: ReservaCreate,
+        tenant_id: int = 1
+    ) -> ReservaResponse:
+        """Crea una reserva física con vencimiento de 48h y bloqueo temporal de stock"""
+        return ReservaService.crear_reserva(
+            db=db,
+            usuario_id=usuario_id,
+            datos=datos,
+            tenant_id=tenant_id
         )
-        db.add(nueva_reserva)
-        db.flush()  # Para obtener nueva_reserva.id
 
-        # 5. Crear los detalles de la Reserva e incrementar el stockreservado
-        for inv, cantidad_item in inventarios_afectados:
-            detalle = ReservaDetalleModel(
-                varianteid=inv.varianteid,
-                reservaid=nueva_reserva.id,
-                cantidad=cantidad_item,
-            )
-            db.add(detalle)
-
-            # Incrementar el stock reservado en la sucursal
-            inv.stockreservado = (inv.stockreservado or 0) + cantidad_item
-
-        # 6. Si existía carrito en BD, marcarlo como CONVERTIDO
-        if carrito:
-            carrito.estado = "CONVERTIDO"
-
-        # 7. Registrar Notificación Oficial de Reserva / Apartado (CU19)
-        try:
-            from app.models.cu19_gestionar_notificaciones.notificacion_model import NotificacionModel
-            resumen_prod = ", ".join(nombres_prendas[:2])
-            if len(nombres_prendas) > 2:
-                resumen_prod += f" y {len(nombres_prendas) - 2} prendas más"
-            elif not resumen_prod:
-                resumen_prod = "Prendas de Catálogo"
-
-            notif_res = NotificacionModel(
-                usuario_id=usuario_id,
-                titulo=f"🏪 ¡Apartado en Tienda! #{codigo}",
-                mensaje=f"Has apartado exitosamente: {resumen_prod}. Código de retiro: #{codigo}. Presenta este código en la sucursal {sucursal.nombre} para pagar y retirar tus prendas.",
-                tipo="RESERVA_EXITOSA",
-                enlace="/mis-reservas",
-                leido=False,
-                fecha_creacion=datetime.utcnow()
-            )
-            db.add(notif_res)
-        except Exception as err_n:
-            print(f"[Notificaciones CU19] Error en reserva: {err_n}")
-
-        db.commit()
-        db.refresh(nueva_reserva)
-
-        return formatear_reserva(nueva_reserva)
-
-    @classmethod
-    def listar_reservas_usuario(cls, db: Session, usuario_id: int) -> List[ReservaResponse]:
-        """Obtiene todas las reservas del usuario ordenadas de más reciente a más antigua."""
-        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
-        reservas = (
-            db.query(ReservaModel)
-            .filter((ReservaModel.clienteid == cliente.id) | (ReservaModel.clienteid == usuario_id))
-            .order_by(ReservaModel.fechareserva.desc())
-            .all()
+    @staticmethod
+    def listar_reservas_usuario(
+        db: Session,
+        usuario_id: int,
+        tenant_id: int = 1
+    ) -> List[ReservaResponse]:
+        """Obtiene las reservas del usuario en el tenant ordenadas cronológicamente"""
+        return ReservaService.listar_reservas_usuario(
+            db=db,
+            usuario_id=usuario_id,
+            tenant_id=tenant_id
         )
-        return [formatear_reserva(r) for r in reservas]
 
-    @classmethod
-    def obtener_reserva_por_id_o_codigo(cls, db: Session, id_o_codigo: str, usuario_id: Optional[int] = None) -> ReservaResponse:
-        """Consulta el detalle de una reserva por su ID o por su código alfanumérico."""
-        query = db.query(ReservaModel)
-        if id_o_codigo.isdigit():
-            query = query.filter((ReservaModel.id == int(id_o_codigo)) | (ReservaModel.codigoreserva == id_o_codigo))
-        else:
-            query = query.filter(ReservaModel.codigoreserva == id_o_codigo.upper())
-
-        reserva = query.first()
-        if not reserva:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No se encontró ninguna reserva con identificador '{id_o_codigo}'.",
-            )
-
-        if usuario_id:
-            cliente = cls._obtener_o_crear_cliente(db, usuario_id)
-            if reserva.clienteid not in [cliente.id, usuario_id]:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="No tienes permiso para ver esta reserva.",
-                )
-
-        return formatear_reserva(reserva)
-
-    @classmethod
-    def cancelar_reserva_cliente(cls, db: Session, reserva_id: int, usuario_id: int, motivo: Optional[str] = None) -> ReservaResponse:
-        """
-        Permite al cliente cancelar una reserva que aún esté en estado PENDIENTE.
-        Libera el stockreservado en inventario_sucursal.
-        """
-        cliente = cls._obtener_o_crear_cliente(db, usuario_id)
-        reserva = (
-            db.query(ReservaModel)
-            .filter(
-                ReservaModel.id == reserva_id,
-                (ReservaModel.clienteid == cliente.id) | (ReservaModel.clienteid == usuario_id)
-            )
-            .first()
+    @staticmethod
+    def obtener_reserva_por_id_o_codigo(
+        db: Session,
+        id_o_codigo: str,
+        usuario_id: Optional[int] = None,
+        tenant_id: int = 1
+    ) -> ReservaResponse:
+        """Consulta el detalle de una reserva por su ID o código único"""
+        return ReservaService.obtener_reserva_por_id_o_codigo(
+            db=db,
+            id_o_codigo=id_o_codigo,
+            usuario_id=usuario_id,
+            tenant_id=tenant_id
         )
-        if not reserva:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Reserva no encontrada.",
-            )
 
-        if reserva.estado != "PENDIENTE":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"No se puede cancelar una reserva con estado '{reserva.estado}'. Solo se pueden cancelar reservas PENDIENTES.",
-            )
+    @staticmethod
+    def cancelar_reserva(
+        db: Session,
+        reserva_id: int,
+        usuario_id: int,
+        motivo: Optional[str] = None,
+        tenant_id: int = 1
+    ) -> ReservaResponse:
+        """Cancela una reserva pendiente y libera el stockreservado"""
+        return ReservaService.cancelar_reserva(
+            db=db,
+            reserva_id=reserva_id,
+            usuario_id=usuario_id,
+            motivo=motivo,
+            tenant_id=tenant_id
+        )
 
-        # Liberar stock reservado en la sucursal
-        for d in reserva.detalles:
-            inv = (
-                db.query(InventarioSucursalModel)
-                .filter(
-                    InventarioSucursalModel.varianteid == d.varianteid,
-                    InventarioSucursalModel.sucursalid == reserva.sucursalid,
-                )
-                .first()
-            )
-            if inv:
-                inv.stockreservado = max(0, inv.stockreservado - d.cantidad)
-
-        reserva.estado = "CANCELADA"
-        if motivo:
-            nota = f"[Cancelada por cliente: {motivo}]"
-            reserva.observaciones = f"{reserva.observaciones or ''} {nota}".strip()
-
-        db.commit()
-        db.refresh(reserva)
-        return formatear_reserva(reserva)
-
-    @classmethod
+    @staticmethod
     def pagar_reserva(
-        cls,
         db: Session,
         reserva_id: int,
         metodo_pago: str,
         referencia: Optional[str] = None,
         origen: str = "MOVIL",
+        tenant_id: int = 1
     ) -> ReservaResponse:
-        """
-        Registra el pago de una reserva (desde el teléfono móvil o en caja de la tienda).
-        Actualiza el estado a 'PAGADA' y registra la bitácora correspondiente.
-        """
-        reserva = db.query(ReservaModel).filter(ReservaModel.id == reserva_id).first()
-        if not reserva:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Reserva con ID {reserva_id} no encontrada.",
-            )
+        """Registra el pago de una reserva (móvil o en caja física)"""
+        return ReservaService.pagar_reserva(
+            db=db,
+            reserva_id=reserva_id,
+            metodo_pago=metodo_pago,
+            referencia=referencia,
+            origen=origen,
+            tenant_id=tenant_id
+        )
 
-        if reserva.estado in ["PAGADA", "ENTREGADA"]:
-            return formatear_reserva(reserva)
-
-        if reserva.estado == "CANCELADA":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se puede pagar una reserva cancelada.",
-            )
-
-        reserva.estado = "PAGADA"
-        origen_txt = "Teléfono Móvil" if origen.upper() == "MOVIL" else "Tienda Física / Caja"
-        nota = f"[PAGADA desde {origen_txt} | Método: {metodo_pago}"
-        if referencia:
-            nota += f" | Ref: {referencia}"
-        nota += "]"
-        reserva.observaciones = f"{reserva.observaciones or ''} {nota}".strip()
-
-        db.commit()
-        db.refresh(reserva)
-        return formatear_reserva(reserva)
+    # Aliases de compatibilidad hacia atrás
+    crear_reserva_desde_carrito = crear_reserva
+    cancelar_reserva_cliente = cancelar_reserva

@@ -179,7 +179,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
         this.filtrarProductos(this.searchControl.value || '');
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al cargar catálogo de sucursal:', err);
         this.loading = false;
       }
@@ -200,16 +200,27 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   }
 
   // --- Operaciones de Carrito ---
+  getStockDisponible(item: InventarioItem): number {
+    if (item.stockdisponible !== undefined) {
+      return item.stockdisponible;
+    }
+    return Math.max(0, item.stockfisico - (item.stockreservado || 0));
+  }
+
   addToCart(item: InventarioItem): void {
-    if (item.stockfisico <= 0) {
-      this.snackBar.open(`¡Sin stock físico de ${item.producto_nombre}!`, 'Cerrar', { duration: 2500 });
+    const stockDisp = this.getStockDisponible(item);
+    if (stockDisp <= 0) {
+      const msg = (item.stockreservado || 0) > 0
+        ? `Prenda reservada: ${item.producto_nombre} tiene unidades físicas pero están apartadas en reservas pendientes.`
+        : `¡Sin existencias de ${item.producto_nombre}!`;
+      this.snackBar.open(msg, 'Cerrar', { duration: 3000 });
       return;
     }
 
     const existing = this.cart.find(c => c.inventarioItem.id === item.id);
     if (existing) {
-      if (existing.cantidad + 1 > item.stockfisico) {
-        this.snackBar.open(`Stock máximo disponible en sucursal alcanzado (${item.stockfisico} un.)`, 'Cerrar', { duration: 2500 });
+      if (existing.cantidad + 1 > stockDisp) {
+        this.snackBar.open(`Stock máximo disponible para venta alcanzado (${stockDisp} un.)`, 'Cerrar', { duration: 2500 });
         return;
       }
       existing.cantidad += 1;
@@ -228,8 +239,9 @@ export class PosVentaComponent implements OnInit, OnDestroy {
   }
 
   incrementQty(cartItem: PosCartItem): void {
-    if (cartItem.cantidad + 1 > cartItem.inventarioItem.stockfisico) {
-      this.snackBar.open(`Stock disponible: ${cartItem.inventarioItem.stockfisico}`, 'OK', { duration: 2000 });
+    const stockDisp = this.getStockDisponible(cartItem.inventarioItem);
+    if (cartItem.cantidad + 1 > stockDisp) {
+      this.snackBar.open(`Stock disponible para venta: ${stockDisp} un.`, 'OK', { duration: 2000 });
       return;
     }
     cartItem.cantidad += 1;
@@ -372,7 +384,7 @@ export class PosVentaComponent implements OnInit, OnDestroy {
         this.cargarInventarioSucursal(sucursalId);
         this.snackBar.open('¡Venta presencial registrada y stock descontado exitosamente!', 'Excelente', { duration: 4000 });
       },
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoVenta = false;
         const msg = err.error?.detail || 'Error al procesar la venta en caja';
         this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });

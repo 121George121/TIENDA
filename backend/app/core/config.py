@@ -47,6 +47,6 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
     # Decart AI Lucy VTON Configuration (CU12)
-    DECART_API_KEY: str = os.getenv("DECART_API_KEY", "dct_ecommers_vMFVVNZuvykXjStozwTapUOxStfkjXKGvLRiOoKhCwSLRGHqZDkKAfSkQhmSFRwl")
+    DECART_API_KEY: str = os.getenv("DECART_API_KEY", "dct_vestidor_JckIgDvDztoGyPPaYmSOhjBBXHVpVDJyzQzksfVGHMJaUprgDiktHyMJBctTffpH")
 
 settings = Settings()

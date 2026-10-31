@@ -21,6 +21,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { InventoryService } from '../../../services/cu8_consultar_catalogo_disponibilidad/inventory.service';
 import { CartService } from '../../../services/cu9_gestionar_carrito_compras/cart.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { VirtualFittingModalComponent } from '../../cu12_vestidor_virtual_ia/virtual-fitting-modal/virtual-fitting-modal.component';
 import {
   ProductoCatalogoItem,
   SucursalItem,
@@ -41,7 +42,8 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatChipsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    VirtualFittingModalComponent
   ],
   templateUrl: './product-catalog.component.html',
   styleUrls: ['./product-catalog.component.css']
@@ -51,6 +53,11 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
   productos: ProductoCatalogoItem[] = [];
   sucursales: SucursalItem[] = [];
   loading = true;
+
+  // CU12: Probador Virtual con IA
+  vestidorModalAbierto = false;
+  productoParaVestidor: any = null;
+  varianteParaVestidor: any = null;
 
   // Estado reactivo offline y de datos desactualizados (CU08 Requerimiento)
   datosDesactualizados = false;
@@ -236,5 +243,35 @@ export class ProductCatalogComponent implements OnInit, OnDestroy {
         alert(err.error?.detail || 'Error al agregar al carrito');
       }
     });
+  }
+
+  // --- CU12: Métodos de Probador Virtual con IA ---
+  abrirVestidor(producto: ProductoCatalogoItem): void {
+    this.productoParaVestidor = producto;
+    this.varianteParaVestidor = this.getVarianteSeleccionada(producto.id) || (producto.variantes && producto.variantes[0]) || null;
+    this.vestidorModalAbierto = true;
+  }
+
+  cerrarVestidor(): void {
+    this.vestidorModalAbierto = false;
+    this.productoParaVestidor = null;
+    this.varianteParaVestidor = null;
+  }
+
+  onAgregarDesdeVestidor(event: any): void {
+    if (!event.producto) return;
+    const matchVar = event.producto.variantes?.find((v: any) => v.talla === event.talla && v.color === event.color)
+      || event.producto.variantes?.[0];
+
+    if (matchVar) {
+      this.cartService.agregarItem(matchVar.variante_id, 1, this.sucursalSeleccionadaId).subscribe({
+        next: () => {
+          alert(`¡Prenda probada en el Vestidor Virtual añadida a tu carrito con éxito!\n${event.producto.nombre}\nTalla: ${event.talla} | Color: ${event.color}`);
+        },
+        error: (err: any) => alert(err.error?.detail || 'Error al agregar al carrito')
+      });
+    } else {
+      alert('Prenda seleccionada añadida al carrito.');
+    }
   }
 }

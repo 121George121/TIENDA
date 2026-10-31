@@ -1,7 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { InventarioItem, MovimientoInventarioCreateDTO, MovimientoInventarioItem } from '../../models/cu13_gestionar_inventario_movimientos/inventario.model';
+import {
+  InventarioItem,
+  MovimientoInventarioCreateDTO,
+  MovimientoInventarioItem,
+  TrasladoStockDTO,
+  TrasladoStockResponseDTO
+} from '../../models/cu13_gestionar_inventario_movimientos/inventario.model';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -21,8 +27,16 @@ export class InventarioService {
     return this.http.get<InventarioItem[]>(this.apiUrl, { params });
   }
 
+  getDetalleInventario(inventarioId: number): Observable<InventarioItem> {
+    return this.http.get<InventarioItem>(`${this.apiUrl}/${inventarioId}`);
+  }
+
   registrarMovimiento(inventarioId: number, dto: MovimientoInventarioCreateDTO): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${inventarioId}/movimiento`, dto);
+  }
+
+  trasladarStock(inventarioId: number, dto: TrasladoStockDTO): Observable<TrasladoStockResponseDTO> {
+    return this.http.post<TrasladoStockResponseDTO>(`${this.apiUrl}/${inventarioId}/traslado`, dto);
   }
 
   actualizarStockMinimo(inventarioId: number, stockMinimo: number): Observable<any> {
@@ -33,3 +47,4 @@ export class InventarioService {
     return this.http.get<MovimientoInventarioItem[]>(`${this.apiUrl}/${inventarioId}/movimientos`);
   }
 }
+

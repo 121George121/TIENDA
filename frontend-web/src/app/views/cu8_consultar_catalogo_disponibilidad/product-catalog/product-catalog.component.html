@@ -227,6 +227,17 @@
 
           <!-- Acciones -->
           <div class="card-actions">
+            <!-- Botón Probar en Vestidor Virtual con IA (CU12) -->
+            <button
+              type="button"
+              class="btn-tryon-card"
+              (click)="abrirVestidor(prod)"
+              matTooltip="Probar prenda con IA en Vestidor Virtual (CU12)"
+            >
+              <mat-icon>auto_awesome</mat-icon>
+              <span>Vestidor IA</span>
+            </button>
+
             <!-- Botón Consultar en Otras Sucursales (CU08 Requerimiento Crítico) -->
             <button
               type="button"
@@ -235,7 +246,7 @@
               matTooltip="Consultar stock en otras tiendas físicas"
             >
               <mat-icon>travel_explore</mat-icon>
-              <span>Ver en otras tiendas</span>
+              <span>Otras tiendas</span>
             </button>
 
             <!-- Botón Agregar al Carrito -->
@@ -351,4 +362,16 @@
       </div>
     </div>
   </div>
+
+  <!-- ==============================================================================
+       MODAL DE VESTIDOR VIRTUAL CON IA (CU12)
+       Permite al Cliente probar fotorrealistamente la prenda y recibir análisis anatómico
+       ============================================================================== -->
+  <app-virtual-fitting-modal
+    [visible]="vestidorModalAbierto"
+    [producto]="productoParaVestidor"
+    [varianteInicial]="varianteParaVestidor"
+    (cerrar)="cerrarVestidor()"
+    (agregarAlCarrito)="onAgregarDesdeVestidor($event)"
+  ></app-virtual-fitting-modal>
 </div>

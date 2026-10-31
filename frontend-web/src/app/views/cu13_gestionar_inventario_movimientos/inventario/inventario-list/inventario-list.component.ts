@@ -22,6 +22,7 @@ import { SucursalController } from '../../../../controllers/cu4_gestionar_sucurs
 import { Sucursal } from '../../../../models/cu4_gestionar_sucursales/sucursal.model';
 import { MovimientoDialogComponent } from '../movimiento-dialog/movimiento-dialog.component';
 import { KardexDialogComponent } from '../kardex-dialog/kardex-dialog.component';
+import { TrasladoDialogComponent } from '../traslado-dialog/traslado-dialog.component';
 
 @Component({
   selector: 'app-inventario-list',
@@ -46,7 +47,17 @@ import { KardexDialogComponent } from '../kardex-dialog/kardex-dialog.component'
   styleUrls: ['./inventario-list.component.css']
 })
 export class InventarioListComponent implements OnInit, OnDestroy {
-  displayedColumns: string[] = ['producto', 'variante', 'sucursal', 'stockfisico', 'stockminimo', 'estado', 'acciones'];
+  displayedColumns: string[] = [
+    'producto',
+    'variante',
+    'sucursal',
+    'stockfisico',
+    'stockreservado',
+    'stockdisponible',
+    'stockminimo',
+    'estado',
+    'acciones'
+  ];
   dataSource = new MatTableDataSource<InventarioItem>([]);
 
   searchControl = new FormControl('');
@@ -60,6 +71,7 @@ export class InventarioListComponent implements OnInit, OnDestroy {
   // KPIs
   totalItems = 0;
   totalUnidadesFisicas = 0;
+  totalUnidadesReservadas = 0;
   itemsBajoStock = 0;
 
   constructor(
@@ -105,6 +117,7 @@ export class InventarioListComponent implements OnInit, OnDestroy {
   calculateKpis(items: InventarioItem[]): void {
     this.totalItems = items.length;
     this.totalUnidadesFisicas = items.reduce((acc, it) => acc + (it.stockfisico || 0), 0);
+    this.totalUnidadesReservadas = items.reduce((acc, it) => acc + (it.stockreservado || 0), 0);
     this.itemsBajoStock = items.filter(it => it.bajo_stock || it.stockfisico <= it.stockminimo).length;
   }
 
@@ -202,13 +215,56 @@ export class InventarioListComponent implements OnInit, OnDestroy {
               { duration: 4000 }
             );
           },
-          error: (err) => {
+          error: (err: any) => {
             const msg = err.error?.detail || 'Error al registrar movimiento';
             this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 4500 });
           }
         });
       }
     });
+  }
+
+  openTrasladoDialog(item: InventarioItem): void {
+    const dialogRef = this.dialog.open(TrasladoDialogComponent, {
+      width: '600px',
+      data: { item, sucursales: this.sucursales }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.inventarioController.trasladarStock(item.id, result).subscribe({
+          next: (res) => {
+            this.snackBar.open(
+              res.mensaje || `Traslado de ${result.cantidad} un. completado con éxito.`,
+              'Cerrar',
+              { duration: 4500 }
+            );
+          },
+          error: (err: any) => {
+            const msg = err.error?.detail || 'Error al procesar el traslado';
+            this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 5000 });
+          }
+        });
+      }
+    });
+  }
+
+  editarStockMinimo(item: InventarioItem): void {
+    const nuevoMin = prompt(`Modificar Stock Mínimo para ${item.producto_nombre}:`, String(item.stockminimo));
+    if (nuevoMin !== null) {
+      const parsed = parseInt(nuevoMin, 10);
+      if (!isNaN(parsed) && parsed >= 0) {
+        this.inventarioController.actualizarStockMinimo(item.id, parsed).subscribe({
+          next: () => {
+            this.snackBar.open(`Stock mínimo actualizado a ${parsed} un.`, 'Cerrar', { duration: 3500 });
+          },
+          error: (err: any) => {
+            const msg = err.error?.detail || 'Error al actualizar stock mínimo';
+            this.snackBar.open(`Error: ${msg}`, 'Cerrar', { duration: 4000 });
+          }
+        });
+      }
+    }
   }
 
   openKardexDialog(item: InventarioItem): void {
@@ -218,3 +274,4 @@ export class InventarioListComponent implements OnInit, OnDestroy {
     });
   }
 }
+

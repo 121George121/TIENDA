@@ -1,0 +1,115 @@
+<div class="dialog-header">
+  <div class="header-icon-box bg-purple">
+    <mat-icon>local_shipping</mat-icon>
+  </div>
+  <div class="header-title-box">
+    <h2 mat-dialog-title>Traslado Inter-Sucursal de Prendas</h2>
+    <p class="dialog-subtitle">
+      Transferencia atómica de existencias entre sucursales de la misma empresa
+    </p>
+  </div>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="onSubmit()">
+  <mat-dialog-content class="dialog-content">
+
+    <!-- Tarjeta de Producto Origen -->
+    <div class="product-context-card">
+      <div class="product-context-main">
+        <span class="product-title">{{ item.producto_nombre }}</span>
+        <div class="product-tags">
+          <span class="tag-sku">SKU: {{ item.sku || ('POL-' + item.producto_id) }}</span>
+          <span class="tag-variant">Talla: {{ item.talla || item.talla_nombre || 'M' }} &bull; Color: {{ item.color || item.color_nombre || 'Estándar' }}</span>
+        </div>
+      </div>
+      <div class="origin-branch-box">
+        <span class="branch-label">Sucursal de Origen</span>
+        <span class="branch-name">{{ item.sucursal_nombre }}</span>
+        <div class="stock-breakdown">
+          <span>Físico: <strong>{{ item.stockfisico }}</strong></span>
+          <span *ngIf="(item.stockreservado || 0) > 0" class="text-amber">Reservado: <strong>{{ item.stockreservado }}</strong></span>
+          <span class="badge-disp">Disponible: <strong>{{ stockDisponible }}</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="sucursalesDisponibles.length === 0" class="no-destinos-alert">
+      <mat-icon>info</mat-icon>
+      <p>No existen otras sucursales activas registradas para realizar traslados.</p>
+    </div>
+
+    <div *ngIf="sucursalesDisponibles.length > 0" class="form-fields-grid">
+
+      <!-- Sucursal de Destino -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Sucursal de Destino</mat-label>
+        <mat-select formControlName="sucursal_destino_id">
+          <mat-option *ngFor="let s of sucursalesDisponibles" [value]="s.id">
+            {{ s.nombre }} ({{ s.ciudad || 'Principal' }})
+          </mat-option>
+        </mat-select>
+        <mat-icon matSuffix>storefront</mat-icon>
+        <mat-error *ngIf="form.get('sucursal_destino_id')?.hasError('required')">
+          Debe seleccionar la sucursal de destino.
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Cantidad a Transferir -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Cantidad de Unidades a Trasladar</mat-label>
+        <input matInput type="number" formControlName="cantidad" min="1" [max]="stockDisponible">
+        <mat-icon matSuffix>inventory</mat-icon>
+        <mat-hint>Máximo transferible disponible: {{ stockDisponible }} unidades</mat-hint>
+        <mat-error *ngIf="form.get('cantidad')?.hasError('required')">
+          La cantidad es obligatoria.
+        </mat-error>
+        <mat-error *ngIf="form.get('cantidad')?.hasError('max')">
+          No puede superar el stock disponible ({{ stockDisponible }} un.).
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Motivo del traslado -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Motivo o Justificación del Traslado</mat-label>
+        <input matInput formControlName="motivo" placeholder="Ej: Balanceo por alta demanda en sucursal destino">
+        <mat-icon matSuffix>edit_note</mat-icon>
+        <mat-error *ngIf="form.get('motivo')?.hasError('required')">
+          El motivo es obligatorio.
+        </mat-error>
+      </mat-form-field>
+
+      <!-- Guía o Referencia -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nº de Guía de Remisión / Referencia (Opcional)</mat-label>
+        <input matInput formControlName="referencia" placeholder="Ej: GUIA-TRF-0012">
+        <mat-icon matSuffix>tag</mat-icon>
+      </mat-form-field>
+
+      <!-- Impacto Proyectado -->
+      <div class="projection-banner">
+        <mat-icon>sync_alt</mat-icon>
+        <div class="projection-text">
+          <span>Stock final en origen: <strong>{{ stockOrigenProyectado }} un.</strong></span>
+          <span class="projection-sub">Se generará comprobante de salida en origen y recepción en destino simultáneamente.</span>
+        </div>
+      </div>
+
+    </div>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-actions">
+    <button mat-button type="button" (click)="onCancel()" class="btn-cancel">
+      Cancelar
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      class="btn-submit"
+      [disabled]="form.invalid || sucursalesDisponibles.length === 0 || stockDisponible <= 0">
+      <mat-icon>local_shipping</mat-icon>
+      <span>Confirmar Traslado</span>
+    </button>
+  </mat-dialog-actions>
+</form>

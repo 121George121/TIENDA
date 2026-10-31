@@ -54,4 +54,9 @@ export class ReservationAdminController {
       finalize(() => this.loadingSubject.next(false))
     );
   }
+
+  // --- Aliases en español ---
+  cargarReservasSucursal = this.cargarReservas.bind(this);
+  buscarReservaPorCodigo = this.buscarPorCodigo.bind(this);
+  atenderReservaEnSucursal = this.atenderReserva.bind(this);
 }

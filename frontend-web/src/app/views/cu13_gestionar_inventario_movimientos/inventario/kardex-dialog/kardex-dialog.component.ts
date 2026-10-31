@@ -53,7 +53,7 @@ export class KardexDialogComponent implements OnInit {
         this.movimientos = data;
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al cargar kardex:', err);
         this.loading = false;
       }
@@ -61,7 +61,8 @@ export class KardexDialogComponent implements OnInit {
   }
 
   getBadgeClass(tipo: string): string {
-    const t = tipo.toLowerCase();
+    const t = (tipo || '').toLowerCase();
+    if (t.includes('traslado')) return 'badge-traslado';
     if (t.includes('entrada') || t.includes('ingreso') || t.includes('reabastecimiento')) return 'badge-entrada';
     if (t.includes('salida') || t.includes('merma') || t.includes('baja')) return 'badge-salida';
     if (t.includes('venta')) return 'badge-venta';

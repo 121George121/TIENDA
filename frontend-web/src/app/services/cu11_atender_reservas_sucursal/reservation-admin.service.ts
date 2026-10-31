@@ -40,4 +40,9 @@ export class ReservationAdminService {
     };
     return this.http.post<Reserva>(`${this.apiUrl}/${reservaId}/atender`, payload);
   }
+
+  // --- Aliases en español ---
+  listarReservasSucursal = this.getReservasAdmin.bind(this);
+  buscarReservaPorCodigo = this.buscarPorCodigo.bind(this);
+  atenderReservaEnSucursal = this.atenderReserva.bind(this);
 }

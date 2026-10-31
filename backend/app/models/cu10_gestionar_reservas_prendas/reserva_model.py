@@ -5,7 +5,7 @@
 
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.core.database import Base
 
 
@@ -16,14 +16,24 @@ class Reserva(Base):
     tenant_id = Column(Integer, ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, default=1)
     codigoreserva = Column(String(100), unique=True, nullable=False, index=True)
     fechareserva = Column(DateTime, default=datetime.utcnow, nullable=False)
-    estado = Column(String(50), default="PENDIENTE", nullable=False)  # PENDIENTE, CONFIRMADA, ENTREGADA, CANCELADA, EXPIRADA
+    estado = Column(String(50), default="PENDIENTE", nullable=False)  # PENDIENTE, CONFIRMADA, PAGADA, ENTREGADA, CANCELADA, EXPIRADA
     observaciones = Column(Text, nullable=True)
     sucursalid = Column(Integer, ForeignKey("sucursal.id", ondelete="RESTRICT"), nullable=False, index=True)
-    clienteid = Column(Integer, ForeignKey("cliente.id", ondelete="RESTRICT"), nullable=False, index=True)
+    clienteid = Column(Integer, ForeignKey("usuario.id", ondelete="RESTRICT"), nullable=False, index=True)
 
     sucursal = relationship("Sucursal", backref="reservas")
-    cliente = relationship("Cliente", backref="reservas")
+    cliente = relationship("Usuario", foreign_keys=[clienteid], backref="reservas")
     detalles = relationship("ReservaDetalle", back_populates="reserva", cascade="all, delete-orphan")
+
+    @property
+    def fecha_expiracion(self) -> datetime:
+        """Vencimiento de 48 horas oficiales para retiro físico en tienda"""
+        return (self.fechareserva or datetime.utcnow()) + timedelta(hours=48)
+
+    @property
+    def es_expirada(self) -> bool:
+        """Indica si han transcurrido más de 48 horas desde la creación de la reserva"""
+        return datetime.utcnow() > self.fecha_expiracion
 
 
 class ReservaDetalle(Base):
@@ -45,3 +55,9 @@ ReservaDetalleModel = ReservaDetalle
 
 reserva = Reserva
 reserva_detalle = ReservaDetalle
+
+__all__ = [
+    "Reserva", "ReservaDetalle",
+    "ReservaModel", "ReservaDetalleModel",
+    "reserva", "reserva_detalle"
+]

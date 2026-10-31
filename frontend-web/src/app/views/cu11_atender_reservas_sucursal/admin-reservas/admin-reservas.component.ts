@@ -63,7 +63,7 @@ export class AdminReservasComponent implements OnInit {
   cargarSucursales(): void {
     this.inventoryService.getSucursales().subscribe({
       next: (data) => this.sucursales = data,
-      error: (err) => console.error('Error al cargar sucursales:', err)
+      error: (err: any) => console.error('Error al cargar sucursales:', err)
     });
   }
 
@@ -74,7 +74,7 @@ export class AdminReservasComponent implements OnInit {
         this.reservas = data;
         this.loading = false;
       },
-      error: (err) => {
+      error: (err: any) => {
         console.error('Error al cargar reservas:', err);
         this.loading = false;
       }
@@ -95,7 +95,7 @@ export class AdminReservasComponent implements OnInit {
         // Abrir directamente el modal de atención con la reserva encontrada
         this.abrirAtencion(reserva);
       },
-      error: (err) => {
+      error: (err: any) => {
         this.buscando = false;
         alert(err.error?.detail || `No se encontró reserva con código "${code}"`);
       }
@@ -142,7 +142,7 @@ export class AdminReservasComponent implements OnInit {
 
         this.cargarReservas();
       },
-      error: (err) => {
+      error: (err: any) => {
         this.procesandoAccion = false;
         alert(err.error?.detail || 'Error al procesar la reserva');
       }
