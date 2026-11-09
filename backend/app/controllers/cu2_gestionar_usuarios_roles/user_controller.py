@@ -10,10 +10,7 @@ from sqlalchemy import func
 from fastapi import HTTPException, status
 
 from app.models.models import (
-    Usuario, Rol, Cliente, Venta, 
-    MovimientoInventario, Reserva, ReservaDetalle, 
-    Carrito, CarritoItem, Notificacion,
-    Tenant, PlanSuscripcion
+    Usuario, Rol, Cliente, Tenant, PlanSuscripcion
 )
 from app.schemas.schemas import UsuarioAdminCreate, UsuarioUpdate
 from app.core.security import get_password_hash
@@ -342,76 +339,43 @@ class UsuarioController:
         operador_id: Optional[int] = None
     ) -> Dict[str, str]:
         """
-        Elimina de forma segura un usuario si no posee registros transaccionales vinculados.
+        Aplica baja lógica de forma segura al usuario (activo = False),
+        preservando la integridad histórica, fiscal y transaccional del sistema.
         """
         usuario = UsuarioController.obtener_usuario_por_id(db, user_id=user_id, tenant_id=tenant_id)
 
         if operador_id and operador_id == user_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No puedes eliminar tu propia cuenta mientras estás en sesión."
+                detail="No puedes desactivar tu propia cuenta mientras estás en sesión."
             )
 
-        # 1. Verificar ventas como cajero/vendedor o como cliente
+        # Aplicar baja lógica al usuario
+        usuario.activo = False
+
+        # Si tiene perfil de cliente asociado, desactivar también su acceso
         cliente = db.query(Cliente).filter(Cliente.usuarioid == user_id).first()
-        cliente_id = cliente.id if cliente else -1
-
-        ventas_count = db.query(Venta).filter(
-            (Venta.usuarioid == user_id) | (Venta.clienteid == cliente_id)
-        ).count()
-        if ventas_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se puede eliminar permanentemente este usuario porque tiene ventas o compras registradas. Se recomienda desactivar su acceso."
-            )
-
-        # 2. Verificar movimientos de inventario
-        movs_count = db.query(MovimientoInventario).filter(MovimientoInventario.usuarioid == user_id).count()
-        if movs_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No se puede eliminar este usuario porque tiene movimientos de inventario registrados para auditoría. Se recomienda desactivar su acceso."
-            )
-
-        # 3. Limpiar reservas vinculadas
-        reservas = db.query(Reserva).filter(
-            (Reserva.clienteid == user_id) | ((Reserva.clienteid == cliente_id) if cliente else False)
-        ).all()
-        for res in reservas:
-            db.query(ReservaDetalle).filter(ReservaDetalle.reservaid == res.id).delete()
-            db.delete(res)
-
-        # 4. Limpiar carritos
-        carritos = db.query(Carrito).filter(Carrito.clienteid == user_id).all()
-        for car in carritos:
-            db.query(CarritoItem).filter(CarritoItem.carritoid == car.id).delete()
-            db.delete(car)
-
-        # 5. Limpiar notificaciones
-        db.query(Notificacion).filter(Notificacion.usuario_id == user_id).delete()
-
-        # 6. Eliminar perfil cliente si existía
         if cliente:
-            db.delete(cliente)
+            cliente.activo = False
 
-        email_borrado = usuario.email
-        db.delete(usuario)
         db.commit()
+        db.refresh(usuario)
 
+        # Registro en Bitácora
         try:
             from app.controllers.cu26_gestionar_bitacora.bitacora_controller import BitacoraController
             BitacoraController.registrar_evento(
                 db=db,
-                accion="ELIMINAR",
+                accion="BAJA_LOGICA",
                 modulo="USUARIOS",
                 usuario_id=operador_id or 1,
-                detalle=f"Eliminación definitiva del usuario {email_borrado}",
-                datos_nuevos={"email": email_borrado}
+                detalle=f"Baja lógica del usuario {usuario.email} (acceso desactivado)",
+                datos_nuevos={"email": usuario.email, "activo": False}
             )
         except Exception:
             pass
 
-        return {"mensaje": f"Usuario {email_borrado} eliminado correctamente"}
+        return {"mensaje": f"Usuario {usuario.email} dado de baja exitosamente (acceso desactivado)"}
 
 
 # ==============================================================================
