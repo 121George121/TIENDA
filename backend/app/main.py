@@ -29,7 +29,6 @@ from app.views.cu16_gestionar_pagos_comprobantes import pago_views
 from app.views.cu17_consultar_historial_compras_reservas import historial_views
 from app.views.cu18_gestionar_recomendaciones_ia import recomendacion_views
 from app.views.cu19_gestionar_notificaciones import notificacion_views
-from app.views.cu20_generar_reportes_dashboards import reporte_views
 from app.views.cu26_gestionar_bitacora import bitacora_views
 
 # CU20 a CU27 - Nuevos Casos de Uso del Sistema
@@ -131,7 +130,6 @@ app.include_router(pago_views.router, prefix=settings.API_V1_STR)
 app.include_router(historial_views.router, prefix=settings.API_V1_STR)
 app.include_router(recomendacion_views.router, prefix=settings.API_V1_STR)
 app.include_router(notificacion_views.router, prefix=settings.API_V1_STR)
-app.include_router(reporte_views.router, prefix=settings.API_V1_STR)
 app.include_router(bitacora_views.router, prefix=settings.API_V1_STR)
 
 # Inclusión de Routers para CU20 a CU27
