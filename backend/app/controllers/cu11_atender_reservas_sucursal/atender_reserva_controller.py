@@ -6,6 +6,10 @@
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from app.models.models import (
+    Reserva, ReservaDetalle, Inventario,
+    MovimientoInventario, Usuario, Sucursal, Tenant, Bitacora
+)
 
 from app.schemas.reserva_schema import (
     ReservaResponse,

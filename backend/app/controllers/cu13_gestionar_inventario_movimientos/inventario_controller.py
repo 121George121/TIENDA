@@ -6,7 +6,11 @@
 from typing import List, Optional, Dict
 from sqlalchemy.orm import Session
 
-from app.models.models import UsuarioModel
+from app.models.models import (
+    Inventario, MovimientoInventario, Sucursal,
+    Producto, VarianteProducto, Usuario, Tenant, Bitacora,
+    UsuarioModel
+)
 from app.schemas.inventario_schema import (
     MovimientoInventarioCreate,
     StockMinimoUpdate,

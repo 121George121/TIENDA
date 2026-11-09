@@ -5,7 +5,12 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional, Any
-from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
+from app.models.models import (
+    Venta, DetalleVenta, Pago, MetodoPago,
+    Carrito, CarritoItem, Usuario, Cliente,
+    Sucursal, Inventario, VarianteProducto,
+    Tenant, Bitacora, UsuarioModel
+)
 from app.schemas.orden_schema import OrdenCreate, ActualizarEstadoOrdenRequest
 from app.services.cu15_realizar_compras_digitales.compra_digital_service import CompraDigitalService
 

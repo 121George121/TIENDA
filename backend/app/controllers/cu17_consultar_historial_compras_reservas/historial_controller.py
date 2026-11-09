@@ -6,7 +6,10 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
+from app.models.models import (
+    Venta, DetalleVenta, Reserva, ReservaDetalle,
+    Usuario, Cliente, Tenant, UsuarioModel
+)
 from app.services.cu17_consultar_historial_compras_reservas.historial_service import HistorialService
 
 

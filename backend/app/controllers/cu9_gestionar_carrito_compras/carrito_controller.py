@@ -5,6 +5,10 @@
 # ==============================================================================
 
 from sqlalchemy.orm import Session
+from app.models.models import (
+    Carrito, CarritoItem, VarianteProducto,
+    Producto, Sucursal, Inventario, Usuario, Tenant
+)
 from app.services.cu9_gestionar_carrito_compras.carrito_service import CarritoService
 from app.schemas.carrito_schema import (
     CarritoResponse, AgregarItemCarritoRequest,

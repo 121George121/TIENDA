@@ -9,7 +9,11 @@ from typing import List, Dict, Optional
 from app.models.cu14_registrar_ventas_presenciales.venta_presencial_model import (
     MetodoPagoModel,
 )
-from app.models.models import UsuarioModel
+from app.models.models import (
+    Venta, DetalleVenta, MetodoPago, Pago,
+    Cliente, Usuario, Sucursal, Inventario,
+    VarianteProducto, Tenant, Bitacora, UsuarioModel
+)
 from app.schemas.orden_schema import VentaPresencialCreate
 from app.services.cu14_registrar_ventas_presenciales.venta_presencial_service import (
     VentaPresencialService,

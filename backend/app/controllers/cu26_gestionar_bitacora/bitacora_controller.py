@@ -13,6 +13,7 @@ from sqlalchemy import func, desc, or_
 
 from app.models.cu26_gestionar_bitacora.bitacora_model import BitacoraModel, get_bolivia_now
 from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel, RolModel
+from app.models.models import Bitacora, Usuario, Rol, Tenant
 from app.schemas.cu26_gestionar_bitacora.bitacora_schema import BitacoraCreate
 
 

@@ -7,7 +7,10 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.models.models import Proveedor, ProductoProveedor
+from app.models.models import (
+    Proveedor, ProductoProveedor, Producto,
+    Tenant, Bitacora
+)
 from app.services.cu7_gestionar_proveedores_productos_suministrados.proveedor_service import ProveedorService
 from app.schemas.proveedor_schema import (
     ProveedorCreate, ProveedorUpdate, ProductoProveedorCreate

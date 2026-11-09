@@ -6,7 +6,9 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
+from app.models.models import (
+    Notificacion, Usuario, Tenant, UsuarioModel
+)
 from app.services.cu19_gestionar_notificaciones.notificacion_service import NotificacionService
 
 

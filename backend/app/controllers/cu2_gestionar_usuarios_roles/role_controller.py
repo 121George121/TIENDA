@@ -7,7 +7,7 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from app.models.models import Rol
+from app.models.models import Rol, Bitacora
 from app.schemas.schemas import RolCreate
 
 # Catálogo predeterminado de permisos por rol

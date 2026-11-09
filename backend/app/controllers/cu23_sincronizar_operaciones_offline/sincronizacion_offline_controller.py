@@ -5,6 +5,10 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
+from app.models.models import (
+    Venta, DetalleVenta, Inventario, Sucursal, Usuario, Tenant, Bitacora
+)
+from app.models.cu22_registrar_cobros_contado_offline.cobro_offline_model import CobroOffline
 
 from app.services.cu23_sincronizar_operaciones_offline.sincronizacion_offline_service import SincronizacionOfflineService
 

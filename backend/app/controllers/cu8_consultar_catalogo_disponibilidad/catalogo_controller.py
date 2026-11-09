@@ -6,7 +6,10 @@
 
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
-
+from app.models.models import (
+    Producto, VarianteProducto, Sucursal,
+    Inventario, Categoria, Color, Talla, Tenant
+)
 from app.services.cu8_consultar_catalogo_disponibilidad.catalogo_service import CatalogoService
 from app.schemas.inventario_schema import (
     ProductoCatalogoItem, DisponibilidadProductoResponse, ActualizarStockRequest

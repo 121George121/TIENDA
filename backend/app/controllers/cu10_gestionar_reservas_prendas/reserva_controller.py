@@ -6,6 +6,11 @@
 
 from typing import Optional, List
 from sqlalchemy.orm import Session
+from app.models.models import (
+    Reserva, ReservaDetalle, Carrito, CarritoItem,
+    Inventario, Sucursal, VarianteProducto, Producto,
+    Usuario, Tenant
+)
 from app.services.cu10_gestionar_reservas_prendas.reserva_service import (
     ReservaService, formatear_reserva, generar_codigo_reserva
 )

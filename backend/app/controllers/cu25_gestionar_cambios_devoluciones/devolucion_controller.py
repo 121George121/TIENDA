@@ -5,6 +5,10 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
+from app.models.models import (
+    Venta, DetalleVenta, Inventario,
+    MovimientoInventario, Usuario, Tenant, Bitacora
+)
 
 from app.services.cu25_gestionar_cambios_devoluciones.devolucion_service import DevolucionService
 

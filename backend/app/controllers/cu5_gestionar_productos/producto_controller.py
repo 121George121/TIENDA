@@ -8,7 +8,10 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from app.services.cu5_gestionar_productos.producto_service import ProductoService
 from app.schemas.producto_schema import ProductoCreate, ProductoUpdate
-from app.models.models import Producto
+from app.models.models import (
+    Producto, VarianteProducto, Categoria,
+    Tenant, PlanSuscripcion, Bitacora
+)
 
 
 class ProductoController:

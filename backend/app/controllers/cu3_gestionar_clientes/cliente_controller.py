@@ -6,6 +6,15 @@
 
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
+from app.models.models import (
+    Cliente,
+    Usuario,
+    Rol,
+    Tenant,
+    Venta,
+    Reserva,
+    Bitacora
+)
 from app.services.cu3_gestionar_clientes.cliente_service import ClienteService
 from app.schemas.cliente_schema import ClienteCreate, ClienteUpdate
 

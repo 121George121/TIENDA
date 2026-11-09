@@ -7,6 +7,9 @@ import os
 from typing import Dict, Any, Optional
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
+from app.models.models import (
+    PruebaVirtual, Usuario, Producto, Tenant
+)
 
 from app.services.cu12_vestidor_virtual_ia.vestidor_service import VestidorService
 

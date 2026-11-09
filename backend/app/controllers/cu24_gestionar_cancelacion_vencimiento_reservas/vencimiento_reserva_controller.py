@@ -5,6 +5,10 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional, List
+from app.models.models import (
+    Reserva, ReservaDetalle, Inventario,
+    Sucursal, Usuario, Tenant, Bitacora
+)
 
 from app.services.cu24_gestionar_cancelacion_vencimiento_reservas.vencimiento_reserva_service import VencimientoReservaService
 

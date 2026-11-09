@@ -5,6 +5,8 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Optional, Any, Dict
+from app.models.models import Sucursal, Usuario, Tenant, Bitacora
+from app.models.cu22_registrar_cobros_contado_offline.cobro_offline_model import CobroOffline
 
 from app.services.cu22_registrar_cobros_contado_offline.cobro_offline_service import CobroOfflineService
 from app.schemas.cu22_registrar_cobros_contado_offline.cobro_offline_schema import CobroOfflineCreate

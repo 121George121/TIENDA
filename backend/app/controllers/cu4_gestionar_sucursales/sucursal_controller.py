@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from app.services.cu4_gestionar_sucursales.sucursal_service import SucursalService
 from app.schemas.sucursal_schema import SucursalCreate, SucursalUpdate
-from app.models.models import Sucursal
+from app.models.models import Sucursal, Tenant, PlanSuscripcion, Bitacora
 
 
 class SucursalController:

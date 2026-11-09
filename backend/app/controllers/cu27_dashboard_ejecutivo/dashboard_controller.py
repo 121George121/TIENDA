@@ -5,6 +5,9 @@
 
 from sqlalchemy.orm import Session
 from typing import Optional, Dict, Any, List
+from app.models.models import (
+    Venta, DetalleVenta, Sucursal, Producto, Usuario, Tenant
+)
 
 from app.services.cu27_dashboard_ejecutivo.dashboard_service import DashboardService
 

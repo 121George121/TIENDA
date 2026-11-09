@@ -5,6 +5,9 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
+from app.models.models import (
+    PlanSuscripcion, Tenant, Usuario, Bitacora
+)
 
 from app.services.cu21_administrar_planes_suscripcion_tenants.suscripcion_tenant_service import SuscripcionTenantService
 from app.schemas.cu21_administrar_planes_suscripcion_tenants.suscripcion_tenant_schema import (

@@ -13,7 +13,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException, status
 
-from app.models.models import UsuarioModel, RolModel, TenantModel
+from app.models.models import (
+    UsuarioModel, RolModel, TenantModel, ClienteModel, BitacoraModel,
+    Usuario, Rol, Tenant, Cliente, Bitacora
+)
 from app.schemas.schemas import UsuarioCreate
 from app.core.config import settings
 from app.core.security import (
@@ -301,7 +304,6 @@ class AuthController:
 
         # Registrar cliente correspondiente en CU03 si no existe
         try:
-            from app.models.models import ClienteModel
             cliente_existente = db.query(ClienteModel).filter(
                 ClienteModel.usuario_id == nuevo_usuario.id
             ).first()

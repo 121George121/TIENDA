@@ -6,7 +6,9 @@
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any, Optional
 
-from app.models.cu1_gestionar_autenticacion.usuario_rol_model import UsuarioModel
+from app.models.models import (
+    Producto, Categoria, Carrito, Usuario, Tenant, UsuarioModel
+)
 from app.services.cu18_gestionar_recomendaciones_ia.recomendacion_service import RecomendacionService
 
 

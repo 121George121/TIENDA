@@ -5,6 +5,8 @@
 
 from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
+from app.models.models import Usuario, Tenant
+from app.models.cu20_generar_reportes_generativos_ia.reporte_generativo_model import ReporteGenerativoModel, ReporteGenerativo
 
 from app.services.cu20_generar_reportes_generativos_ia.reporte_generativo_service import ReporteGenerativoService
 

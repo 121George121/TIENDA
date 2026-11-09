@@ -5,7 +5,10 @@
 
 from sqlalchemy.orm import Session
 from typing import List, Dict, Optional, Any
-from app.models.models import UsuarioModel
+from app.models.models import (
+    Pago, MetodoPago, ComprobantePago,
+    Venta, Usuario, Tenant, Bitacora, UsuarioModel
+)
 from app.services.cu16_gestionar_pagos_comprobantes.pago_service import PagoService
 
 

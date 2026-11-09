@@ -8,7 +8,10 @@
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 
-from app.models.models import Categoria, Temporada, Coleccion
+from app.models.models import (
+    Categoria, Temporada, Coleccion, Producto,
+    Tenant, Bitacora
+)
 from app.services.cu6_gestionar_clasificacion_prendas.clasificacion_service import (
     CategoriaService, TemporadaService, ColeccionService
 )
